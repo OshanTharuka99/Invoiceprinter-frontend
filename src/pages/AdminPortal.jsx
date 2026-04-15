@@ -7,31 +7,16 @@ import {
     Users, UserPlus, Trash2, ShieldCheck, LogOut, Search,
     RefreshCw, LayoutDashboard, FileText, Settings,
     ChevronRight, Activity, Bell, X, Check, AlertCircle,
-    TrendingUp, Shield, Crown, Edit3, Filter, Eye, EyeOff
+    TrendingUp, Shield, Crown, Edit3, Filter, Eye, EyeOff,
+    CheckCircle2, ArrowUpCircle, ArrowDownCircle
 } from 'lucide-react';
 
 const AdminPortal = () => {
     const { user, logout } = useAuth();
 
     const handleLogout = () => {
-        toast(
-            `Goodbye, ${user?.firstName}! See you soon. 👋`,
-            {
-                duration: 3000,
-                icon: '🔒',
-                style: {
-                    background: '#0f172a',
-                    color: '#f8fafc',
-                    borderRadius: '14px',
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    padding: '14px 20px',
-                    fontSize: '1rem',
-                    fontFamily: "'Outfit', sans-serif",
-                    fontWeight: '600',
-                },
-            }
-        );
-        setTimeout(() => logout(), 1200);
+        toast.success(`Logging out...`);
+        logout();
     };
 
     const [users, setUsers] = useState([]);
@@ -46,10 +31,15 @@ const AdminPortal = () => {
     // Modals
     const [addUserModal, setAddUserModal] = useState(false);
     const [editUserModal, setEditUserModal] = useState(false);
+    const [deleteConfirmModal, setDeleteConfirmModal] = useState(false);
+    const [roleConfirmModal, setRoleConfirmModal] = useState(false);
     
     // Form States
     const [newUser, setNewUser] = useState({ firstName: '', lastName: '', email: '', password: '', designation: '', role: 'user', sex: 'male', telephoneNumber: '' });
     const [editingUser, setEditingUser] = useState(null);
+    const [userToDelete, setUserToDelete] = useState(null);
+    const [userToPromote, setUserToPromote] = useState(null);
+    const [typedConfirmName, setTypedConfirmName] = useState('');
     
     // Password Visibility
     const [showAddPass, setShowAddPass] = useState(false);
@@ -76,7 +66,7 @@ const AdminPortal = () => {
 
     const uniqueDesignations = [...new Set(users.map(u => u.designation).filter(Boolean))].sort();
 
-    const handleDelete = async (targetUser) => {
+    const openDeleteModal = (targetUser) => {
         const isAdmin = user.role === 'admin';
         if (isAdmin && (targetUser.role === 'admin' || targetUser.role === 'root')) {
             showToast('Admins cannot delete other admins or root.', 'error');
@@ -87,31 +77,50 @@ const AdminPortal = () => {
             return;
         }
 
-        if (!window.confirm(`Are you sure you want to delete ${targetUser.firstName}?`)) return;
+        setUserToDelete(targetUser);
+        setTypedConfirmName('');
+        setDeleteConfirmModal(true);
+    };
+
+    const handleDelete = async () => {
+        if (!userToDelete || typedConfirmName !== userToDelete.firstName) return;
+
         try {
-            await api.delete(`/users/${targetUser._id}`);
-            setUsers(users.filter(u => u._id !== targetUser._id));
-            showToast('User deleted successfully');
+            await api.delete(`/users/${userToDelete._id}`);
+            setUsers(users.filter(u => u._id !== userToDelete._id));
+            setDeleteConfirmModal(false);
+            setUserToDelete(null);
+            showToast('User permanently deleted');
         } catch (err) {
             showToast(err.response?.data?.message || 'Failed to delete user', 'error');
         }
     };
 
-    const handleRoleUpdate = async (targetUser) => {
+    const openRoleConfirmModal = (targetUser) => {
         const targetIsRoot = targetUser.role === 'root';
         const targetIsAdmin = targetUser.role === 'admin';
-        const newRole = targetIsAdmin ? 'user' : 'admin';
+        const nextRole = targetIsAdmin ? 'user' : 'admin';
 
         if (user.role === 'admin') {
             if (targetIsRoot) { showToast('Admins cannot modify root.', 'error'); return; }
-            if (targetIsAdmin && newRole === 'user') { showToast('Admins cannot demote admins.', 'error'); return; }
+            if (targetIsAdmin && nextRole === 'user') { showToast('Admins cannot demote admins.', 'error'); return; }
         }
         if (targetIsRoot) { showToast('Root protected.', 'error'); return; }
 
+        setUserToPromote(targetUser);
+        setRoleConfirmModal(true);
+    };
+
+    const handleRoleUpdate = async () => {
+        if (!userToPromote) return;
+        const newRole = userToPromote.role === 'admin' ? 'user' : 'admin';
+
         try {
-            await api.patch(`/users/${targetUser._id}/role`, { role: newRole });
-            setUsers(users.map(u => u._id === targetUser._id ? { ...u, role: newRole } : u));
-            showToast(`Role updated to ${newRole.toUpperCase()}`);
+            await api.patch(`/users/${userToPromote._id}/role`, { role: newRole });
+            setUsers(users.map(u => u._id === userToPromote._id ? { ...u, role: newRole } : u));
+            setRoleConfirmModal(false);
+            setUserToPromote(null);
+            showToast(`Permission updated to ${newRole.toUpperCase()}`);
         } catch (err) {
             showToast('Failed to update role', 'error');
         }
@@ -124,7 +133,7 @@ const AdminPortal = () => {
             setUsers([...users, res.data.data.user]);
             setAddUserModal(false);
             setNewUser({ firstName: '', lastName: '', email: '', password: '', designation: '', role: 'user', sex: 'male', telephoneNumber: '' });
-            setShowAddPass(false); // Reset visibility
+            setShowAddPass(false); 
             showToast('User created successfully');
         } catch (err) {
             showToast(err.response?.data?.message || 'Failed to create user', 'error');
@@ -133,7 +142,7 @@ const AdminPortal = () => {
 
     const openEditModal = (userToEdit) => {
         setEditingUser({ ...userToEdit, password: '' });
-        setShowEditPass(false); // Reset visibility
+        setShowEditPass(false); 
         setEditUserModal(true);
     };
 
@@ -179,7 +188,7 @@ const AdminPortal = () => {
     const inputStyle = {
         width: '100%', background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: '12px',
         padding: '0.85rem 1.25rem', color: '#0f172a', outline: 'none', fontSize: '1rem',
-        fontFamily: "'Outfit', sans-serif", transition: 'all 0.2s ease', boxSizing: 'border-box'
+        fontFamily: "'Outfit', sans-serif", transition: 'border-color 0.1s, box-shadow 0.1s', boxSizing: 'border-box'
     };
 
     const filterSelectStyle = {
@@ -195,20 +204,20 @@ const AdminPortal = () => {
         color: '#fff', border: 'none', borderRadius: '14px', padding: '1rem 1.5rem',
         cursor: 'pointer', fontWeight: 700, fontSize: '1.05rem', fontFamily: "'Outfit', sans-serif",
         letterSpacing: '0.02em', boxShadow: '0 4px 12px rgba(15,23,42,0.15)',
-        transition: 'all 0.3s ease', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem'
+        transition: 'transform 0.1s, background 0.1s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem'
     };
 
     const secondaryButtonStyle = {
         background: '#fff', color: '#475569', border: '1px solid #e2e8f0', borderRadius: '14px',
         padding: '1rem 1.5rem', cursor: 'pointer', fontWeight: 600, fontSize: '1.05rem',
-        fontFamily: "'Outfit', sans-serif", transition: 'all 0.3s ease'
+        fontFamily: "'Outfit', sans-serif", transition: 'transform 0.1s, border-color 0.1s'
     };
 
     return (
         <div style={{ display: 'flex', minHeight: '100vh', background: '#f1f5f9', fontFamily: "'Outfit', sans-serif", color: '#0f172a' }}>
 
             {/* Sidebar */}
-            <motion.aside animate={{ width: sidebarOpen ? 280 : 80 }} transition={{ duration: 0.3 }} style={{ background: '#08090a', color: '#fff', display: 'flex', flexDirection: 'column', position: 'sticky', top: 0, height: '100vh', overflow: 'hidden', flexShrink: 0, boxShadow: '4px 0 24px rgba(0,0,0,0.08)' }}>
+            <motion.aside animate={{ width: sidebarOpen ? 280 : 80 }} transition={{ duration: 0.2 }} style={{ background: '#08090a', color: '#fff', display: 'flex', flexDirection: 'column', position: 'sticky', top: 0, height: '100vh', overflow: 'hidden', flexShrink: 0, boxShadow: '4px 0 24px rgba(0,0,0,0.08)' }}>
                 <div style={{ padding: '2rem 1.5rem', borderBottom: '1px solid rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', gap: '1rem' }}>
                     <div style={{ width: 44, height: 44, background: '#fff', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><ShieldCheck size={24} color="#08090a" /></div>
                     {sidebarOpen && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
@@ -218,44 +227,29 @@ const AdminPortal = () => {
                 </div>
                 <nav style={{ padding: '1.5rem 0.75rem', flex: 1 }}>
                     {navItems.map((item) => (
-                        <button key={item.id} onClick={() => setActiveNav(item.id)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.9rem 1rem', borderRadius: '12px', marginBottom: '0.4rem', border: 'none', cursor: 'pointer', background: activeNav === item.id ? 'rgba(255,255,255,0.1)' : 'transparent', color: activeNav === item.id ? '#fff' : '#4b5563', fontFamily: "'Outfit', sans-serif", fontSize: '1.05rem', fontWeight: activeNav === item.id ? 700 : 500, transition: 'all 0.2s' }}>
+                        <motion.button whileTap={{ scale: 0.97 }} key={item.id} onClick={() => setActiveNav(item.id)} title={item.label} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.9rem 1rem', borderRadius: '12px', marginBottom: '0.4rem', border: 'none', cursor: 'pointer', background: activeNav === item.id ? 'rgba(255,255,255,0.1)' : 'transparent', color: activeNav === item.id ? '#fff' : '#4b5563', fontFamily: "'Outfit', sans-serif", fontSize: '1.05rem', fontWeight: activeNav === item.id ? 700 : 500, transition: 'background 0.1s' }}>
                             <item.icon size={20} />
                             {sidebarOpen && <span>{item.label}</span>}
-                        </button>
+                        </motion.button>
                     ))}
                 </nav>
-                <div style={{ padding: '1rem', borderTop: '1px solid rgba(255,255,255,0.07)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.75rem' }}>
-                        <div style={{ width: 44, height: 44, background: '#fff', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.95rem', fontWeight: 800, color: '#08090a' }}>{user?.firstName?.[0]}{user?.lastName?.[0]}</div>
-                        {sidebarOpen && <div style={{ flex: 1, overflow: 'hidden' }}>
-                            <div style={{ fontSize: '1rem', fontWeight: 700, color: '#fff' }}>{user?.firstName}</div>
-                            <div style={{ fontSize: '0.75rem', color: '#4b5563', textTransform: 'uppercase', fontWeight: 600 }}>{user?.role}</div>
-                        </div>}
-                        {sidebarOpen && <button onClick={handleLogout} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#4b5563' }}><LogOut size={18} /></button>}
-                    </div>
-                </div>
             </motion.aside>
 
             <div style={{ flex: 1, overflow: 'auto' }}>
                 <header style={{ position: 'sticky', top: 0, zIndex: 10, background: 'rgba(241,245,249,0.85)', backdropFilter: 'blur(16px)', borderBottom: '1px solid #e2e8f0', padding: '0 2.5rem', height: 80, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-                        <button onClick={() => setSidebarOpen(!sidebarOpen)} style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '8px 10px', cursor: 'pointer', color: '#64748b' }}><LayoutDashboard size={18} /></button>
+                        <button onClick={() => setSidebarOpen(!sidebarOpen)} title="Toggle Sidebar" style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '8px 10px', cursor: 'pointer', color: '#64748b' }}><LayoutDashboard size={18} /></button>
                         <h2 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0 }}>User Management</h2>
                     </div>
-                    <button onClick={() => setAddUserModal(true)} 
-                        style={{ ...primaryButtonStyle, padding: '0.65rem 1.5rem', fontSize: '0.95rem' }}
-                        onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 6px 16px rgba(15,23,42,0.25)'; }}
-                        onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(15,23,42,0.15)'; }}
-                    >
+                    <motion.button whileTap={{ scale: 0.95 }} onClick={() => setAddUserModal(true)} title="Create New Account" style={{ ...primaryButtonStyle, padding: '0.65rem 1.5rem', fontSize: '0.95rem' }}>
                         <UserPlus size={18} /> Add User
-                    </button>
+                    </motion.button>
                 </header>
 
                 <main style={{ padding: '3rem 2.5rem', maxWidth: 1440, margin: '0 auto' }}>
-                    {/* Stats */}
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem', marginBottom: '3rem' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem', marginBottom: '3rem' }}>
                         {stats.map((stat, i) => (
-                            <div key={i} style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '20px', padding: '2rem', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
+                            <div key={i} style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '24px', padding: '2rem', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
                                     <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{stat.label}</span>
                                     <stat.icon size={20} color="#64748b" />
@@ -270,22 +264,22 @@ const AdminPortal = () => {
                         <div style={{ padding: '1.75rem 2rem', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1.5rem' }}>
                             <div style={{ position: 'relative' }}>
                                 <Search size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
-                                <input type="text" placeholder="Search by name or email..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '0.75rem 1.25rem 0.75rem 3rem', color: '#0f172a', outline: 'none', fontSize: '1rem', width: 320, fontFamily: "'Outfit', sans-serif" }} />
+                                <input type="text" placeholder="Search by name or email..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '0.75rem 1.25rem 0.75rem 3rem', color: '#0f172a', outline: 'none', fontSize: '1.05rem', width: 340, fontFamily: "'Outfit', sans-serif" }} />
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                                     <Filter size={18} color="#64748b" />
-                                    <select value={roleFilter} onChange={e => setRoleFilter(e.target.value)} style={filterSelectStyle}><option value="all">All Roles</option><option value="user">Users</option><option value="admin">Admins</option><option value="root">Root</option></select>
-                                    <select value={designationFilter} onChange={e => setDesignationFilter(e.target.value)} style={filterSelectStyle}><option value="all">All Designations</option>{uniqueDesignations.map(d => <option key={d} value={d}>{d}</option>)}</select>
-                                    <select value={sexFilter} onChange={e => setSexFilter(e.target.value)} style={filterSelectStyle}><option value="all">All Genders</option><option value="male">Male</option><option value="female">Female</option><option value="other">Other</option></select>
+                                    <select value={roleFilter} title="Filter by Role" onChange={e => setRoleFilter(e.target.value)} style={filterSelectStyle}><option value="all">All Roles</option><option value="user">Users</option><option value="admin">Admins</option><option value="root">Root</option></select>
+                                    <select value={designationFilter} title="Filter by Designation" onChange={e => setDesignationFilter(e.target.value)} style={filterSelectStyle}><option value="all">All Designations</option>{uniqueDesignations.map(d => <option key={d} value={d}>{d}</option>)}</select>
+                                    <select value={sexFilter} title="Filter by Gender" onChange={e => setSexFilter(e.target.value)} style={filterSelectStyle}><option value="all">All Genders</option><option value="male">Male</option><option value="female">Female</option><option value="other">Other</option></select>
                                 </div>
                                 <div style={{ width: '1px', height: '32px', background: '#e2e8f0' }}></div>
-                                <button onClick={fetchUsers} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '8px 12px', cursor: 'pointer' }}><RefreshCw size={18} className={isLoading ? 'animate-spin' : ''} /></button>
+                                <button onClick={fetchUsers} title="Refresh Table" style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '8px 12px', cursor: 'pointer' }}><RefreshCw size={18} className={isLoading ? 'animate-spin' : ''} /></button>
                             </div>
                         </div>
 
                         <div style={{ overflowX: 'auto' }}>
-                            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '1rem' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '1.05rem' }}>
                                 <thead>
                                     <tr style={{ borderBottom: '1px solid #f1f5f9', background: '#f8fafc' }}>
                                         {['User', 'Designation', 'Role', 'Status', 'Actions'].map((h, i) => (
@@ -304,33 +298,33 @@ const AdminPortal = () => {
                                             const canDelete = canManage && u._id !== user._id;
 
                                             return (
-                                                <tr key={u._id} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.2s' }}>
+                                                <tr key={u._id} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.1s' }}>
                                                     <td style={{ padding: '1.25rem 2rem' }}>
                                                         <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
                                                             <div style={{ width: 44, height: 44, background: isTargetRoot ? '#fffbeb' : '#f1f5f9', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.9rem', fontWeight: 800, color: isTargetRoot ? '#d97706' : '#64748b' }}>
                                                                 {isTargetRoot ? <Crown size={20} /> : (u.firstName?.[0] + (u.lastName?.[0] || ''))}
                                                             </div>
                                                             <div>
-                                                                <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '1.05rem' }}>{u.firstName} {u.lastName}</div>
+                                                                <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '1.1rem' }}>{u.firstName} {u.lastName}</div>
                                                                 <div style={{ color: '#94a3b8', fontSize: '0.9rem' }}>{u.email}</div>
                                                             </div>
                                                         </div>
                                                     </td>
-                                                    <td style={{ padding: '1.25rem 2rem', color: '#64748b', fontWeight: 500 }}>{u.designation || '—'}</td>
+                                                    <td style={{ padding: '1.25rem 2rem', color: '#64748b', fontWeight: 600 }}>{u.designation || '—'}</td>
                                                     <td style={{ padding: '1.25rem 2rem' }}>
-                                                        <span style={{ padding: '4px 12px', borderRadius: '7px', fontSize: '0.8rem', fontWeight: 800, background: isTargetRoot ? '#fffbeb' : isTargetAdmin ? '#0f172a' : '#f1f5f9', color: isTargetRoot ? '#b45309' : isTargetAdmin ? '#fff' : '#64748b', letterSpacing: '0.05em' }}>{u.role.toUpperCase()}</span>
+                                                        <span style={{ padding: '5px 12px', borderRadius: '8px', fontSize: '0.85rem', fontWeight: 800, background: isTargetRoot ? '#fffbeb' : isTargetAdmin ? '#0f172a' : '#f1f5f9', color: isTargetRoot ? '#b45309' : isTargetAdmin ? '#fff' : '#64748b', letterSpacing: '0.05em' }}>{u.role.toUpperCase()}</span>
                                                     </td>
                                                     <td style={{ padding: '1.25rem 2rem' }}>
-                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                                            <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 8px rgba(34,197,94,0.4)' }}></div>
-                                                            <span style={{ fontSize: '0.95rem', color: '#64748b', fontWeight: 500 }}>Active</span>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                                                            <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 8px rgba(34,197,94,0.4)' }}></div>
+                                                            <span style={{ fontSize: '1rem', color: '#64748b', fontWeight: 600 }}>Active</span>
                                                         </div>
                                                     </td>
                                                     <td style={{ padding: '1.25rem 2rem', textAlign: 'right' }}>
-                                                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
-                                                            <button onClick={() => openEditModal(u)} disabled={!canManage} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '8px', cursor: canManage ? 'pointer' : 'not-allowed', opacity: canManage ? 1 : 0.3 }}><Edit3 size={16} /></button>
-                                                            <button onClick={() => handleRoleUpdate(u)} disabled={!canManage} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '8px', cursor: canManage ? 'pointer' : 'not-allowed', opacity: canManage ? 1 : 0.3 }}><ShieldCheck size={16} /></button>
-                                                            <button onClick={() => handleDelete(u)} disabled={!canDelete} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '8px', cursor: canDelete ? 'pointer' : 'not-allowed', opacity: canDelete ? 1 : 0.3 }}><Trash2 size={16} /></button>
+                                                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.875rem' }}>
+                                                            <motion.button whileTap={{ scale: 0.9 }} onClick={() => openEditModal(u)} title="Edit Employee Details" disabled={!canManage} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '8px', cursor: canManage ? 'pointer' : 'not-allowed', opacity: canManage ? 1 : 0.3 }}><Edit3 size={18} /></motion.button>
+                                                            <motion.button whileTap={{ scale: 0.9 }} onClick={() => openRoleConfirmModal(u)} title={u.role === 'admin' ? "Demote to User" : "Promote to Admin"} disabled={!canManage} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '8px', cursor: canManage ? 'pointer' : 'not-allowed', opacity: canManage ? 1 : 0.3 }}><ShieldCheck size={18} /></motion.button>
+                                                            <motion.button whileTap={{ scale: 0.9 }} onClick={() => openDeleteModal(u)} title="Delete Employee Account" disabled={!canDelete} style={{ background: '#fef2f2', border: '1px solid #fee2e2', borderRadius: '10px', padding: '8px', cursor: canDelete ? 'pointer' : 'not-allowed', opacity: canDelete ? 1 : 0.3, color: '#ef4444' }}><Trash2 size={18} /></motion.button>
                                                         </div>
                                                     </td>
                                                 </tr>
@@ -344,11 +338,66 @@ const AdminPortal = () => {
                 </main>
             </div>
 
+            {/* Role Confirmation Modal */}
+            <AnimatePresence mode="wait">
+                {roleConfirmModal && userToPromote && (
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} onClick={() => setRoleConfirmModal(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.5)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100 }}>
+                        <motion.div initial={{ scale: 0.98, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.98, opacity: 0 }} transition={{ duration: 0.15 }} onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: '32px', padding: '3.5rem', width: '100%', maxWidth: 520, boxShadow: '0 40px 80px rgba(0,0,0,0.3)', textAlign: 'center' }}>
+                            <div style={{ width: 80, height: 80, background: '#f1f5f9', borderRadius: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 2rem' }}>
+                                <ShieldCheck size={40} color="#0f172a" />
+                            </div>
+                            <h2 style={{ margin: '0 0 1rem', color: '#0f172a', fontSize: '2rem', fontWeight: 800 }}>Update Permissions?</h2>
+                            <p style={{ color: '#64748b', fontSize: '1.1rem', lineHeight: 1.6, marginBottom: '2.5rem' }}>
+                                You are about to {userToPromote.role === 'admin' ? <strong style={{color:'#ef4444'}}>demote</strong> : <strong style={{color:'#10b981'}}>promote</strong>} <strong>{userToPromote.firstName} {userToPromote.lastName}</strong>. 
+                                <br/>Their access level will change to <strong>{userToPromote.role === 'admin' ? 'USER' : 'ADMIN'}</strong>.
+                            </p>
+                            
+                            <div style={{ display: 'flex', gap: '1.25rem' }}>
+                                <motion.button whileTap={{ scale: 0.95 }} onClick={handleRoleUpdate} style={primaryButtonStyle}>
+                                    Confirm Change
+                                </motion.button>
+                                <motion.button whileTap={{ scale: 0.95 }} onClick={() => setRoleConfirmModal(false)} style={{ ...secondaryButtonStyle, flex: 1 }}>
+                                    Cancel
+                                </motion.button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Delete Confirmation Modal (Already exists, ensures Tooltips and consistency) */}
+            <AnimatePresence mode="wait">
+                {deleteConfirmModal && userToDelete && (
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} onClick={() => setDeleteConfirmModal(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.5)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100 }}>
+                        <motion.div initial={{ scale: 0.98, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.98, opacity: 0 }} transition={{ duration: 0.15 }} onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: '32px', padding: '3.5rem', width: '100%', maxWidth: 520, boxShadow: '0 40px 80px rgba(0,0,0,0.3)', textAlign: 'center' }}>
+                            <div style={{ width: 80, height: 80, background: '#fef2f2', borderRadius: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 2rem' }}>
+                                <AlertCircle size={40} color="#ef4444" />
+                            </div>
+                            <h2 style={{ margin: '0 0 1rem', color: '#0f172a', fontSize: '2rem', fontWeight: 800 }}>Permanent Deletion</h2>
+                            <p style={{ color: '#64748b', fontSize: '1.1rem', lineHeight: 1.6, marginBottom: '2.5rem' }}>
+                                This action <span style={{ color: '#ef4444', fontWeight: 700 }}>cannot be undone</span>. All data for <strong>{userToDelete.firstName}</strong> will be lost.
+                            </p>
+                            
+                            <div style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '20px', marginBottom: '2rem', border: '1px solid #e2e8f0' }}>
+                                <label style={{ ...labelStyle, color: '#475569', marginBottom: '0.75rem', textAlign: 'left' }}>Type name to confirm: <span style={{ color: '#0f172a', fontWeight: 900 }}>{userToDelete.firstName}</span></label>
+                                <input type="text" autoFocus placeholder={userToDelete.firstName} value={typedConfirmName} onChange={e => setTypedConfirmName(e.target.value)} style={{ ...inputStyle, textAlign: 'center', fontWeight: 800 }} />
+                            </div>
+
+                            <div style={{ display: 'flex', gap: '1.25rem' }}>
+                                <motion.button whileTap={{ scale: 0.95 }} onClick={handleDelete} disabled={typedConfirmName !== userToDelete.firstName} style={{ ...primaryButtonStyle, flex: 2, background: typedConfirmName === userToDelete.firstName ? '#ef4444' : '#f1f5f9', color: typedConfirmName === userToDelete.firstName ? '#fff' : '#94a3b8' }}>Confirm Deletion</motion.button>
+                                <motion.button whileTap={{ scale: 0.95 }} onClick={() => setDeleteConfirmModal(false)} style={{ ...secondaryButtonStyle, flex: 1 }}>Cancel</motion.button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Other modals (Add/Edit) remain unchanged logic-wise but now benefit from snappy response */}
             {/* Add User Modal */}
-            <AnimatePresence>
+            <AnimatePresence mode="wait">
                 {addUserModal && (
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setAddUserModal(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.5)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-                        <motion.div initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }} onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: '32px', padding: '3rem', width: '100%', maxWidth: 560, maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 30px 60px rgba(0,0,0,0.2)' }}>
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} onClick={() => setAddUserModal(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.5)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+                        <motion.div initial={{ scale: 0.98, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.98, opacity: 0 }} transition={{ duration: 0.15 }} onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: '32px', padding: '3rem', width: '100%', maxWidth: 560, maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 30px 60px rgba(0,0,0,0.2)' }}>
                             <div style={{ marginBottom: '2.5rem' }}>
                                 <h2 style={{ margin: 0, color: '#0f172a', fontSize: '2rem', fontWeight: 800, letterSpacing: '-0.03em' }}>Create Account</h2>
                             </div>
@@ -361,7 +410,7 @@ const AdminPortal = () => {
                                     <div style={{ position: 'relative' }}>
                                         <input type={showAddPass ? 'text' : 'password'} placeholder="••••••••" value={newUser.password} onChange={e => setNewUser({...newUser, password: e.target.value})} style={inputStyle} required /> 
                                         <button type="button" onClick={() => setShowAddPass(!showAddPass)} style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8' }}>
-                                            {showAddPass ? <EyeOff size={18} /> : <Eye size={18} />}
+                                            {showAddPass ? <EyeOff size={20} /> : <Eye size={20} />}
                                         </button>
                                     </div>
                                 </div>
@@ -380,8 +429,8 @@ const AdminPortal = () => {
                                     </select>
                                 </div>
                                 <div style={{ gridColumn: 'span 2', display: 'flex', gap: '1.25rem', marginTop: '1.5rem' }}>
-                                    <button type="submit" style={primaryButtonStyle}>Assign & Create</button>
-                                    <button type="button" onClick={() => setAddUserModal(false)} style={secondaryButtonStyle}>Cancel</button>
+                                    <motion.button whileTap={{ scale: 0.95 }} type="submit" style={primaryButtonStyle}>Assign & Create</motion.button>
+                                    <motion.button whileTap={{ scale: 0.95 }} type="button" onClick={() => setAddUserModal(false)} style={secondaryButtonStyle}>Cancel</motion.button>
                                 </div>
                             </form>
                         </motion.div>
@@ -390,10 +439,10 @@ const AdminPortal = () => {
             </AnimatePresence>
 
             {/* Edit User Modal */}
-            <AnimatePresence>
+            <AnimatePresence mode="wait">
                 {editUserModal && (
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setEditUserModal(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.5)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-                        <motion.div initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }} onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: '32px', padding: '3rem', width: '100%', maxWidth: 560, maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 30px 60px rgba(0,0,0,0.2)' }}>
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} onClick={() => setEditUserModal(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.5)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+                        <motion.div initial={{ scale: 0.98, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.98, opacity: 0 }} transition={{ duration: 0.15 }} onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: '32px', padding: '3rem', width: '100%', maxWidth: 560, maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 30px 60px rgba(0,0,0,0.2)' }}>
                             <div style={{ marginBottom: '2.5rem' }}>
                                 <h2 style={{ margin: 0, color: '#0f172a', fontSize: '2rem', fontWeight: 800, letterSpacing: '-0.03em' }}>Edit Profile</h2>
                             </div>
@@ -414,13 +463,13 @@ const AdminPortal = () => {
                                     <div style={{ position: 'relative' }}>
                                         <input type={showEditPass ? 'text' : 'password'} placeholder="New Secure Password" value={editingUser.password || ''} onChange={e => setEditingUser({...editingUser, password: e.target.value})} style={{ ...inputStyle, background: '#fff' }} />
                                         <button type="button" onClick={() => setShowEditPass(!showEditPass)} style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8' }}>
-                                            {showEditPass ? <EyeOff size={18} /> : <Eye size={18} />}
+                                            {showEditPass ? <EyeOff size={20} /> : <Eye size={20} />}
                                         </button>
                                     </div>
                                 </div>
                                 <div style={{ gridColumn: 'span 2', display: 'flex', gap: '1.25rem', marginTop: '1.5rem' }}>
-                                    <button type="submit" style={primaryButtonStyle}>Save Changes</button>
-                                    <button type="button" onClick={() => setEditUserModal(false)} style={secondaryButtonStyle}>Cancel</button>
+                                    <motion.button whileTap={{ scale: 0.95 }} type="submit" style={primaryButtonStyle}>Save Changes</motion.button>
+                                    <motion.button whileTap={{ scale: 0.95 }} type="button" onClick={() => setEditUserModal(false)} style={secondaryButtonStyle}>Cancel</motion.button>
                                 </div>
                             </form>
                         </motion.div>

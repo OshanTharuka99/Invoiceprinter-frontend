@@ -1,104 +1,73 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { Toaster } from 'react-hot-toast';
+
+// Pages
 import Login from './pages/Login';
-import AdminPortal from './pages/AdminPortal';
 import UserPortal from './pages/UserPortal';
+import AdminPortal from './pages/AdminPortal';
+import ForcePasswordChange from './pages/ForcePasswordChange';
 
-// ─── Loading Spinner ───────────────────────────────────────
-const LoadingScreen = () => (
-    <div style={{
-        minHeight: '100vh', background: '#000', display: 'flex',
-        alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '1rem'
-    }}>
-        <div style={{
-            width: 40, height: 40, border: '2px solid rgba(255,255,255,0.08)',
-            borderTopColor: '#fff', borderRadius: '50%',
-            animation: 'spin 0.8s linear infinite'
-        }} />
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-        <p style={{ color: '#3f3f46', fontSize: '0.85rem', fontFamily: "'Outfit', sans-serif", margin: 0 }}>
-            Verifying credentials...
-        </p>
-    </div>
-);
-
-// ─── Protected Route ───────────────────────────────────────
+// Protected Route Component
 const ProtectedRoute = ({ children, allowedRoles }) => {
     const { user, loading } = useAuth();
 
-    if (loading) return <LoadingScreen />;
+    if (loading) return null; // Or a loading spinner
 
-    if (!user) return <Navigate to="/login" replace />;
+    if (!user) {
+        return <Navigate to="/login" replace />;
+    }
+
+    // Check if password change is forced
+    if (user.forcePasswordChange && window.location.pathname !== '/force-password-change') {
+        return <Navigate to="/force-password-change" replace />;
+    }
 
     if (allowedRoles && !allowedRoles.includes(user.role)) {
-        // Redirect to the correct portal based on role
-        return <Navigate to={user.role === 'admin' ? '/admin/dashboard' : '/dashboard'} replace />;
+        return <Navigate to="/dashboard" replace />;
     }
 
     return children;
 };
 
-// ─── App ───────────────────────────────────────────────────
-const App = () => {
+function App() {
     return (
         <AuthProvider>
             <Router>
-                <Routes>
-                    {/* Public */}
-                    <Route path="/login" element={<Login />} />
-
-                    {/* Admin Routes — /admin/* */}
-                    <Route
-                        path="/admin"
-                        element={
-                            <ProtectedRoute allowedRoles={['admin']}>
-                                <Navigate to="/admin/dashboard" replace />
+                <div className="App">
+                    <Toaster position="top-right" />
+                    <Routes>
+                        <Route path="/login" element={<Login />} />
+                        
+                        {/* Forced Password Change Route */}
+                        <Route path="/force-password-change" element={
+                            <ProtectedRoute>
+                                <ForcePasswordChange />
                             </ProtectedRoute>
-                        }
-                    />
-                    <Route
-                        path="/admin/dashboard"
-                        element={
-                            <ProtectedRoute allowedRoles={['admin']}>
+                        } />
+
+                        {/* Admin Routes */}
+                        <Route path="/admin/dashboard" element={
+                            <ProtectedRoute allowedRoles={['admin', 'root']}>
                                 <AdminPortal />
                             </ProtectedRoute>
-                        }
-                    />
-                    <Route
-                        path="/admin/users"
-                        element={
-                            <ProtectedRoute allowedRoles={['admin']}>
-                                <AdminPortal />
-                            </ProtectedRoute>
-                        }
-                    />
+                        } />
 
-                    {/* User Routes — /dashboard/* */}
-                    <Route
-                        path="/dashboard"
-                        element={
-                            <ProtectedRoute allowedRoles={['user']}>
+                        {/* Normal User Routes */}
+                        <Route path="/dashboard" element={
+                            <ProtectedRoute allowedRoles={['user', 'admin', 'root']}>
                                 <UserPortal />
                             </ProtectedRoute>
-                        }
-                    />
-                    <Route
-                        path="/dashboard/invoices"
-                        element={
-                            <ProtectedRoute allowedRoles={['user']}>
-                                <UserPortal />
-                            </ProtectedRoute>
-                        }
-                    />
+                        } />
 
-                    {/* Fallback: redirect root to login */}
-                    <Route path="/" element={<Navigate to="/login" replace />} />
-                    <Route path="*" element={<Navigate to="/login" replace />} />
-                </Routes>
+                        {/* Redirect / to login if not authenticated, or to dashboard if authenticated */}
+                        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                    </Routes>
+                </div>
             </Router>
         </AuthProvider>
     );
-};
+}
 
 export default App;

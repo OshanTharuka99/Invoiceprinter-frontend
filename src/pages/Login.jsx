@@ -48,8 +48,13 @@ const Login = () => {
                 }
             );
             setTimeout(() => {
-                if (loggedUser.role === 'admin') navigate('/admin/dashboard');
-                else navigate('/dashboard');
+                if (loggedUser.forcePasswordChange) {
+                    navigate('/force-password-change');
+                } else if (loggedUser.role === 'admin' || loggedUser.role === 'root') {
+                    navigate('/admin/dashboard');
+                } else {
+                    navigate('/dashboard');
+                }
             }, 1000);
         } catch (err) {
             toast.error(

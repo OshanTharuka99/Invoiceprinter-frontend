@@ -192,6 +192,20 @@ const ProductManagement = ({ currentUser, showToast }) => {
         return type === 'primary' ? businessData.primaryCurrency?.code : businessData.secondaryCurrency?.code;
     };
 
+    const formatPriceString = (val) => {
+        if (val === '' || val === undefined || val === null) return '';
+        const parts = val.toString().split('.');
+        parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        return parts.join('.');
+    };
+
+    const handlePriceChange = (e) => {
+        let val = e.target.value.replace(/,/g, '');
+        if (val === '' || /^\d*\.?\d*$/.test(val)) {
+            setProdForm({...prodForm, price: val});
+        }
+    };
+
     const filteredCategories = categories.filter(c => c.name.toLowerCase().includes(categorySearch.toLowerCase()) || c.code.toLowerCase().includes(categorySearch.toLowerCase()));
     const filteredProducts = products.filter(p => productCatFilter === '' || p.category?._id === productCatFilter);
 
@@ -402,7 +416,7 @@ const ProductManagement = ({ currentUser, showToast }) => {
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
                                 <div>
                                     <label style={labelStyle}>Price</label>
-                                    <input type="number" min="0" step="0.01" value={prodForm.price} onChange={e => setProdForm({...prodForm, price: e.target.value})} required style={inputStyle} placeholder="0.00" title="Enter product price" />
+                                    <input type="text" value={formatPriceString(prodForm.price)} onChange={handlePriceChange} required style={inputStyle} placeholder="0.00" title="Enter product price" />
                                 </div>
                                 <div>
                                     <label style={labelStyle}>Quantity in Stock</label>

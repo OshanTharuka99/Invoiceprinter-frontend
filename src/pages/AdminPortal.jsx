@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { 
     Users, ShieldCheck, LayoutDashboard, FileText, Settings, 
-    TrendingUp, LogOut, ChevronRight, Activity, Bell, X, Check, AlertCircle, Shield, Crown, Edit3, Filter, Package
+    TrendingUp, LogOut, ChevronRight, Activity, Bell, X, Check, AlertCircle, Shield, Crown, Edit3, Filter, Package, Briefcase, Truck, ShieldAlert
 } from 'lucide-react';
 import api from '../api';
 import toast, { Toaster } from 'react-hot-toast';
@@ -12,6 +12,10 @@ import toast, { Toaster } from 'react-hot-toast';
 import UserManagement from '../components/admin/UserManagement';
 import BusinessSettings from '../components/admin/BusinessSettings';
 import ProductManagement from '../components/admin/ProductManagement';
+import ClientManagement from '../components/admin/ClientManagement';
+import ProjectManagement from '../components/admin/ProjectManagement';
+import SupplierManagement from '../components/admin/SupplierManagement';
+import ApprovalsDashboard from '../components/admin/ApprovalsDashboard';
 
 /**
  * ADMIN PORTAL - PREMIUM ENTERPRISE EDITION
@@ -25,9 +29,13 @@ const AdminPortal = () => {
     const [sidebarOpen, setSidebarOpen] = useState(true);
 
     const navItems = [
-        { id: 'users', label: 'User Management', icon: Users },
-        { id: 'business', label: 'General Settings', icon: Settings },
+        { id: 'approvals', label: 'Security Approvals', icon: ShieldAlert },
+        { id: 'clients', label: 'Client Directory', icon: Users },
+        { id: 'projects', label: 'Project Portfolio', icon: Briefcase },
         { id: 'products', label: 'Product Catalog', icon: Package },
+        { id: 'suppliers', label: 'Vendor Intranet', icon: Truck },
+        { id: 'users', label: 'User Management', icon: ShieldCheck },
+        { id: 'business', label: 'General Settings', icon: Settings },
         { id: 'invoices', label: 'Invoice History', icon: FileText },
         { id: 'analytics', label: 'System Analytics', icon: TrendingUp },
     ];
@@ -61,6 +69,10 @@ const AdminPortal = () => {
             case 'users': return <UserManagement currentUser={user} showToast={showToast} />;
             case 'business': return <BusinessSettings currentUser={user} showToast={showToast} />;
             case 'products': return <ProductManagement currentUser={user} showToast={showToast} />;
+            case 'approvals': return <ApprovalsDashboard currentUser={user} showToast={showToast} />;
+            case 'clients': return <ClientManagement currentUser={user} showToast={showToast} />;
+            case 'projects': return <ProjectManagement currentUser={user} showToast={showToast} />;
+            case 'suppliers': return <SupplierManagement currentUser={user} showToast={showToast} />;
             default: return <div style={{ padding: '2rem', textAlign: 'center' }}>Module under development...</div>;
         }
     };

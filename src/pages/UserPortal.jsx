@@ -8,6 +8,8 @@ import {
     X, DollarSign, ArrowUpRight, ArrowDownRight
 } from 'lucide-react';
 import UserProductCatalog from '../components/user/UserProductCatalog';
+import UserClientManagement from '../components/user/UserClientManagement';
+import UserProjectCatalog from '../components/user/UserProjectCatalog';
 
 const MOCK_INVOICES = [
     { id: 'INV-2024-001', client: 'Acme Corp', amount: 3200.00, date: 'Apr 14, 2024', status: 'paid', due: 'Apr 28, 2024' },
@@ -27,24 +29,26 @@ const UserPortal = () => {
     const { user, logout } = useAuth();
     const [activeTab, setActiveTab] = useState('Dashboard');
 
+    const showToast = (message, type = 'success') => {
+        toast(message, {
+            duration: 4000,
+            icon: type === 'success' ? '✅' : '🔴',
+            style: {
+                background: '#0f172a',
+                color: '#f8fafc',
+                borderRadius: '16px',
+                border: '1px solid rgba(255,255,255,0.1)',
+                padding: '16px 24px',
+                fontSize: '1rem',
+                fontFamily: "'Outfit', sans-serif",
+                fontWeight: '700',
+                boxShadow: '0 20px 40px rgba(0,0,0,0.2)'
+            },
+        });
+    };
+
     const handleLogout = () => {
-        toast(
-            `Goodbye, ${user?.firstName}! Have a great day. 👋`,
-            {
-                duration: 3000,
-                icon: '🔐',
-                style: {
-                    background: '#0f172a',
-                    color: '#f8fafc',
-                    borderRadius: '14px',
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    padding: '14px 20px',
-                    fontSize: '0.9rem',
-                    fontFamily: "'Outfit', sans-serif",
-                    fontWeight: '600',
-                },
-            }
-        );
+        showToast(`Goodbye, ${user?.firstName}! Have a great day. 👋`, 'success');
         setTimeout(() => logout(), 1200);
     };
     const [invoices] = useState(MOCK_INVOICES);
@@ -102,7 +106,7 @@ const UserPortal = () => {
                         </span>
                     </div>
                     <div style={{ display: 'flex', gap: '0.25rem' }}>
-                        {['Dashboard', 'Invoices', 'Products', 'Clients', 'Reports'].map((item, i) => (
+                        {['Dashboard', 'Invoices', 'Products', 'Projects', 'Clients', 'Reports'].map((item, i) => (
                             <button key={i} onClick={() => setActiveTab(item)} style={{
                                 background: activeTab === item ? '#f1f5f9' : 'transparent',
                                 border: 'none', cursor: 'pointer',
@@ -280,6 +284,10 @@ const UserPortal = () => {
                     </>
                 ) : activeTab === 'Products' ? (
                     <UserProductCatalog />
+                ) : activeTab === 'Clients' ? (
+                    <UserClientManagement showToast={showToast} /> 
+                ) : activeTab === 'Projects' ? (
+                    <UserProjectCatalog />
                 ) : (
                     <div style={{ textAlign: 'center', padding: '4rem', color: '#64748b' }}>Module {activeTab} is currently under construction.</div>
                 )}

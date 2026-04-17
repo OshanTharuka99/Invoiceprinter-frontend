@@ -1,144 +1,60 @@
 @import "tailwindcss";
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@400;500;600;700;800&family=Outfit:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&display=swap');
 
 :root {
-  --primary: #ffffff;
-  --primary-hover: #f3f4f6;
-  --secondary: #a1a1aa;
-  --accent: #ffffff;
-  --bg-dark: #000000;
-  --card-dark: rgba(20, 20, 20, 0.8);
-  --text-primary: #ffffff;
-  --text-secondary: #a1a1aa;
-  --text-muted: #52525b;
-  --border-color: rgba(255, 255, 255, 0.1);
-  --glass: rgba(10, 10, 10, 0.7);
-  --glass-border: rgba(255, 255, 255, 0.1);
-  --success: #ffffff;
-  --error: #ff4444;
-}
-
-body {
-  margin: 0;
-  font-family: 'Outfit', sans-serif;
-  background-color: var(--bg-dark);
-  background-image: 
-    radial-gradient(at 0% 0%, rgba(255, 255, 255, 0.03) 0, transparent 50%),
-    radial-gradient(at 100% 100%, rgba(255, 255, 255, 0.02) 0, transparent 50%);
-  color: var(--text-primary);
-  min-height: 100vh;
-  overflow-x: hidden;
-  -webkit-font-smoothing: antialiased;
+  --primary: #0f172a;
+  --primary-hover: #1e293b;
+  --secondary: #64748b;
+  --bg-main: #f8fafc;
+  --card-bg: #ffffff;
+  --text-main: #0f172a;
+  --text-muted: #94a3b8;
+  --border: #e2e8f0;
+  --accent: #6366f1;
 }
 
 * {
   box-sizing: border-box;
-  scrollbar-width: thin;
-  scrollbar-color: var(--primary) transparent;
+  margin: 0;
+  padding: 0;
 }
 
-/* Custom Scrollbar */
+body {
+  font-family: 'Outfit', sans-serif;
+  background-color: var(--bg-main);
+  color: var(--text-main);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* Scrollbar Styling */
 ::-webkit-scrollbar {
-  width: 4px;
+  width: 6px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--text-muted);
+  background: #cbd5e1;
   border-radius: 10px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--primary);
+  background: #94a3b8;
 }
 
-.glass-card {
-  background: var(--card-dark);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid var(--glass-border);
-  border-radius: 24px;
-  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.5);
-  transition: transform 0.3s ease, border-color 0.3s ease;
-}
-
-.glass-card:hover {
-  border-color: rgba(255, 255, 255, 0.2);
-}
-
-.input-luxury {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid var(--glass-border);
-  border-radius: 12px;
-  padding: 0.8rem 1rem 0.8rem 3rem;
-  font-size: 0.95rem;
+/* Global Transitions */
+input, button, select, textarea {
+  font-family: inherit;
   transition: all 0.2s ease;
-  color: white;
-  outline: none;
-  width: 100%;
 }
 
-.input-luxury:focus {
-  background: rgba(255, 255, 255, 0.07);
-  border-color: white;
-  box-shadow: 0 0 0 1px white;
+/* Specific Utilities for numbers */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
-
-.btn-luxury {
-  background: white;
-  color: black;
-  padding: 1rem 2rem;
-  border-radius: 12px;
-  font-weight: 600;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.6rem;
-  border: 1px solid white;
+input[type=number] {
+  -moz-appearance: textfield;
 }
-
-.btn-luxury:hover {
-  background: transparent;
-  color: white;
-  transform: translateY(-2px);
-}
-
-.btn-outline {
-  background: transparent;
-  color: white;
-  padding: 1rem 2rem;
-  border-radius: 12px;
-  font-weight: 600;
-  border: 1px solid var(--glass-border);
-  transition: all 0.3s ease;
-}
-
-.btn-outline:hover {
-  background: white;
-  color: black;
-  border-color: white;
-}
-
-.gradient-text {
-  background: linear-gradient(135deg, #ffffff 0%, #a1a1aa 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-.container {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 0 2rem;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.animate-fade-in {
-  animation: fadeIn 0.5s ease forwards;
-}
-

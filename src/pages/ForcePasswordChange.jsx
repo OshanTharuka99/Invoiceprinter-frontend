@@ -1,144 +1,122 @@
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import { useAuth } from '../context/AuthContext';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import toast from 'react-hot-toast';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ShieldCheck, Lock, Eye, EyeOff, RefreshCw, Check, X, ShieldAlert } from 'lucide-react';
 import api from '../api';
-import { Lock, ShieldCheck, ArrowRight, Loader2, KeyRound, Eye, EyeOff } from 'lucide-react';
+import toast, { Toaster } from 'react-hot-toast';
+import { useAuth } from '../context/AuthContext';
 
+/**
+ * FORCE PASSWORD CHANGE - ONE SHOT EDITION
+ * ---------------------------------------
+ * Compact layout to fit single viewport without scrolling.
+ */
 const ForcePasswordChange = () => {
-    const { user, setUser } = useAuth();
-    const [currentPassword, setCurrentPassword] = useState('');
+    const { setUser } = useAuth();
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+    const [showNewPassword, setShowNewPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
-    
-    // Visibility states
-    const [showCurrent, setShowCurrent] = useState(false);
-    const [showNew, setShowNew] = useState(false);
-    const [showConfirm, setShowConfirm] = useState(false);
-    
     const navigate = useNavigate();
+
+    const policy = {
+        length: newPassword.length >= 8,
+        uppercase: /[A-Z]/.test(newPassword),
+        number: /[0-9]/.test(newPassword),
+        special: /[!@#$%^&*(),.?":{}|<>]/.test(newPassword)
+    };
+    const isPolicyValid = Object.values(policy).every(Boolean);
+
+    const showToast = (message, type = 'success') => {
+        toast(message, {
+            duration: 3500,
+            icon: type === 'success' ? '✅' : '🔴',
+            style: { background: '#0f172a', color: '#f8fafc', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', padding: '12px 20px', fontSize: '0.9rem', fontFamily: "'Outfit', sans-serif", fontWeight: '700' },
+        });
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        
-        if (newPassword === currentPassword) {
-            toast.error("New password must be different from the current password!", {
-                icon: '⚠️',
-                style: { background: '#fffbeb', color: '#92400e', border: '1px solid #fde68a' }
-            });
-            return;
-        }
-
-        if (newPassword !== confirmPassword) {
-            toast.error("New passwords do not match!");
-            return;
-        }
-
+        if (!isPolicyValid) return showToast('Policy requirements missing.', 'error');
+        if (newPassword !== confirmPassword) return showToast('Passwords mismatch.', 'error');
         setIsLoading(true);
         try {
-            await api.post('/users/change-password', { currentPassword, newPassword });
+            const res = await api.post('/users/change-password', { newPassword });
             
-            const updatedUser = { ...user, forcePasswordChange: false };
-            localStorage.setItem('user', JSON.stringify(updatedUser)); 
-            setUser(updatedUser);
+            // SYNC SESSION STATE: Critical for successful redirection
+            if (res.data.data?.user) {
+                const updatedUser = res.data.data.user;
+                localStorage.setItem('user', JSON.stringify(updatedUser));
+                setUser(updatedUser);
+            }
 
-            toast.success("Security update complete! Welcome to your terminal. 🛡️", {
-                duration: 4000,
-                style: { background: '#0f172a', color: '#fff', borderRadius: '14px' }
-            });
-
-            setTimeout(() => {
-                if (updatedUser.role === 'admin' || updatedUser.role === 'root') navigate('/admin/dashboard');
-                else navigate('/dashboard');
-            }, 1500);
-        } catch (err) {
-            toast.error(err.response?.data?.message || "Failed to update password.", {
-                style: { background: '#fff1f2', color: '#be123c', border: '1px solid #fecdd3' }
-            });
+            showToast('Security updated. Redirecting...', 'success');
+            setTimeout(() => navigate('/dashboard'), 1500);
+        } catch (err) { 
+            const msg = err.response?.data?.message || 'Update rejection. Check policy.';
+            showToast(msg, 'error'); 
+        } finally {
             setIsLoading(false);
         }
     };
 
-    const inputWrapperStyle = { position: 'relative', width: '100%' };
-    const inputStyle = {
-        width: '100%', background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: '16px',
-        padding: '1rem 3.5rem 1rem 3.5rem', fontSize: '1.05rem', color: '#0f172a', outline: 'none',
-        transition: 'all 0.2s', fontFamily: "'Outfit', sans-serif", boxSizing: 'border-box'
-    };
-    const iconLeftStyle = { position: 'absolute', left: '1.25rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' };
-    const iconRightStyle = { position: 'absolute', right: '1.25rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex' };
+    const PolicyItem = ({ label, met }) => (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: met ? '#10b981' : '#94a3b8', transition: 'all 0.2s', fontSize: '0.75rem', fontWeight: 800 }}>
+            {met ? <Check size={12} strokeWidth={4} /> : <X size={12} strokeWidth={4} />}
+            <span>{label}</span>
+        </div>
+    );
 
     return (
-        <div style={{ minHeight: '100vh', background: '#08090a', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem', fontFamily: "'Outfit', sans-serif" }}>
-            {/* Background elements */}
-            <div style={{ position: 'absolute', inset: 0, backgroundImage: 'linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px)', backgroundSize: '64px 64px', pointerEvents: 'none' }} />
-
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} style={{ width: '100%', maxWidth: 520, position: 'relative', zIndex: 1 }}>
-                <div style={{ background: '#fff', borderRadius: '40px', padding: '4rem', boxShadow: '0 40px 100px rgba(0,0,0,0.6)' }}>
-                    
-                    <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
-                        <div style={{ width: 80, height: 80, background: '#f1f5f9', borderRadius: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 2rem' }}>
-                            <KeyRound size={40} color="#0f172a" />
-                        </div>
-                        <h2 style={{ fontSize: '2.5rem', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.04em', margin: '0 0 0.85rem' }}>Update Credentials</h2>
-                        <p style={{ color: '#64748b', fontSize: '1.05rem', lineHeight: 1.6, maxWidth: 360, margin: '0 auto' }}>Your account was recently managed. Please set a new private password.</p>
-                    </div>
-
-                    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                        <div>
-                            <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.625rem', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Current Password</label>
-                            <div style={inputWrapperStyle}>
-                                <Lock size={20} style={iconLeftStyle} />
-                                <input type={showCurrent ? 'text' : 'password'} required value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} placeholder="••••••••" style={inputStyle} onFocus={e => e.target.style.borderColor = '#0f172a'} onBlur={e => e.target.style.borderColor = '#e2e8f0'} />
-                                <button type="button" onClick={() => setShowCurrent(!showCurrent)} style={iconRightStyle}>
-                                    {showCurrent ? <EyeOff size={20} /> : <Eye size={20} />}
-                                </button>
-                            </div>
-                        </div>
-
-                        <div>
-                            <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.625rem', textTransform: 'uppercase', letterSpacing: '0.1em' }}>New Private Password</label>
-                            <div style={inputWrapperStyle}>
-                                <Lock size={20} style={iconLeftStyle} />
-                                <input type={showNew ? 'text' : 'password'} required value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="••••••••" style={inputStyle} onFocus={e => e.target.style.borderColor = '#0f172a'} onBlur={e => e.target.style.borderColor = '#e2e8f0'} />
-                                <button type="button" onClick={() => setShowNew(!showNew)} style={iconRightStyle}>
-                                    {showNew ? <EyeOff size={20} /> : <Eye size={20} />}
-                                </button>
-                            </div>
-                        </div>
-
-                        <div>
-                            <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.625rem', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Confirm Identity</label>
-                            <div style={inputWrapperStyle}>
-                                <Lock size={20} style={iconLeftStyle} />
-                                <input type={showConfirm ? 'text' : 'password'} required value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="••••••••" style={inputStyle} onFocus={e => e.target.style.borderColor = '#0f172a'} onBlur={e => e.target.style.borderColor = '#e2e8f0'} />
-                                <button type="button" onClick={() => setShowConfirm(!showConfirm)} style={iconRightStyle}>
-                                    {showConfirm ? <EyeOff size={20} /> : <Eye size={20} />}
-                                </button>
-                            </div>
-                        </div>
-
-                        <button type="submit" disabled={isLoading} style={{ 
-                            background: '#0f172a', color: '#fff', border: 'none', borderRadius: '18px', padding: '1.25rem', marginTop: '1.5rem',
-                            cursor: isLoading ? 'not-allowed' : 'pointer', fontWeight: 800, fontSize: '1.1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem',
-                            boxShadow: '0 12px 32px rgba(15,23,42,0.25)', transition: 'all 0.3s'
-                        }}
-                            onMouseEnter={e => { if(!isLoading) { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.background = '#1e293b'; } }}
-                            onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.background = '#0f172a'; }}
-                        >
-                            {isLoading ? <Loader2 size={26} className="animate-spin" /> : <><span>Unlock Application</span> <ArrowRight size={22} /></>}
-                        </button>
-                    </form>
-
-                    <div style={{ marginTop: '3rem', borderTop: '1px solid #f1f5f9', paddingTop: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem', color: '#94a3b8', fontSize: '0.9rem', fontWeight: 600 }}>
-                        <ShieldCheck size={18} />
-                        <span>Identity Protected by InvoPrint SSL</span>
+        <div style={{ height: '100vh', width: '100vw', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#08090a', fontFamily: "'Outfit', sans-serif", overflow: 'hidden' }}>
+            <Toaster position="top-right" />
+            
+            <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} style={{ width: '100%', maxWidth: '440px', background: '#fff', borderRadius: '32px', padding: '2.5rem', boxShadow: '0 40px 100px rgba(0,0,0,0.5)', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                    <div style={{ width: 50, height: 50, background: '#f8fafc', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><ShieldAlert size={24} color="#6366f1" /></div>
+                    <div>
+                        <h2 style={{ fontSize: '1.8rem', fontWeight: 950, letterSpacing: '-1px', margin: 0, color: '#0f172a' }}>Security Renewal</h2>
+                        <p style={{ color: '#64748b', margin: '0.4rem 0 0', fontWeight: 500, fontSize: '0.85rem', lineHeight: '1.5' }}>As this is your first login, please update your password to ensure the security of your account and the portal protocol.</p>
                     </div>
                 </div>
+
+                <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                    {/* New Password */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                        <label style={{ fontSize: '0.7rem', fontWeight: 900, color: '#64748b', textTransform: 'uppercase', letterSpacing: '1px' }}>New Password</label>
+                        <div style={{ position: 'relative' }}>
+                            <Lock size={16} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+                            <input type={showNewPassword ? 'text' : 'password'} value={newPassword} onChange={e => setNewPassword(e.target.value)} style={{ width: '100%', background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: '14px', padding: '0.9rem 1rem 0.9rem 2.75rem', fontSize: '1rem', outline: 'none', fontWeight: 700, transition: '0.2s', boxSizing: 'border-box' }} required />
+                            <button type="button" onClick={() => setShowNewPassword(!showNewPassword)} style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8' }}>{showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button>
+                        </div>
+                        
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', background: '#f8fafc', padding: '0.75rem', borderRadius: '14px', border: '1px solid #f1f5f9' }}>
+                            <PolicyItem label="8+ Chars" met={policy.length} />
+                            <PolicyItem label="A-Z Case" met={policy.uppercase} />
+                            <PolicyItem label="Numbers" met={policy.number} />
+                            <PolicyItem label="Special (@#)" met={policy.special} />
+                        </div>
+                    </div>
+
+                    {/* Confirm Password */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                        <label style={{ fontSize: '0.7rem', fontWeight: 900, color: '#64748b', textTransform: 'uppercase', letterSpacing: '1px' }}>Confirm Password</label>
+                        <div style={{ position: 'relative' }}>
+                            <ShieldCheck size={16} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+                            <input type={showConfirmPassword ? 'text' : 'password'} value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} style={{ width: '100%', background: '#f8fafc', border: (confirmPassword && newPassword !== confirmPassword) ? '1.5px solid #ef4444' : '1.5px solid #e2e8f0', borderRadius: '14px', padding: '0.9rem 1rem 0.9rem 2.75rem', fontSize: '1rem', outline: 'none', fontWeight: 700, transition: '0.2s', boxSizing: 'border-box' }} required />
+                            <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8' }}>{showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button>
+                        </div>
+                    </div>
+
+                    <button type="submit" disabled={isLoading || !isPolicyValid} style={{ width: '100%', background: isPolicyValid ? 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)' : '#e2e8f0', color: isPolicyValid ? '#fff' : '#94a3b8', border: 'none', borderRadius: '14px', padding: '1rem', fontSize: '1rem', fontWeight: 900, cursor: isPolicyValid ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem', marginTop: '0.5rem', transition: '0.3s' }}>
+                        {isLoading ? <RefreshCw size={20} className="animate-spin" /> : <ShieldCheck size={20} />}
+                        {isLoading ? 'UPDATING...' : 'FINALIZE SECURITY'}
+                    </button>
+                    
+                    <p style={{ color: '#cbd5e1', fontSize: '0.65rem', textAlign: 'center', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', margin: 0 }}>Infrastructure Protection Active</p>
+                </form>
             </motion.div>
-            <style>{`.animate-spin { animation: spin 1s linear infinite; } @keyframes spin { to { transform: rotate(360deg); } }`}</style>
         </div>
     );
 };

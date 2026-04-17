@@ -7,6 +7,7 @@ import {
     AlertCircle, Download, Send, Printer, Search,
     X, DollarSign, ArrowUpRight, ArrowDownRight
 } from 'lucide-react';
+import UserProductCatalog from '../components/user/UserProductCatalog';
 
 const MOCK_INVOICES = [
     { id: 'INV-2024-001', client: 'Acme Corp', amount: 3200.00, date: 'Apr 14, 2024', status: 'paid', due: 'Apr 28, 2024' },
@@ -24,6 +25,7 @@ const STATUS_CONFIG = {
 
 const UserPortal = () => {
     const { user, logout } = useAuth();
+    const [activeTab, setActiveTab] = useState('Dashboard');
 
     const handleLogout = () => {
         toast(
@@ -100,17 +102,17 @@ const UserPortal = () => {
                         </span>
                     </div>
                     <div style={{ display: 'flex', gap: '0.25rem' }}>
-                        {['Dashboard', 'Invoices', 'Clients', 'Reports'].map((item, i) => (
-                            <button key={i} style={{
-                                background: i === 0 ? '#f1f5f9' : 'transparent',
+                        {['Dashboard', 'Invoices', 'Products', 'Clients', 'Reports'].map((item, i) => (
+                            <button key={i} onClick={() => setActiveTab(item)} style={{
+                                background: activeTab === item ? '#f1f5f9' : 'transparent',
                                 border: 'none', cursor: 'pointer',
-                                color: i === 0 ? '#0f172a' : '#94a3b8',
+                                color: activeTab === item ? '#0f172a' : '#94a3b8',
                                 padding: '0.4rem 0.875rem', borderRadius: '8px',
                                 fontFamily: "'Outfit', sans-serif", fontSize: '0.875rem',
-                                fontWeight: i === 0 ? 600 : 400, transition: 'all 0.2s'
+                                fontWeight: activeTab === item ? 600 : 400, transition: 'all 0.2s'
                             }}
-                                onMouseEnter={e => { if (i !== 0) { e.currentTarget.style.color = '#0f172a'; e.currentTarget.style.background = '#f1f5f9'; } }}
-                                onMouseLeave={e => { if (i !== 0) { e.currentTarget.style.color = '#94a3b8'; e.currentTarget.style.background = 'transparent'; } }}
+                                onMouseEnter={e => { if (activeTab !== item) { e.currentTarget.style.color = '#0f172a'; e.currentTarget.style.background = '#f1f5f9'; } }}
+                                onMouseLeave={e => { if (activeTab !== item) { e.currentTarget.style.color = '#94a3b8'; e.currentTarget.style.background = 'transparent'; } }}
                             >{item}</button>
                         ))}
                     </div>
@@ -138,7 +140,8 @@ const UserPortal = () => {
 
             {/* ── Main Content ─────────────────────────── */}
             <main style={{ maxWidth: 1280, margin: '0 auto', padding: '2.5rem 2rem' }}>
-
+                {activeTab === 'Dashboard' ? (
+                    <>
                 {/* Page Header */}
                 <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
                     style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
@@ -274,6 +277,12 @@ const UserPortal = () => {
                         </table>
                     </div>
                 </motion.div>
+                    </>
+                ) : activeTab === 'Products' ? (
+                    <UserProductCatalog />
+                ) : (
+                    <div style={{ textAlign: 'center', padding: '4rem', color: '#64748b' }}>Module {activeTab} is currently under construction.</div>
+                )}
             </main>
 
             {/* ── Invoice Detail Drawer ─────────────── */}

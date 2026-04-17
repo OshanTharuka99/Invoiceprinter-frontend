@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { 
     Users, ShieldCheck, LayoutDashboard, FileText, Settings, 
-    TrendingUp, LogOut, ChevronRight, Activity, Bell, X, Check, AlertCircle, Shield, Crown, Edit3, Filter
+    TrendingUp, LogOut, ChevronRight, Activity, Bell, X, Check, AlertCircle, Shield, Crown, Edit3, Filter, Package
 } from 'lucide-react';
 import api from '../api';
 import toast, { Toaster } from 'react-hot-toast';
@@ -11,6 +11,7 @@ import toast, { Toaster } from 'react-hot-toast';
 // MODULAR COMPONENTS
 import UserManagement from '../components/admin/UserManagement';
 import BusinessSettings from '../components/admin/BusinessSettings';
+import ProductManagement from '../components/admin/ProductManagement';
 
 /**
  * ADMIN PORTAL - PREMIUM ENTERPRISE EDITION
@@ -26,6 +27,7 @@ const AdminPortal = () => {
     const navItems = [
         { id: 'users', label: 'User Management', icon: Users },
         { id: 'business', label: 'General Settings', icon: Settings },
+        { id: 'products', label: 'Product Catalog', icon: Package },
         { id: 'invoices', label: 'Invoice History', icon: FileText },
         { id: 'analytics', label: 'System Analytics', icon: TrendingUp },
     ];
@@ -58,6 +60,7 @@ const AdminPortal = () => {
         switch (activeNav) {
             case 'users': return <UserManagement currentUser={user} showToast={showToast} />;
             case 'business': return <BusinessSettings currentUser={user} showToast={showToast} />;
+            case 'products': return <ProductManagement currentUser={user} showToast={showToast} />;
             default: return <div style={{ padding: '2rem', textAlign: 'center' }}>Module under development...</div>;
         }
     };

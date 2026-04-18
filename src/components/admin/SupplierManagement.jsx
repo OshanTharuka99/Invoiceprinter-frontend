@@ -11,7 +11,7 @@ const SupplierManagement = ({ showToast }) => {
     const [editingSup, setEditingSup] = useState(null);
     const [confirmAction, setConfirmAction] = useState(null);
 
-    const initialForm = { 
+    const initialForm = {
         name: '', telephoneNumber: '', emailAddress: '', address: '',
         bankDetails: { accountNumber: '', accountName: '', bankName: '', branch: '' }
     };
@@ -35,7 +35,7 @@ const SupplierManagement = ({ showToast }) => {
         if (sup) {
             setEditingSup(sup);
             setForm({
-                name: sup.name, telephoneNumber: sup.telephoneNumber || '', 
+                name: sup.name, telephoneNumber: sup.telephoneNumber || '',
                 emailAddress: sup.emailAddress || '', address: sup.address || '',
                 bankDetails: sup.bankDetails || { accountNumber: '', accountName: '', bankName: '', branch: '' }
             });
@@ -78,8 +78,8 @@ const SupplierManagement = ({ showToast }) => {
         });
     };
 
-    const filtered = suppliers.filter(s => 
-        s.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    const filtered = suppliers.filter(s =>
+        s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         s.supplierId.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
@@ -96,27 +96,27 @@ const SupplierManagement = ({ showToast }) => {
                 <div style={cardStyle}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                            <div style={{ background: '#ec489915', color: '#ec4899', padding: '10px', borderRadius: '12px' }}><Truck size={24} /></div> 
+                            <div style={{ background: '#ec489915', color: '#ec4899', padding: '10px', borderRadius: '12px' }}><Truck size={24} /></div>
                             <div>
-                                <h3 style={{ margin: 0, fontWeight: 900 }}>Vendor Intranet</h3>
+                                <h3 style={{ margin: 0, fontWeight: 900 }}>Supplier Details</h3>
                                 <p style={{ margin: '0.2rem 0 0', fontSize: '0.85rem', color: '#64748b' }}>Restricted administrative logistics management.</p>
                             </div>
                         </div>
                         <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
                             <div style={{ position: 'relative' }}>
                                 <Search size={16} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
-                                <input type="text" placeholder="Lookup vendor..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} style={{ padding: '0.8rem 1rem 0.8rem 2.5rem', borderRadius: '12px', border: '1px solid #e2e8f0', width: 240, outline: 'none' }} />
+                                <input type="text" placeholder="Search Supplier" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} style={{ padding: '0.8rem 1rem 0.8rem 2.5rem', borderRadius: '12px', border: '1px solid #e2e8f0', width: 240, outline: 'none' }} />
                             </div>
-                            <motion.button whileTap={{ scale: 0.95 }} title="Connect new supplier" onClick={() => openModal()} style={btnStyle}><Plus size={18} /> Append Vendor</motion.button>
+                            <motion.button whileTap={{ scale: 0.95 }} title="Connect new supplier" onClick={() => openModal()} style={btnStyle}><Plus size={18} /> Add New Supplier</motion.button>
                         </div>
                     </div>
 
                     <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                         <thead>
                             <tr style={{ borderBottom: '2px solid #f1f5f9' }}>
-                                <th style={{ padding: '1rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.8rem', width: '30%' }}>Node Identifier</th>
-                                <th style={{ padding: '1rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.8rem', width: '30%' }}>Data Transmission</th>
-                                <th style={{ padding: '1rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.8rem', width: '30%' }}>Financial Stream</th>
+                                <th style={{ padding: '1rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.8rem', width: '30%' }}>Suplier</th>
+                                <th style={{ padding: '1rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.8rem', width: '30%' }}>Contact</th>
+                                <th style={{ padding: '1rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.8rem', width: '30%' }}>Bank Details</th>
                                 <th style={{ padding: '1rem', textAlign: 'right' }}>Action</th>
                             </tr>
                         </thead>
@@ -130,7 +130,7 @@ const SupplierManagement = ({ showToast }) => {
                                     <td style={{ padding: '1rem', fontSize: '0.85rem', color: '#475569' }}>
                                         {s.telephoneNumber && <div>📞 {s.telephoneNumber}</div>}
                                         {s.emailAddress && <div>📧 {s.emailAddress}</div>}
-                                        {!s.telephoneNumber && !s.emailAddress && <span style={{color:'#cbd5e1'}}>No pipeline found</span>}
+                                        {!s.telephoneNumber && !s.emailAddress && <span style={{ color: '#cbd5e1' }}>No pipeline found</span>}
                                     </td>
                                     <td style={{ padding: '1rem', fontSize: '0.85rem', color: '#475569' }}>
                                         {s.bankDetails?.accountNumber ? (
@@ -138,7 +138,7 @@ const SupplierManagement = ({ showToast }) => {
                                                 <div style={{ fontWeight: 700 }}>{s.bankDetails.bankName || 'Unknown Bank'}</div>
                                                 <div style={{ fontFamily: 'monospace' }}>{s.bankDetails.accountNumber}</div>
                                             </div>
-                                        ) : <span style={{color:'#cbd5e1'}}>Void</span>}
+                                        ) : <span style={{ color: '#cbd5e1' }}>Void</span>}
                                     </td>
                                     <td style={{ padding: '1rem', textAlign: 'right' }}>
                                         <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
@@ -162,20 +162,20 @@ const SupplierManagement = ({ showToast }) => {
                             <motion.button whileTap={{ scale: 0.9 }} title="Nullify sequence" onClick={() => setIsModalOpen(false)} style={{ background: '#f1f5f9', border: 'none', borderRadius: '50%', width: 32, height: 32, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={18} /></motion.button>
                         </div>
                         <form onSubmit={saveSupplier}>
-                            <h4 style={{ margin: '0 0 1rem 0', color: '#334155' }}><Building size={16} style={{display:'inline', verticalAlign:'middle', marginRight:'5px'}}/> Primary Data</h4>
+                            <h4 style={{ margin: '0 0 1rem 0', color: '#334155' }}><Building size={16} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '5px' }} /> Supplier Details</h4>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
-                                <div style={{ gridColumn: '1 / -1' }}><label style={labelStyle}>Supplier Incorporation Name</label><input value={form.name} onChange={e => setForm({...form, name: e.target.value})} required style={inputStyle} /></div>
-                                <div><label style={labelStyle}>Telephone Matrix</label><input value={form.telephoneNumber} onChange={e => setForm({...form, telephoneNumber: e.target.value})} style={inputStyle} /></div>
-                                <div><label style={labelStyle}>Electronic Mailbox</label><input type="email" value={form.emailAddress} onChange={e => setForm({...form, emailAddress: e.target.value})} style={inputStyle} /></div>
-                                <div style={{ gridColumn: '1 / -1' }}><label style={labelStyle}>Corporate Warehouse Location</label><input value={form.address} onChange={e => setForm({...form, address: e.target.value})} style={inputStyle} /></div>
+                                <div style={{ gridColumn: '1 / -1' }}><label style={labelStyle}>Supplier Name</label><input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} required style={inputStyle} /></div>
+                                <div><label style={labelStyle}>Telephone Number</label><input value={form.telephoneNumber} onChange={e => setForm({ ...form, telephoneNumber: e.target.value })} style={inputStyle} /></div>
+                                <div><label style={labelStyle}>Email Address</label><input type="email" value={form.emailAddress} onChange={e => setForm({ ...form, emailAddress: e.target.value })} style={inputStyle} /></div>
+                                <div style={{ gridColumn: '1 / -1' }}><label style={labelStyle}>Address</label><input value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} style={inputStyle} /></div>
                             </div>
 
-                            <h4 style={{ margin: '1rem 0', color: '#334155' }}><CreditCard size={16} style={{display:'inline', verticalAlign:'middle', marginRight:'5px'}}/> Economic Routing</h4>
+                            <h4 style={{ margin: '1rem 0', color: '#334155' }}><CreditCard size={16} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '5px' }} /> Bank Details</h4>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '2rem', background: '#f8fafc', padding: '1.5rem', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
-                                <div><label style={labelStyle}>Bank Institute Node</label><input value={form.bankDetails.bankName} onChange={e => setForm({...form, bankDetails: {...form.bankDetails, bankName: e.target.value}})} style={{...inputStyle, background: '#fff'}} /></div>
-                                <div><label style={labelStyle}>Branch Vector</label><input value={form.bankDetails.branch} onChange={e => setForm({...form, bankDetails: {...form.bankDetails, branch: e.target.value}})} style={{...inputStyle, background: '#fff'}} /></div>
-                                <div><label style={labelStyle}>Account Owner Title</label><input value={form.bankDetails.accountName} onChange={e => setForm({...form, bankDetails: {...form.bankDetails, accountName: e.target.value}})} style={{...inputStyle, background: '#fff'}} /></div>
-                                <div><label style={labelStyle}>Digital Array Number</label><input value={form.bankDetails.accountNumber} onChange={e => setForm({...form, bankDetails: {...form.bankDetails, accountNumber: e.target.value}})} style={{...inputStyle, background: '#fff'}} /></div>
+                                <div><label style={labelStyle}>Account Number</label><input value={form.bankDetails.accountNumber} onChange={e => setForm({ ...form, bankDetails: { ...form.bankDetails, accountNumber: e.target.value } })} style={{ ...inputStyle, background: '#fff' }} /></div>
+                                <div><label style={labelStyle}>Account Owner Name</label><input value={form.bankDetails.accountName} onChange={e => setForm({ ...form, bankDetails: { ...form.bankDetails, accountName: e.target.value } })} style={{ ...inputStyle, background: '#fff' }} /></div>
+                                <div><label style={labelStyle}>Bank Name</label><input value={form.bankDetails.bankName} onChange={e => setForm({ ...form, bankDetails: { ...form.bankDetails, bankName: e.target.value } })} style={{ ...inputStyle, background: '#fff' }} /></div>
+                                <div><label style={labelStyle}>Branch</label><input value={form.bankDetails.branch} onChange={e => setForm({ ...form, bankDetails: { ...form.bankDetails, branch: e.target.value } })} style={{ ...inputStyle, background: '#fff' }} /></div>
                             </div>
 
                             <motion.button whileTap={{ scale: 0.98 }} type="submit" style={{ ...btnStyle, width: '100%', justifyContent: 'center' }}>Upload Parameters</motion.button>
@@ -187,7 +187,7 @@ const SupplierManagement = ({ showToast }) => {
             {/* CONFIRMATION MODAL */}
             <AnimatePresence>
                 {confirmAction && (
-                    <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.4)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000}}>
+                    <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.4)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
                         <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} style={{ background: '#fff', borderRadius: '24px', padding: '2.5rem', width: '100%', maxWidth: 400, textAlign: 'center', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }}>
                             <AlertTriangle size={48} color="#ef4444" style={{ marginBottom: '1rem', margin: '0 auto' }} />
                             <h3 style={{ margin: 0, fontWeight: 800, fontSize: '1.25rem', color: '#0f172a' }}>Are you absolutely sure?</h3>

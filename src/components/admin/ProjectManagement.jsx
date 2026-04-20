@@ -17,7 +17,7 @@ const ProjectManagement = ({ currentUser, showToast }) => {
     const [form, setForm] = useState(initialForm);
 
     const [isInlineClient, setIsInlineClient] = useState(false);
-    const [inlineClientForm, setInlineClientForm] = useState({ firstName: '', clientType: 'Business', telephoneNumber: '' });
+    const [inlineClientForm, setInlineClientForm] = useState({ firstName: '', lastName: '', clientType: 'Business', telephoneNumber: '', whatsappNumber: '', emailAddress: '', address: '' });
 
     const fetchData = async () => {
         setLoading(true);
@@ -50,7 +50,7 @@ const ProjectManagement = ({ currentUser, showToast }) => {
             setForm(initialForm);
         }
         setIsInlineClient(false);
-        setInlineClientForm({ firstName: '', clientType: 'Business', telephoneNumber: '' });
+        setInlineClientForm({ firstName: '', lastName: '', clientType: 'Business', telephoneNumber: '', whatsappNumber: '', emailAddress: '', address: '' });
         setIsModalOpen(true);
     };
 
@@ -197,41 +197,59 @@ const ProjectManagement = ({ currentUser, showToast }) => {
                         </div>
                         <form onSubmit={saveProject}>
                             <div style={{ marginBottom: '1.5rem' }}>
-                                <label style={labelStyle}>Project Designation Name</label>
-                                <input value={form.name} onChange={e => setForm({...form, name: e.target.value})} required style={inputStyle} placeholder="e.g. Phase IV Tower Construct" title="Formal title of the project"/>
+                                <label style={labelStyle}>Project Name</label>
+                                <input value={form.name} onChange={e => setForm({...form, name: e.target.value})} required style={inputStyle} placeholder="e.g. Tower Construction Phase IV" />
                             </div>
 
                             <div style={{ marginBottom: '1.5rem', background: '#f8fafc', padding: '1rem', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                                    <label style={{...labelStyle, marginBottom: 0}}>Client Linking</label>
+                                    <label style={{...labelStyle, marginBottom: 0}}>Assigned Client</label>
                                     {!isInlineClient ? (
-                                        <button type="button" title="Client not stored? Inject immediately." onClick={() => setIsInlineClient(true)} style={{ background: 'none', border: 'none', color: '#3b82f6', fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.2rem' }}><Plus size={14}/> Create New Client</button>
+                                        <button type="button" onClick={() => setIsInlineClient(true)} style={{ background: 'none', border: 'none', color: '#3b82f6', fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.2rem' }}><Plus size={14}/> Create New Client</button>
                                     ) : (
-                                        <button type="button" onClick={() => setIsInlineClient(false)} style={{ background: 'none', border: 'none', color: '#ef4444', fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.2rem' }}><X size={14}/> Abort Inject</button>
+                                        <button type="button" onClick={() => setIsInlineClient(false)} style={{ background: 'none', border: 'none', color: '#ef4444', fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.2rem' }}><X size={14}/> Cancel Creation</button>
                                     )}
                                 </div>
                                 
                                 {!isInlineClient ? (
-                                    <select value={form.client} onChange={e => setForm({...form, client: e.target.value})} required style={{...inputStyle, background: '#fff'}} title="Select existing client model">
-                                        <option value="" disabled>--- Bind Existing Framework ---</option>
+                                    <select value={form.client} onChange={e => setForm({...form, client: e.target.value})} required style={{...inputStyle, background: '#fff'}}>
+                                        <option value="" disabled>--- Select Existing Client ---</option>
                                         {clients.map(c => <option key={c._id} value={c._id}>{c.firstName} {c.lastName}</option>)}
                                     </select>
                                 ) : (
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '0.8rem' }}>
-                                        <input value={inlineClientForm.firstName} onChange={e => setInlineClientForm({...inlineClientForm, firstName: e.target.value})} required style={{...inputStyle, background: '#fff', padding: '0.7rem 1rem'}} placeholder="Entity Name" title="Core identity of organization/person" />
-                                        <input value={inlineClientForm.telephoneNumber} onChange={e => setInlineClientForm({...inlineClientForm, telephoneNumber: e.target.value})} required style={{...inputStyle, background: '#fff', padding: '0.7rem 1rem'}} placeholder="Telephone Array" title="Main contact line needed for DB Validation rules" />
+                                    <div style={{ background: '#f1f5f9', padding: '1rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.8rem', marginBottom: '1rem' }}>
+                                            <div><label style={labelStyle}>First Name</label><input value={inlineClientForm.firstName} onChange={e => setInlineClientForm({...inlineClientForm, firstName: e.target.value})} required style={{...inputStyle, background: '#fff', padding: '0.7rem 1rem'}} /></div>
+                                            <div><label style={labelStyle}>Last Name</label><input value={inlineClientForm.lastName} onChange={e => setInlineClientForm({...inlineClientForm, lastName: e.target.value})} style={{...inputStyle, background: '#fff', padding: '0.7rem 1rem'}} /></div>
+                                            <div style={{ gridColumn: 'span 2' }}>
+                                                <label style={labelStyle}>Client Type</label>
+                                                <select value={inlineClientForm.clientType} onChange={e => setInlineClientForm({...inlineClientForm, clientType: e.target.value})} style={{...inputStyle, background: '#fff', padding: '0.7rem 1rem'}}>
+                                                    <option value="Person">Individual Person</option>
+                                                    <option value="Business">Business / Company</option>
+                                                    <option value="Organization">Non-Profit / Organization</option>
+                                                </select>
+                                            </div>
+                                            <div style={{ gridColumn: 'span 2' }}><h4 style={{ margin: '0.5rem 0 0.5rem', fontWeight: 800, color: '#0f172a', fontSize: '0.85rem' }}>Contact Details</h4></div>
+                                            <div><label style={labelStyle}>Phone Number</label><input value={inlineClientForm.telephoneNumber} onChange={e => setInlineClientForm({...inlineClientForm, telephoneNumber: e.target.value})} style={{...inputStyle, background: '#fff', padding: '0.7rem 1rem'}} /></div>
+                                            <div><label style={labelStyle}>WhatsApp</label><input value={inlineClientForm.whatsappNumber} onChange={e => setInlineClientForm({...inlineClientForm, whatsappNumber: e.target.value})} style={{...inputStyle, background: '#fff', padding: '0.7rem 1rem'}} /></div>
+                                            <div style={{ gridColumn: 'span 2' }}><label style={labelStyle}>Email Address</label><input type="email" value={inlineClientForm.emailAddress} onChange={e => setInlineClientForm({...inlineClientForm, emailAddress: e.target.value})} style={{...inputStyle, background: '#fff', padding: '0.7rem 1rem'}} /></div>
+                                            <div style={{ gridColumn: 'span 2' }}><label style={labelStyle}>Physical Address</label><input value={inlineClientForm.address} onChange={e => setInlineClientForm({...inlineClientForm, address: e.target.value})} style={{...inputStyle, background: '#fff', padding: '0.7rem 1rem'}} /></div>
+                                        </div>
                                     </div>
                                 )}
                             </div>
 
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
-                                <div><label style={labelStyle}>Deployment Start</label><input type="date" value={form.startDate} onChange={e => setForm({...form, startDate: e.target.value})} style={inputStyle} /></div>
-                                <div><label style={labelStyle}>Target Epoch</label><input type="date" value={form.endDate} onChange={e => setForm({...form, endDate: e.target.value})} style={inputStyle} /></div>
-                                <div><label style={labelStyle}>Physical Coordinate</label><input value={form.location} onChange={e => setForm({...form, location: e.target.value})} style={inputStyle} placeholder="Site Location" /></div>
-                                <div><label style={labelStyle}>Gross Project Value</label><input type="text" value={formatPriceString(form.value)} onChange={handleValueChange} style={inputStyle} placeholder="0.00" /></div>
+                                <div><label style={labelStyle}>Start Date</label><input type="date" value={form.startDate} onChange={e => setForm({...form, startDate: e.target.value})} style={inputStyle} /></div>
+                                <div><label style={labelStyle}>End Date</label><input type="date" value={form.endDate} onChange={e => setForm({...form, endDate: e.target.value})} style={inputStyle} /></div>
+                                <div><label style={labelStyle}>Location</label><input value={form.location} onChange={e => setForm({...form, location: e.target.value})} style={inputStyle} placeholder="Site Location" /></div>
+                                <div><label style={labelStyle}>Project Value</label><input type="text" value={formatPriceString(form.value)} onChange={handleValueChange} style={inputStyle} placeholder="0.00" /></div>
                             </div>
                             
-                            <motion.button whileTap={{ scale: 0.98 }} type="submit" style={{ ...btnStyle, width: '100%', justifyContent: 'center' }}>Compile & Save</motion.button>
+                            <div style={{ display: 'flex', gap: '1rem' }}>
+                                <motion.button whileTap={{ scale: 0.98 }} type="button" onClick={() => setIsModalOpen(false)} style={{ ...btnStyle, background: '#f8fafc', color: '#0f172a', border: '1px solid #e2e8f0', width: '100%', justifyContent: 'center' }}>Cancel</motion.button>
+                                <motion.button whileTap={{ scale: 0.98 }} type="submit" style={{ ...btnStyle, width: '100%', justifyContent: 'center' }}>Save Project</motion.button>
+                            </div>
                         </form>
                     </motion.div>
                 </div>

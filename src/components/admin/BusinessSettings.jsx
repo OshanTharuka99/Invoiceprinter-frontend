@@ -21,7 +21,8 @@ const BusinessSettings = ({ currentUser, showToast }) => {
         primaryCurrency: { code: 'LKR', symbol: 'Rs.' },
         secondaryCurrency: { code: 'USD', symbol: '$' },
         isVatRegistered: false, vatNumber: '', vatPercentage: 18,
-        otherTaxes: [], discountProfiles: []
+        otherTaxes: [], discountProfiles: [],
+        quotationTerms: 'Standard terms and conditions apply.', quotationNotes: ''
     });
 
     const [isEditMode, setIsEditMode] = useState(false);
@@ -79,7 +80,7 @@ const BusinessSettings = ({ currentUser, showToast }) => {
 
             <div style={{ display: 'flex', gap: '0.5rem', background: '#f1f5f9', padding: '6px', borderRadius: '16px', marginBottom: '3rem', width: 'fit-content' }}>
                 <button onClick={() => { setActiveSubTab('business'); setIsEditMode(false); }} style={subTabButtonStyle('business')}>Business Settings</button>
-                <button onClick={() => { setActiveSubTab('others'); setIsEditMode(false); }} style={subTabButtonStyle('others')}>Other Settings</button>
+                <button onClick={() => { setActiveSubTab('quotation'); setIsEditMode(false); }} style={subTabButtonStyle('quotation')}>Quotation Settings</button>
             </div>
 
             <AnimatePresence mode="wait">
@@ -195,12 +196,71 @@ const BusinessSettings = ({ currentUser, showToast }) => {
                         </div>
                     </motion.div>
                 ) : (
-                    <motion.div key="others" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }}>
+                    <motion.div key="quotation" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }}>
                         <div style={cardStyle}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '2.5rem' }}><div style={{ background: '#f8fafc', color: '#0f172a', padding: '10px', borderRadius: '12px' }}><Settings2 size={24} /></div> <h3 style={{ margin: 0, fontWeight: 900 }}>Additional Protocols</h3></div>
-                            <div style={{ textAlign: 'center', padding: '4rem 0', color: '#94a3b8' }}>
-                                <Shield size={48} style={{ opacity: 0.2, marginBottom: '1.5rem' }} />
-                                <p style={{ fontWeight: 700 }}>Supplementary configuration module under implementation.</p>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2.5rem' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                    <div style={{ background: '#0ea5e915', color: '#0ea5e9', padding: '10px', borderRadius: '12px' }}><Receipt size={24} /></div> 
+                                    <h3 style={{ margin: 0, fontWeight: 900 }}>Quotation Formats</h3>
+                                </div>
+                                {currentUser.role === 'root' && (
+                                    <button onClick={isEditMode ? handleSave : () => setIsEditMode(true)} disabled={isSaving} style={isEditMode ? btnGradient('#10b981', '#059669') : btnGradient('#0f172a', '#1e293b')}>
+                                        {isSaving ? <RefreshCw className="animate-spin" size={18} /> : (isEditMode ? <CheckCircle size={18} /> : <Edit3 size={18} />)}
+                                        {isEditMode ? 'SAVE LOGO' : 'EDIT LOGO'}
+                                    </button>
+                                )}
+                            </div>
+                            
+                            <div>
+                                <label style={labelStyle}>Official Quotation Logo</label>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', marginBottom: '2rem' }}>
+                                    <div style={{ width: 140, height: 140, background: '#f8fafc', border: '2px dashed #cbd5e1', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', position: 'relative' }}>
+                                        {businessData.quotationLogo ? (
+                                            <img src={businessData.quotationLogo} alt="Quotation Logo" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                                        ) : (
+                                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', color: '#94a3b8' }}>
+                                                <PlusCircle size={32} style={{ marginBottom: '8px' }} />
+                                                <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>Empty</span>
+                                            </div>
+                                        )}
+                                        {isEditMode && (
+                                            <input type="file" accept="image/*" onChange={(e) => {
+                                                const file = e.target.files[0];
+                                                if (file) {
+                                                    const reader = new FileReader();
+                                                    reader.onloadend = () => setBusinessData({ ...businessData, quotationLogo: reader.result });
+                                                    reader.readAsDataURL(file);
+                                                }
+                                            }} style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer' }} title="Upload new logo" />
+                                        )}
+                                    </div>
+                                    <div style={{ flex: 1 }}>
+                                        <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '1rem', fontWeight: 600 }}>Upload a high-quality logo. This logo will be cleanly embedded into all dynamically generated PDF quotations. Click the area on the left to select an image.</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1.5rem' }}>
+                                <div>
+                                    <label style={labelStyle}>Quotation Terms & Conditions</label>
+                                    <textarea 
+                                        value={businessData.quotationTerms} 
+                                        onChange={e => setBusinessData({ ...businessData, quotationTerms: e.target.value })} 
+                                        disabled={!isEditMode} 
+                                        style={{ ...inputStyle(isEditMode), height: 120, resize: 'vertical' }} 
+                                        placeholder="Enter standard terms (e.g. Valid for 30 days...)"
+                                    />
+                                </div>
+                                <div>
+                                    <label style={labelStyle}>Default Quotation Notes</label>
+                                    <textarea 
+                                        value={businessData.quotationNotes} 
+                                        onChange={e => setBusinessData({ ...businessData, quotationNotes: e.target.value })} 
+                                        disabled={!isEditMode} 
+                                        style={{ ...inputStyle(isEditMode), height: 80, resize: 'vertical' }} 
+                                        placeholder="Enter default notes or thank you messages..."
+                                    />
+                                </div>
                             </div>
                         </div>
                     </motion.div>

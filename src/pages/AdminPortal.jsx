@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { 
     Users, ShieldCheck, LayoutDashboard, FileText, Settings, 
-    TrendingUp, LogOut, ChevronRight, Activity, Bell, X, Check, AlertCircle, Shield, Crown, Edit3, Filter, Package, Briefcase, Truck, ShieldAlert
+    TrendingUp, LogOut, ChevronRight, Activity, Bell, X, Check, AlertCircle, Shield, Crown, Edit3, Filter, Package, Briefcase, Truck, ShieldAlert, ScrollText
 } from 'lucide-react';
 import api from '../api';
 import toast, { Toaster } from 'react-hot-toast';
@@ -16,6 +16,7 @@ import ClientManagement from '../components/admin/ClientManagement';
 import ProjectManagement from '../components/admin/ProjectManagement';
 import SupplierManagement from '../components/admin/SupplierManagement';
 import ApprovalsDashboard from '../components/admin/ApprovalsDashboard';
+import QuotationManagement from '../components/shared/QuotationManagement';
 
 /**
  * ADMIN PORTAL - PREMIUM ENTERPRISE EDITION
@@ -30,6 +31,7 @@ const AdminPortal = () => {
 
     const navItems = [
         { id: 'approvals', label: 'Security Approvals', icon: ShieldAlert },
+        { id: 'quotations', label: 'Quotation Engine', icon: ScrollText },
         { id: 'clients', label: 'Client Directory', icon: Users },
         { id: 'projects', label: 'Project Portfolio', icon: Briefcase },
         { id: 'products', label: 'Product Catalog', icon: Package },
@@ -73,6 +75,7 @@ const AdminPortal = () => {
             case 'clients': return <ClientManagement currentUser={user} showToast={showToast} />;
             case 'projects': return <ProjectManagement currentUser={user} showToast={showToast} />;
             case 'suppliers': return <SupplierManagement currentUser={user} showToast={showToast} />;
+            case 'quotations': return <QuotationManagement currentUser={user} showToast={showToast} />;
             default: return <div style={{ padding: '2rem', textAlign: 'center' }}>Module under development...</div>;
         }
     };
@@ -115,7 +118,6 @@ const AdminPortal = () => {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.5rem' }}>
                         <div style={{ width: 48, height: 48, background: '#fff', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, color: '#000' }}>{user?.firstName?.[0]}{user?.lastName?.[0]}</div>
                         {sidebarOpen && <div style={{ flex: 1 }}><div style={{ fontSize: '1rem', fontWeight: 800 }}>{user?.firstName}</div><div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 800 }}>{user?.role?.toUpperCase()}</div></div>}
-                        <button onClick={handleLogout} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444' }}><LogOut size={20} /></button>
                     </div>
                 </div>
             </motion.aside>
@@ -138,6 +140,14 @@ const AdminPortal = () => {
                         <div style={{ width: 48, height: 48, background: '#0f172a', color: '#fff', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '1rem', letterSpacing: '1px' }}>
                             {user?.firstName?.[0]?.toUpperCase()}{user?.lastName?.[0]?.toUpperCase()}
                         </div>
+                        <div style={{ width: 1, height: 24, background: '#e2e8f0' }} />
+                        <button onClick={handleLogout}
+                            style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '6px 12px', cursor: 'pointer', color: '#64748b', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.82rem', fontFamily: "'Outfit', sans-serif", transition: 'all 0.2s' }}
+                            onMouseEnter={e => { e.currentTarget.style.color = '#dc2626'; e.currentTarget.style.borderColor = '#fecdd3'; e.currentTarget.style.background = '#fff1f2'; }}
+                            onMouseLeave={e => { e.currentTarget.style.color = '#64748b'; e.currentTarget.style.borderColor = '#e2e8f0'; e.currentTarget.style.background = '#f8fafc'; }}
+                        >
+                            <LogOut size={14} /> Sign Out
+                        </button>
                     </div>
                 </header>
 

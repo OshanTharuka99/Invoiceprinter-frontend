@@ -10,6 +10,7 @@ import {
 import UserProductCatalog from '../components/user/UserProductCatalog';
 import UserClientManagement from '../components/user/UserClientManagement';
 import UserProjectCatalog from '../components/user/UserProjectCatalog';
+import QuotationManagement from '../components/shared/QuotationManagement';
 
 const MOCK_INVOICES = [
     { id: 'INV-2024-001', client: 'Acme Corp', amount: 3200.00, date: 'Apr 14, 2024', status: 'paid', due: 'Apr 28, 2024' },
@@ -106,7 +107,7 @@ const UserPortal = () => {
                         </span>
                     </div>
                     <div style={{ display: 'flex', gap: '0.25rem' }}>
-                        {['Dashboard', 'Invoices', 'Products', 'Projects', 'Clients', 'Reports'].map((item, i) => (
+                        {['Dashboard', 'Invoices', 'Quotations', 'Products', 'Projects', 'Clients', 'Reports'].map((item, i) => (
                             <button key={i} onClick={() => setActiveTab(item)} style={{
                                 background: activeTab === item ? '#f1f5f9' : 'transparent',
                                 border: 'none', cursor: 'pointer',
@@ -284,6 +285,8 @@ const UserPortal = () => {
                     </>
                 ) : activeTab === 'Products' ? (
                     <UserProductCatalog />
+                ) : activeTab === 'Quotations' ? (
+                    <QuotationManagement currentUser={user} showToast={showToast} />
                 ) : activeTab === 'Clients' ? (
                     <UserClientManagement showToast={showToast} /> 
                 ) : activeTab === 'Projects' ? (

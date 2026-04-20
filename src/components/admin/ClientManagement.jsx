@@ -176,13 +176,16 @@ const ClientManagement = ({ currentUser, showToast }) => {
                                 </select>
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem', background: '#f8fafc', padding: '1.5rem', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
-                                <div style={{ gridColumn: '1 / -1' }}><h4 style={{ margin: 0, fontWeight: 800, color: '#0f172a' }}>Contact Mechanisms</h4><p style={{ margin: '0.2rem 0 1rem', fontSize: '0.75rem', color: '#64748b' }}>Provide at least one method of contact.</p></div>
+                                <div style={{ gridColumn: '1 / -1' }}><h4 style={{ margin: 0, fontWeight: 800, color: '#0f172a' }}>Contact Details</h4><p style={{ margin: '0.2rem 0 1rem', fontSize: '0.75rem', color: '#64748b' }}>Provide at least one method of contact.</p></div>
                                 <div><label style={labelStyle}>Phone Number</label><input value={form.telephoneNumber} onChange={e => setForm({...form, telephoneNumber: e.target.value})} style={{...inputStyle, background: '#fff'}} /></div>
                                 <div><label style={labelStyle}>WhatsApp Number</label><input value={form.whatsappNumber} onChange={e => setForm({...form, whatsappNumber: e.target.value})} style={{...inputStyle, background: '#fff'}} /></div>
                                 <div style={{ gridColumn: '1 / -1' }}><label style={labelStyle}>Email Address</label><input type="email" value={form.emailAddress} onChange={e => setForm({...form, emailAddress: e.target.value})} style={{...inputStyle, background: '#fff'}} /></div>
                                 <div style={{ gridColumn: '1 / -1' }}><label style={labelStyle}>Physical Address</label><input value={form.address} onChange={e => setForm({...form, address: e.target.value})} style={{...inputStyle, background: '#fff'}} /></div>
                             </div>
-                            <motion.button whileTap={{ scale: 0.98 }} type="submit" style={{ ...btnStyle, width: '100%', justifyContent: 'center' }}>Save Client Data</motion.button>
+                            <div style={{ display: 'flex', gap: '1rem' }}>
+                                <motion.button whileTap={{ scale: 0.98 }} type="button" onClick={() => setIsModalOpen(false)} style={{ ...btnStyle, background: '#f8fafc', color: '#0f172a', border: '1px solid #e2e8f0', width: '100%', justifyContent: 'center' }}>Cancel</motion.button>
+                                <motion.button whileTap={{ scale: 0.98 }} type="submit" style={{ ...btnStyle, width: '100%', justifyContent: 'center' }}>Save Data</motion.button>
+                            </div>
                         </form>
                     </motion.div>
                 </div>

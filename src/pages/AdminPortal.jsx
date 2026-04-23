@@ -28,6 +28,19 @@ const AdminPortal = () => {
     const { user, logout } = useAuth();
     const [activeNav, setActiveNav] = useState('users');
     const [sidebarOpen, setSidebarOpen] = useState(true);
+    const [notifications, setNotifications] = useState([]);
+    const [showNotifications, setShowNotifications] = useState(false);
+
+    const fetchNotifications = async () => {
+        try {
+            const res = await api.get('/notifications');
+            setNotifications(res.data.data);
+        } catch (err) { console.error('Notification error:', err); }
+    };
+
+    useEffect(() => { fetchNotifications(); }, []);
+
+    const unreadCount = notifications.filter(n => !n.isRead).length;
 
     const navItems = [
         { id: 'approvals', label: 'Security Approvals', icon: ShieldAlert },
@@ -133,6 +146,44 @@ const AdminPortal = () => {
                         </div>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+                        <div style={{ position: 'relative' }}>
+                            <button onClick={() => { setShowNotifications(!showNotifications); fetchNotifications(); }}
+                                style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '8px 12px', cursor: 'pointer', color: '#64748b', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.82rem', fontFamily: "'Outfit', sans-serif", transition: 'all 0.2s', position: 'relative' }}
+                                onMouseEnter={e => { e.currentTarget.style.color = '#0f172a'; e.currentTarget.style.borderColor = '#0f172a'; }}
+                                onMouseLeave={e => { e.currentTarget.style.color = '#64748b'; e.currentTarget.style.borderColor = '#e2e8f0'; }}
+                            >
+                                <Bell size={16} /> Notifications
+                                {unreadCount > 0 && (
+                                    <span style={{ position: 'absolute', top: -4, right: -4, background: '#ef4444', color: '#fff', borderRadius: '50%', width: 18, height: 18, fontSize: '0.65rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{unreadCount}</span>
+                                )}
+                            </button>
+                            {showNotifications && (
+                                <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: 8, width: 340, background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12, boxShadow: '0 10px 40px rgba(0,0,0,0.15)', zIndex: 100, maxHeight: 400, overflowY: 'auto' }}>
+                                    <div style={{ padding: '1rem', borderBottom: '1px solid #e2e8f0', fontWeight: 700, fontSize: '0.9rem', color: '#0f172a', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <span>Notifications</span>
+                                        {unreadCount > 0 && <button onClick={async () => { await api.put('/notifications/read-all'); fetchNotifications(); }} style={{ background: 'none', border: 'none', color: '#6366f1', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600 }}>Mark all read</button>}
+                                    </div>
+                                    {notifications.length === 0 ? (
+                                        <div style={{ padding: '1.5rem', textAlign: 'center', color: '#94a3b8', fontSize: '0.85rem' }}>No notifications</div>
+                                    ) : (
+                                        notifications.slice(0, 10).map(n => (
+                                            <div key={n._id} style={{ padding: '0.75rem 1rem', borderBottom: '1px solid #f1f5f9', background: n.isRead ? '#fff' : '#f0f9ff', cursor: 'pointer' }}
+                                                onClick={async () => { 
+                                                    if (!n.isRead) { 
+                                                        await api.put(`/notifications/${n._id}/read`); 
+                                                        fetchNotifications(); 
+                                                        setActiveNav('approvals'); 
+                                                    } 
+                                                }}>
+                                                <div style={{ fontWeight: 600, fontSize: '0.8rem', color: '#0f172a' }}>{n.title}</div>
+                                                <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: 2 }}>{n.message}</div>
+                                                <div style={{ fontSize: '0.65rem', color: '#94a3b8', marginTop: 4 }}>{new Date(n.createdAt).toLocaleString()}</div>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+                            )}
+                        </div>
                         <div style={{ textAlign: 'right' }}>
                             <div style={{ fontWeight: 800, fontSize: '0.95rem' }}>{user?.firstName} {user?.lastName}</div>
                             <div style={{ fontSize: '0.75rem', color: '#6366f1', fontWeight: 900, letterSpacing: '1px' }}>{user?.role?.toUpperCase()}</div>

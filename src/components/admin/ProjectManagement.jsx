@@ -204,19 +204,26 @@ const ProjectManagement = ({ currentUser, showToast }) => {
                             <div style={{ marginBottom: '1.5rem', background: '#f8fafc', padding: '1rem', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                                     <label style={{...labelStyle, marginBottom: 0}}>Assigned Client</label>
-                                    {!isInlineClient ? (
-                                        <button type="button" onClick={() => setIsInlineClient(true)} style={{ background: 'none', border: 'none', color: '#3b82f6', fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.2rem' }}><Plus size={14}/> Create New Client</button>
-                                    ) : (
-                                        <button type="button" onClick={() => setIsInlineClient(false)} style={{ background: 'none', border: 'none', color: '#ef4444', fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.2rem' }}><X size={14}/> Cancel Creation</button>
-                                    )}
+                                    <button type="button" onClick={() => setIsInlineClient(!isInlineClient)} style={{ background: 'none', border: 'none', color: isInlineClient ? '#ef4444' : '#3b82f6', fontWeight: 800, fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                                        {isInlineClient ? <><X size={14}/> Use Existing Client</> : <><Plus size={14}/> Create New Client</>}
+                                    </button>
                                 </div>
                                 
-                                {!isInlineClient ? (
+                                {clients.length > 0 && !isInlineClient && (
                                     <select value={form.client} onChange={e => setForm({...form, client: e.target.value})} required style={{...inputStyle, background: '#fff'}}>
-                                        <option value="" disabled>--- Select Existing Client ---</option>
+                                        <option value="">--- Select Existing Client ---</option>
                                         {clients.map(c => <option key={c._id} value={c._id}>{c.firstName} {c.lastName}</option>)}
                                     </select>
-                                ) : (
+                                )}
+
+                                {clients.length === 0 && !isInlineClient && (
+                                    <div style={{ padding: '1rem', background: '#fef3c7', borderRadius: '8px', border: '1px solid #fde68a', textAlign: 'center' }}>
+                                        <p style={{ margin: '0 0 0.5rem', fontSize: '0.8rem', color: '#92400e', fontWeight: 600 }}>No clients in database</p>
+                                        <button type="button" onClick={() => setIsInlineClient(true)} style={{ background: '#f59e0b', color: '#fff', border: 'none', borderRadius: '8px', padding: '0.5rem 1rem', fontWeight: 700, cursor: 'pointer', fontSize: '0.8rem' }}>Create First Client</button>
+                                    </div>
+                                )}
+
+                                {isInlineClient && (
                                     <div style={{ background: '#f1f5f9', padding: '1rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
                                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.8rem', marginBottom: '1rem' }}>
                                             <div><label style={labelStyle}>First Name</label><input value={inlineClientForm.firstName} onChange={e => setInlineClientForm({...inlineClientForm, firstName: e.target.value})} required style={{...inputStyle, background: '#fff', padding: '0.7rem 1rem'}} /></div>
@@ -230,7 +237,7 @@ const ProjectManagement = ({ currentUser, showToast }) => {
                                                 </select>
                                             </div>
                                             <div style={{ gridColumn: 'span 2' }}><h4 style={{ margin: '0.5rem 0 0.5rem', fontWeight: 800, color: '#0f172a', fontSize: '0.85rem' }}>Contact Details</h4></div>
-                                            <div><label style={labelStyle}>Phone Number</label><input value={inlineClientForm.telephoneNumber} onChange={e => setInlineClientForm({...inlineClientForm, telephoneNumber: e.target.value})} style={{...inputStyle, background: '#fff', padding: '0.7rem 1rem'}} /></div>
+                                            <div><label style={labelStyle}>Phone Number *</label><input value={inlineClientForm.telephoneNumber} onChange={e => setInlineClientForm({...inlineClientForm, telephoneNumber: e.target.value})} required style={{...inputStyle, background: '#fff', padding: '0.7rem 1rem'}} /></div>
                                             <div><label style={labelStyle}>WhatsApp</label><input value={inlineClientForm.whatsappNumber} onChange={e => setInlineClientForm({...inlineClientForm, whatsappNumber: e.target.value})} style={{...inputStyle, background: '#fff', padding: '0.7rem 1rem'}} /></div>
                                             <div style={{ gridColumn: 'span 2' }}><label style={labelStyle}>Email Address</label><input type="email" value={inlineClientForm.emailAddress} onChange={e => setInlineClientForm({...inlineClientForm, emailAddress: e.target.value})} style={{...inputStyle, background: '#fff', padding: '0.7rem 1rem'}} /></div>
                                             <div style={{ gridColumn: 'span 2' }}><label style={labelStyle}>Physical Address</label><input value={inlineClientForm.address} onChange={e => setInlineClientForm({...inlineClientForm, address: e.target.value})} style={{...inputStyle, background: '#fff', padding: '0.7rem 1rem'}} /></div>

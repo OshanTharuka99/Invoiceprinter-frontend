@@ -24,30 +24,35 @@ const QuotationManagement = ({ currentUser, showToast }) => {
     const [quotationToDelete, setQuotationToDelete] = useState(null);
     const [deleteReason, setDeleteReason] = useState('');
 
+    const [projects, setProjects] = useState([]);
     const initialForm = {
         clientRef: '',
-        manualClientDetails: { title: 'Mr', name: '', address: '', telephoneNumber: '', emailAddress: '' },
+        projectId: '',
+        manualClientDetails: { title: 'Mr', organization: '', name: '', address: '', telephoneNumber: '', emailAddress: '' },
         items: [],
         subTotal: 0,
         hasDiscount: false, discountType: 'none', discountValue: 0,
         hasTax: false, taxName: 'VAT', taxPercentage: 0,
         finalTotal: 0,
-        currency: 'primary'
+        currency: 'primary',
+        validDate: ''
     };
     const [form, setForm] = useState(initialForm);
 
     const fetchData = async () => {
         setLoading(true);
         try {
-            const [qRes, cRes, pRes, bRes] = await Promise.all([
+            const [qRes, cRes, pRes, bRes, prRes] = await Promise.all([
                 api.get('/quotations'),
                 api.get('/clients'),
                 api.get('/products'),
-                api.get('/business')
+                api.get('/business'),
+                api.get('/projects')
             ]);
             setQuotations(qRes.data.data);
             setClients(cRes.data.data);
             setProducts(pRes.data.data);
+            setProjects(prRes.data.data);
             if (bRes.data.data.details) setBusinessData(bRes.data.data.details);
         } catch (error) {
             showToast?.('Error fetching metrics', 'error');
@@ -88,13 +93,30 @@ const QuotationManagement = ({ currentUser, showToast }) => {
 
     const openCreation = (mode) => {
         setCreationMode(mode);
-        const autoTaxOptions = !!businessData?.isVatRegistered || !!(businessData?.otherTaxes && businessData.otherTaxes.length > 0);
+        
+        let autoTaxEnabled = false;
+        let taxName = 'VAT';
+        let taxPercentage = 0;
+
+        if (mode === 'automatic') {
+            const isVatRegistered = !!businessData?.isVatRegistered;
+            const hasOtherTaxes = businessData?.otherTaxes && businessData.otherTaxes.length > 0;
+            autoTaxEnabled = isVatRegistered || hasOtherTaxes;
+            taxName = businessData?.otherTaxes?.[0]?.name || 'VAT';
+            taxPercentage = isVatRegistered ? businessData.vatPercentage : (businessData?.otherTaxes?.[0]?.value || 0);
+        } else {
+            const isVatRegistered = !!businessData?.isVatRegistered;
+            autoTaxEnabled = isVatRegistered;
+            taxName = 'VAT';
+            taxPercentage = isVatRegistered ? businessData.vatPercentage : 0;
+        }
 
         setForm({
             ...initialForm,
-            hasTax: mode === 'automatic' ? autoTaxOptions : false,
-            taxName: businessData?.otherTaxes?.[0]?.name || 'VAT',
-            taxPercentage: businessData?.isVatRegistered ? businessData.vatPercentage : (businessData?.otherTaxes?.[0]?.value || 0)
+            hasTax: autoTaxEnabled,
+            taxName,
+            taxPercentage,
+            items: mode === 'automatic' ? form.items : []
         });
         setIsCreateModalOpen(true);
     };
@@ -283,29 +305,64 @@ const QuotationManagement = ({ currentUser, showToast }) => {
                                 {/* CLIENT INFO */}
                                 <div style={{ marginBottom: '1.5rem', padding: '1.5rem', borderRadius: '16px', background: '#f8fafc', border: '1px solid #e2e8f0' }}>
                                     <h4 style={{ margin: '0 0 1rem 0', color: '#0f172a' }}>1. Client Details</h4>
-                                    {creationMode === 'automatic' ? (
+                                    
+                                    {/* Toggle between Client Directory and Manual Entry */}
+                                    <div style={{ marginBottom: '1rem', display: 'flex', gap: '0.5rem' }}>
+                                        <button type="button" 
+                                            onClick={() => setForm({...form, clientRef: form.clientRef || ''})}
+                                            style={{ 
+                                                padding: '0.5rem 1rem', 
+                                                borderRadius: '8px', 
+                                                border: 'none', 
+                                                cursor: 'pointer',
+                                                background: form.clientRef ? '#0f172a' : '#e2e8f0',
+                                                color: form.clientRef ? '#fff' : '#64748b',
+                                                fontWeight: 600,
+                                                fontSize: '0.8rem'
+                                            }}>
+                                            Select from Directory
+                                        </button>
+                                        <button type="button" 
+                                            onClick={() => setForm({...form, clientRef: ''})}
+                                            style={{ 
+                                                padding: '0.5rem 1rem', 
+                                                borderRadius: '8px', 
+                                                border: 'none', 
+                                                cursor: 'pointer',
+                                                background: !form.clientRef ? '#0f172a' : '#e2e8f0',
+                                                color: !form.clientRef ? '#fff' : '#64748b',
+                                                fontWeight: 600,
+                                                fontSize: '0.8rem'
+                                            }}>
+                                            Manual Entry
+                                        </button>
+                                    </div>
+
+                                    {/* Client Directory Selection */}
+                                    {form.clientRef ? (
                                         <div>
-                                            <label style={labelStyle}>Select Existing Client</label>
-                                            <select required value={form.clientRef} onChange={e => {
+                                            <label style={labelStyle}>Select Client</label>
+                                            <select value={form.clientRef} onChange={e => {
                                                 const selected = clients.find(c => c._id === e.target.value);
                                                 setForm({
                                                     ...form, 
                                                     clientRef: e.target.value,
                                                     manualClientDetails: selected ? {
-                                                        title: 'Mr', // Defaults to Mr, but we just extract name
-                                                        name: `${selected.firstName} ${selected.lastName || ''}`.trim(),
+                                                        title: 'Mr',
+                                                        organization: selected.clientType === 'Organization' ? selected.firstName : '',
+                                                        name: selected.clientType !== 'Organization' ? `${selected.firstName} ${selected.lastName || ''}`.trim() : '',
                                                         address: selected.address || '',
                                                         telephoneNumber: selected.telephoneNumber || selected.whatsappNumber || '',
                                                         emailAddress: selected.emailAddress || ''
                                                     } : form.manualClientDetails
                                                 });
-                                            }} style={inputStyle}>
+                                            }} style={{...inputStyle, background: '#fff'}}>
                                                 <option value="" disabled>Select a client...</option>
-                                                {clients.map(c => <option key={c._id} value={c._id}>{c.firstName} {c.lastName} ({c.clientId})</option>)}
+                                                {clients.map(c => <option key={c._id} value={c._id}>{c.clientType === 'Organization' ? c.firstName : `${c.firstName} ${c.lastName || ''}`} ({c.clientId})</option>)}
                                             </select>
                                         </div>
                                     ) : (
-                                        <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr 1fr', gap: '1rem' }}>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '100px 1fr 1fr', gap: '1rem' }}>
                                             <div>
                                                 <label style={labelStyle}>Title</label>
                                                 <select value={form.manualClientDetails.title} onChange={e => setForm({...form, manualClientDetails: {...form.manualClientDetails, title: e.target.value}})} style={{...inputStyle, background: '#fff', padding: '0.8rem 0.5rem'}}>
@@ -313,19 +370,51 @@ const QuotationManagement = ({ currentUser, showToast }) => {
                                                     <option value="Mrs">Mrs.</option>
                                                     <option value="Miss">Miss</option>
                                                     <option value="Ms">Ms.</option>
+                                                    <option value="Organization">Organization</option>
                                                 </select>
                                             </div>
-                                            <div><label style={labelStyle}>Client Name</label><input required value={form.manualClientDetails.name} onChange={e => setForm({...form, manualClientDetails: {...form.manualClientDetails, name: e.target.value}})} style={{...inputStyle, background: '#fff'}} /></div>
+                                            <div><label style={labelStyle}>Client Name / Organization</label><input required value={form.manualClientDetails.name} onChange={e => setForm({...form, manualClientDetails: {...form.manualClientDetails, name: e.target.value}})} style={{...inputStyle, background: '#fff'}} /></div>
                                             <div><label style={labelStyle}>Contact Number</label><input value={form.manualClientDetails.telephoneNumber} onChange={e => setForm({...form, manualClientDetails: {...form.manualClientDetails, telephoneNumber: e.target.value}})} style={{...inputStyle, background: '#fff'}} /></div>
                                             <div style={{ gridColumn: 'span 3' }}><label style={labelStyle}>Address</label><input value={form.manualClientDetails.address} onChange={e => setForm({...form, manualClientDetails: {...form.manualClientDetails, address: e.target.value}})} style={{...inputStyle, background: '#fff'}} /></div>
+                                            <div style={{ gridColumn: 'span 3' }}><label style={labelStyle}>Email (Optional)</label><input type="email" value={form.manualClientDetails.emailAddress} onChange={e => setForm({...form, manualClientDetails: {...form.manualClientDetails, emailAddress: e.target.value}})} style={{...inputStyle, background: '#fff'}} /></div>
                                         </div>
                                     )}
+                                </div>
+
+                                {/* QUOTATION VALIDITY */}
+                                <div style={{ marginBottom: '1.5rem', padding: '1.5rem', borderRadius: '16px', background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+                                    <h4 style={{ margin: '0 0 1rem 0', color: '#0f172a' }}>2. Quotation Validity</h4>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                        <div>
+                                            <label style={labelStyle}>Valid Until (Expiry Date)</label>
+                                            <input
+                                                type="date"
+                                                value={form.validDate}
+                                                onChange={e => setForm({ ...form, validDate: e.target.value })}
+                                                style={{ ...inputStyle, background: '#fff' }}
+                                            />
+                                            <p style={{ margin: '0.4rem 0 0', fontSize: '0.72rem', color: '#94a3b8', fontWeight: 500 }}>
+                                                Optional — printed on the quotation as "Valid Until".
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <label style={labelStyle}>Currency</label>
+                                            <select
+                                                value={form.currency}
+                                                onChange={e => setForm({ ...form, currency: e.target.value })}
+                                                style={{ ...inputStyle, background: '#fff' }}
+                                            >
+                                                <option value="primary">Primary ({businessData?.primaryCurrency?.code || 'LKR'})</option>
+                                                <option value="secondary">Secondary ({businessData?.secondaryCurrency?.code || 'USD'})</option>
+                                            </select>
+                                        </div>
+                                    </div>
                                 </div>
 
                                 {/* ITEMS */}
                                 <div style={{ marginBottom: '1.5rem', padding: '1.5rem', borderRadius: '16px', background: '#f8fafc', border: '1px solid #e2e8f0' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                                        <h4 style={{ margin: 0, color: '#0f172a' }}>2. Product Modules</h4>
+                                        <h4 style={{ margin: 0, color: '#0f172a' }}>3. Product Modules</h4>
                                         <button type="button" onClick={handleAddItem} style={{ background: '#0f172a', color: '#fff', padding: '6px 12px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}><Plus size={14} /> Attach Item</button>
                                     </div>
                                     <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -401,20 +490,45 @@ const QuotationManagement = ({ currentUser, showToast }) => {
                                     </div>
 
                                     {/* Tax Block */}
-                                    {creationMode === 'manual' && (
-                                        <div style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                                                <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.9rem' }}>Apply Govt/Sector Tax?</div>
-                                                <input type="checkbox" checked={form.hasTax} onChange={handleToggleTax} style={{ width: '18px', height: '18px', cursor: 'pointer' }} />
+                                    <div style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                                            <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.9rem' }}>
+                                                {creationMode === 'manual' ? 'Apply Govt/Sector Tax?' : `Apply Tax (VAT: ${businessData?.isVatRegistered ? businessData.vatPercentage + '%' : 'N/A'})?`}
                                             </div>
-                                            {form.hasTax && (
-                                                <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
-                                                    <input type="text" placeholder="Tax Name (e.g. VAT)" value={form.taxName} onChange={e => handleParamChange('taxName', e.target.value)} style={{...inputStyle, background: '#fff', padding: '0.5rem'}} />
-                                                    <input type="number" step="0.01" placeholder="Rate %" value={form.taxPercentage} onChange={e => handleParamChange('taxPercentage', parseFloat(e.target.value)||0)} style={{...inputStyle, background: '#fff', padding: '0.5rem'}} />
-                                                </div>
-                                            )}
+                                            <input type="checkbox" checked={form.hasTax} onChange={handleToggleTax} style={{ width: '18px', height: '18px', cursor: 'pointer' }} />
                                         </div>
-                                    )}
+                                        {form.hasTax && (
+                                            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem', flexWrap: 'wrap' }}>
+                                                {businessData?.otherTaxes && businessData.otherTaxes.length > 0 ? (
+                                                    <>
+                                                        <select value={form.taxName} onChange={e => handleParamChange('taxName', e.target.value)} style={{...inputStyle, background: '#fff', padding: '0.5rem', minWidth: '150px'}}>
+                                                            {businessData.isVatRegistered && <option value="VAT">VAT ({businessData.vatPercentage}%)</option>}
+                                                            {businessData.otherTaxes.map((t, i) => (
+                                                                <option key={i} value={t.name}>{t.name} ({t.type === 'percentage' ? t.value + '%' : 'Fixed'})</option>
+                                                            ))}
+                                                        </select>
+                                                        {(() => {
+                                                            const selectedTax = businessData.otherTaxes.find(t => t.name === form.taxName);
+                                                            const isVat = form.taxName === 'VAT';
+                                                            const pct = isVat ? businessData.vatPercentage : (selectedTax?.value || 0);
+                                                            return (
+                                                                <input type="number" step="0.01" placeholder="Rate %" value={pct} 
+                                                                    onChange={e => handleParamChange('taxPercentage', parseFloat(e.target.value)||0)} 
+                                                                    style={{...inputStyle, background: '#f1f5f9', padding: '0.5rem', width: '80px'}} 
+                                                                    disabled={isVat || selectedTax?.type === 'percentage'} 
+                                                                />
+                                                            );
+                                                        })()}
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <input type="text" placeholder="Tax Name (e.g. VAT)" value={form.taxName} onChange={e => handleParamChange('taxName', e.target.value)} style={{...inputStyle, background: '#fff', padding: '0.5rem'}} />
+                                                        <input type="number" step="0.01" placeholder="Rate %" value={form.taxPercentage} onChange={e => handleParamChange('taxPercentage', parseFloat(e.target.value)||0)} style={{...inputStyle, background: '#fff', padding: '0.5rem'}} />
+                                                    </>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
 
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.5rem', background: '#0f172a', borderRadius: '16px', color: '#fff', marginBottom: '2rem' }}>

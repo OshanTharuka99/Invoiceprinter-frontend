@@ -14,7 +14,7 @@ const QuotationManagement = ({ currentUser, showToast }) => {
 
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [creationMode, setCreationMode] = useState('automatic'); // 'automatic' or 'manual'
-    
+
     // View/Print
     const [viewQuotation, setViewQuotation] = useState(null);
     const printRef = useRef();
@@ -28,16 +28,21 @@ const QuotationManagement = ({ currentUser, showToast }) => {
     const initialForm = {
         clientRef: '',
         projectId: '',
+        customDuration: '',
+        customUnit: 'days',
         manualClientDetails: { title: 'Mr', organization: '', name: '', address: '', telephoneNumber: '', emailAddress: '' },
         items: [],
         subTotal: 0,
-        hasDiscount: false, discountType: 'none', discountValue: 0,
+        appliedDiscounts: [],
+        discountTotal: 0,
         hasTax: false, taxName: 'VAT', taxPercentage: 0,
         finalTotal: 0,
         currency: 'primary',
         validDate: ''
     };
     const [form, setForm] = useState(initialForm);
+    const [applyDiscountMode, setApplyDiscountMode] = useState(false);
+    const [customDiscount, setCustomDiscount] = useState({ type: 'percentage', value: 0 });
 
     const fetchData = async () => {
         setLoading(true);
@@ -64,17 +69,42 @@ const QuotationManagement = ({ currentUser, showToast }) => {
     useEffect(() => { fetchData(); }, []);
 
     const handlePrint = () => {
+        if (!viewQuotation) return;
+
+        // Build a clean filename: QN00001_ClientName_YYYY-MM-DD
+        const qId = viewQuotation.quotationId || 'QN';
+        const clientName = viewQuotation.clientRef
+            ? (viewQuotation.clientRef.firstName + (viewQuotation.clientRef.lastName ? '_' + viewQuotation.clientRef.lastName : ''))
+            : (viewQuotation.manualClientDetails?.organization || viewQuotation.manualClientDetails?.name || 'Client');
+        const cleanClient = clientName.replace(/[^a-zA-Z0-9_\-]/g, '_').replace(/_+/g, '_');
+        const dateStr = new Date(viewQuotation.createdAt || Date.now())
+            .toISOString().slice(0, 10); // YYYY-MM-DD
+        const fileName = `${qId}_${cleanClient}_${dateStr}`;
+
         const printContent = printRef.current;
-        const windowPrint = window.open('', '', 'left=0,top=0,width=800,height=900,toolbar=0,scrollbars=0,status=0');
+        const windowPrint = window.open('', '', 'left=0,top=0,width=900,height=1100,toolbar=0,scrollbars=1,status=0');
         windowPrint.document.write(`
+            <!DOCTYPE html>
             <html>
                 <head>
-                    <title>Print Quotation</title>
+                    <title>${fileName}</title>
                     <style>
-                        body { margin: 0; padding: 0; background: #fff; }
+                        * { box-sizing: border-box; margin: 0; padding: 0; }
+                        body {
+                            background: #fff;
+                            -webkit-print-color-adjust: exact;
+                            print-color-adjust: exact;
+                            color-adjust: exact;
+                        }
                         @media print {
-                            @page { size: A4; margin: 0; }
-                            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                            @page {
+                                size: A4 portrait;
+                                margin: 14mm 15mm 14mm 15mm;
+                            }
+                            body { margin: 0 !important; padding: 0 !important; }
+                            div { padding: 0 !important; }
+                            * { box-shadow: none !important; }
+                            tr { page-break-inside: avoid; }
                         }
                     </style>
                 </head>
@@ -88,12 +118,12 @@ const QuotationManagement = ({ currentUser, showToast }) => {
         setTimeout(() => {
             windowPrint.print();
             windowPrint.close();
-        }, 250);
+        }, 400);
     };
 
     const openCreation = (mode) => {
         setCreationMode(mode);
-        
+
         let autoTaxEnabled = false;
         let taxName = 'VAT';
         let taxPercentage = 0;
@@ -136,51 +166,38 @@ const QuotationManagement = ({ currentUser, showToast }) => {
                 newItems[index].manualName = prod.name;
             }
         }
-        
+
         newItems[index].lineTotal = newItems[index].quantity * newItems[index].unitPrice;
-        
+
         const subTotal = newItems.reduce((acc, current) => acc + current.lineTotal, 0);
-        calculateTotals(newItems, subTotal, form.hasDiscount, form.discountType, form.discountValue, form.hasTax, form.taxPercentage);
+        recalculateFinal({ ...form, items: newItems, subTotal });
     };
 
-    const calculateTotals = (items, subTotal, hasDiscount, discountType, discountValue, hasTax, taxPercentage) => {
-        let finalParams = subTotal;
-        if (hasDiscount && discountValue > 0) {
-            if (discountType === 'percentage') {
-                finalParams -= (subTotal * discountValue) / 100;
-            } else if (discountType === 'fixed') {
-                finalParams -= discountValue;
-            }
+    const recalculateFinal = (currentForm = form) => {
+        const subTotal = currentForm.subTotal || 0;
+        const discountTotal = (currentForm.appliedDiscounts || []).reduce((sum, d) => sum + (d.amount || 0), 0);
+        let finalTotal = subTotal - discountTotal;
+        if (currentForm.hasTax && currentForm.taxPercentage > 0) {
+            finalTotal += (finalTotal * currentForm.taxPercentage) / 100;
         }
-        if (hasTax && taxPercentage > 0) {
-           finalParams += (finalParams * taxPercentage) / 100;
-        }
-
-        setForm(prev => ({
-            ...prev,
-            items, subTotal, hasDiscount, discountType, discountValue, hasTax, taxPercentage, finalTotal: finalParams
-        }));
-    };
-
-    const handleToggleDiscount = (e) => {
-        const val = e.target.checked;
-        calculateTotals(form.items, form.subTotal, val, form.discountType, form.discountValue, form.hasTax, form.taxPercentage);
-    };
-
-    const handleToggleTax = (e) => {
-        const val = e.target.checked;
-        calculateTotals(form.items, form.subTotal, form.hasDiscount, form.discountType, form.discountValue, val, form.taxPercentage);
+        setForm({ ...currentForm, discountTotal, finalTotal });
     };
 
     const handleParamChange = (field, val) => {
         const merged = { ...form, [field]: val };
-        calculateTotals(merged.items, merged.subTotal, merged.hasDiscount, merged.discountType, merged.discountValue, merged.hasTax, merged.taxPercentage);
+        recalculateFinal(merged);
+    };
+
+    const handleToggleTax = (e) => {
+        const val = e.target.checked;
+        setForm(prev => ({ ...prev, hasTax: val }));
+        setTimeout(() => recalculateFinal(), 0);
     };
 
     const submitQuotation = async (e) => {
         e.preventDefault();
         if (form.items.length === 0) return showToast?.('Insert at least 1 item', 'error');
-        
+
         try {
             await api.post('/quotations', { ...form, creationMethod: creationMode });
             showToast?.('Quotation compiled securely', 'success');
@@ -215,8 +232,8 @@ const QuotationManagement = ({ currentUser, showToast }) => {
         }
     };
 
-    const filtered = quotations.filter(q => 
-        q.quotationId.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    const filtered = quotations.filter(q =>
+        q.quotationId.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (q.clientRef?.firstName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
         (q.manualClientDetails?.name || '').toLowerCase().includes(searchTerm.toLowerCase())
     );
@@ -300,20 +317,20 @@ const QuotationManagement = ({ currentUser, showToast }) => {
                                 </div>
                                 <motion.button whileTap={{ scale: 0.9 }} onClick={() => setIsCreateModalOpen(false)} style={{ background: '#f1f5f9', border: 'none', borderRadius: '50%', width: 32, height: 32, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={18} /></motion.button>
                             </div>
-                            
+
                             <form onSubmit={submitQuotation}>
                                 {/* CLIENT INFO */}
                                 <div style={{ marginBottom: '1.5rem', padding: '1.5rem', borderRadius: '16px', background: '#f8fafc', border: '1px solid #e2e8f0' }}>
                                     <h4 style={{ margin: '0 0 1rem 0', color: '#0f172a' }}>1. Client Details</h4>
-                                    
+
                                     {/* Toggle between Client Directory and Manual Entry */}
                                     <div style={{ marginBottom: '1rem', display: 'flex', gap: '0.5rem' }}>
-                                        <button type="button" 
-                                            onClick={() => setForm({...form, clientRef: form.clientRef || ''})}
-                                            style={{ 
-                                                padding: '0.5rem 1rem', 
-                                                borderRadius: '8px', 
-                                                border: 'none', 
+                                        <button type="button"
+                                            onClick={() => setForm({ ...form, clientRef: clients[0]?._id || '' })}
+                                            style={{
+                                                padding: '0.5rem 1rem',
+                                                borderRadius: '8px',
+                                                border: 'none',
                                                 cursor: 'pointer',
                                                 background: form.clientRef ? '#0f172a' : '#e2e8f0',
                                                 color: form.clientRef ? '#fff' : '#64748b',
@@ -322,12 +339,12 @@ const QuotationManagement = ({ currentUser, showToast }) => {
                                             }}>
                                             Select from Directory
                                         </button>
-                                        <button type="button" 
-                                            onClick={() => setForm({...form, clientRef: ''})}
-                                            style={{ 
-                                                padding: '0.5rem 1rem', 
-                                                borderRadius: '8px', 
-                                                border: 'none', 
+                                        <button type="button"
+                                            onClick={() => setForm({ ...form, clientRef: '' })}
+                                            style={{
+                                                padding: '0.5rem 1rem',
+                                                borderRadius: '8px',
+                                                border: 'none',
                                                 cursor: 'pointer',
                                                 background: !form.clientRef ? '#0f172a' : '#e2e8f0',
                                                 color: !form.clientRef ? '#fff' : '#64748b',
@@ -345,7 +362,7 @@ const QuotationManagement = ({ currentUser, showToast }) => {
                                             <select value={form.clientRef} onChange={e => {
                                                 const selected = clients.find(c => c._id === e.target.value);
                                                 setForm({
-                                                    ...form, 
+                                                    ...form,
                                                     clientRef: e.target.value,
                                                     manualClientDetails: selected ? {
                                                         title: 'Mr',
@@ -356,7 +373,7 @@ const QuotationManagement = ({ currentUser, showToast }) => {
                                                         emailAddress: selected.emailAddress || ''
                                                     } : form.manualClientDetails
                                                 });
-                                            }} style={{...inputStyle, background: '#fff'}}>
+                                            }} style={{ ...inputStyle, background: '#fff' }}>
                                                 <option value="" disabled>Select a client...</option>
                                                 {clients.map(c => <option key={c._id} value={c._id}>{c.clientType === 'Organization' ? c.firstName : `${c.firstName} ${c.lastName || ''}`} ({c.clientId})</option>)}
                                             </select>
@@ -365,7 +382,7 @@ const QuotationManagement = ({ currentUser, showToast }) => {
                                         <div style={{ display: 'grid', gridTemplateColumns: '100px 1fr 1fr', gap: '1rem' }}>
                                             <div>
                                                 <label style={labelStyle}>Title</label>
-                                                <select value={form.manualClientDetails.title} onChange={e => setForm({...form, manualClientDetails: {...form.manualClientDetails, title: e.target.value}})} style={{...inputStyle, background: '#fff', padding: '0.8rem 0.5rem'}}>
+                                                <select value={form.manualClientDetails.title} onChange={e => setForm({ ...form, manualClientDetails: { ...form.manualClientDetails, title: e.target.value } })} style={{ ...inputStyle, background: '#fff', padding: '0.8rem 0.5rem' }}>
                                                     <option value="Mr">Mr.</option>
                                                     <option value="Mrs">Mrs.</option>
                                                     <option value="Miss">Miss</option>
@@ -373,10 +390,10 @@ const QuotationManagement = ({ currentUser, showToast }) => {
                                                     <option value="Organization">Organization</option>
                                                 </select>
                                             </div>
-                                            <div><label style={labelStyle}>Client Name / Organization</label><input required value={form.manualClientDetails.name} onChange={e => setForm({...form, manualClientDetails: {...form.manualClientDetails, name: e.target.value}})} style={{...inputStyle, background: '#fff'}} /></div>
-                                            <div><label style={labelStyle}>Contact Number</label><input value={form.manualClientDetails.telephoneNumber} onChange={e => setForm({...form, manualClientDetails: {...form.manualClientDetails, telephoneNumber: e.target.value}})} style={{...inputStyle, background: '#fff'}} /></div>
-                                            <div style={{ gridColumn: 'span 3' }}><label style={labelStyle}>Address</label><input value={form.manualClientDetails.address} onChange={e => setForm({...form, manualClientDetails: {...form.manualClientDetails, address: e.target.value}})} style={{...inputStyle, background: '#fff'}} /></div>
-                                            <div style={{ gridColumn: 'span 3' }}><label style={labelStyle}>Email (Optional)</label><input type="email" value={form.manualClientDetails.emailAddress} onChange={e => setForm({...form, manualClientDetails: {...form.manualClientDetails, emailAddress: e.target.value}})} style={{...inputStyle, background: '#fff'}} /></div>
+                                            <div><label style={labelStyle}>Client Name / Organization</label><input required value={form.manualClientDetails.name} onChange={e => setForm({ ...form, manualClientDetails: { ...form.manualClientDetails, name: e.target.value } })} style={{ ...inputStyle, background: '#fff' }} /></div>
+                                            <div><label style={labelStyle}>Contact Number</label><input value={form.manualClientDetails.telephoneNumber} onChange={e => setForm({ ...form, manualClientDetails: { ...form.manualClientDetails, telephoneNumber: e.target.value } })} style={{ ...inputStyle, background: '#fff' }} /></div>
+                                            <div style={{ gridColumn: 'span 3' }}><label style={labelStyle}>Address</label><input value={form.manualClientDetails.address} onChange={e => setForm({ ...form, manualClientDetails: { ...form.manualClientDetails, address: e.target.value } })} style={{ ...inputStyle, background: '#fff' }} /></div>
+                                            <div style={{ gridColumn: 'span 3' }}><label style={labelStyle}>Email (Optional)</label><input type="email" value={form.manualClientDetails.emailAddress} onChange={e => setForm({ ...form, manualClientDetails: { ...form.manualClientDetails, emailAddress: e.target.value } })} style={{ ...inputStyle, background: '#fff' }} /></div>
                                         </div>
                                     )}
                                 </div>
@@ -386,16 +403,63 @@ const QuotationManagement = ({ currentUser, showToast }) => {
                                     <h4 style={{ margin: '0 0 1rem 0', color: '#0f172a' }}>2. Quotation Validity</h4>
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                                         <div>
-                                            <label style={labelStyle}>Valid Until (Expiry Date)</label>
-                                            <input
-                                                type="date"
-                                                value={form.validDate}
-                                                onChange={e => setForm({ ...form, validDate: e.target.value })}
-                                                style={{ ...inputStyle, background: '#fff' }}
-                                            />
-                                            <p style={{ margin: '0.4rem 0 0', fontSize: '0.72rem', color: '#94a3b8', fontWeight: 500 }}>
-                                                Optional — printed on the quotation as "Valid Until".
-                                            </p>
+                                            <label style={labelStyle}>Duration</label>
+                                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                                <input
+                                                    type="number"
+                                                    min="1"
+                                                    placeholder="Enter number"
+                                                    value={form.customDuration || ''}
+                                                    onChange={e => {
+                                                        const num = parseInt(e.target.value) || '';
+                                                        const unit = form.customUnit || 'days';
+                                                        const today = new Date();
+                                                        if (num) {
+                                                            if (unit === 'days') {
+                                                                today.setDate(today.getDate() + num);
+                                                            } else if (unit === 'weeks') {
+                                                                today.setDate(today.getDate() + (num * 7));
+                                                            } else if (unit === 'months') {
+                                                                today.setMonth(today.getMonth() + num);
+                                                            }
+                                                            setForm(prev => ({ ...prev, customDuration: num, validDate: today.toISOString().split('T')[0] }));
+                                                        } else {
+                                                            setForm(prev => ({ ...prev, customDuration: num, validDate: '' }));
+                                                        }
+                                                    }}
+                                                    style={{ ...inputStyle, background: '#fff', width: '100px' }}
+                                                />
+                                                <select
+                                                    value={form.customUnit || 'days'}
+                                                    onChange={e => {
+                                                        const num = form.customDuration || 0;
+                                                        const unit = e.target.value;
+                                                        const today = new Date();
+                                                        if (num) {
+                                                            if (unit === 'days') {
+                                                                today.setDate(today.getDate() + num);
+                                                            } else if (unit === 'weeks') {
+                                                                today.setDate(today.getDate() + (num * 7));
+                                                            } else if (unit === 'months') {
+                                                                today.setMonth(today.getMonth() + num);
+                                                            }
+                                                            setForm(prev => ({ ...prev, customUnit: unit, validDate: today.toISOString().split('T')[0] }));
+                                                        } else {
+                                                            setForm(prev => ({ ...prev, customUnit: unit, validDate: '' }));
+                                                        }
+                                                    }}
+                                                    style={{ ...inputStyle, background: '#fff' }}
+                                                >
+                                                    <option value="days">Days</option>
+                                                    <option value="weeks">Weeks</option>
+                                                    <option value="months">Months</option>
+                                                </select>
+                                            </div>
+                                            {form.validDate && (
+                                                <p style={{ margin: '0.5rem 0 0', fontSize: '0.75rem', color: '#10b981', fontWeight: 600 }}>
+                                                    Expires on: {new Date(form.validDate).toLocaleDateString('en-GB')}
+                                                </p>
+                                            )}
                                         </div>
                                         <div>
                                             <label style={labelStyle}>Currency</label>
@@ -409,6 +473,9 @@ const QuotationManagement = ({ currentUser, showToast }) => {
                                             </select>
                                         </div>
                                     </div>
+                                    <p style={{ margin: '0.5rem 0 0', fontSize: '0.72rem', color: '#94a3b8', fontWeight: 500 }}>
+                                        Enter duration and select unit. Date will be automatically calculated and printed on the quotation.
+                                    </p>
                                 </div>
 
                                 {/* ITEMS */}
@@ -432,19 +499,19 @@ const QuotationManagement = ({ currentUser, showToast }) => {
                                                 <tr key={idx}>
                                                     <td style={{ padding: '0.5rem' }}>
                                                         {creationMode === 'automatic' ? (
-                                                            <select required value={it.productRef} onChange={e => updateItem(idx, 'productRef', e.target.value)} style={{...inputStyle, background: '#fff', padding: '0.5rem'}}>
+                                                            <select required value={it.productRef} onChange={e => updateItem(idx, 'productRef', e.target.value)} style={{ ...inputStyle, background: '#fff', padding: '0.5rem' }}>
                                                                 <option value="" disabled>Select Product Catalog...</option>
                                                                 {products.map(p => <option key={p._id} value={p._id}>{p.name} [{p.productId}] - Stock: {p.quantity || 0}</option>)}
                                                             </select>
                                                         ) : (
-                                                            <input required placeholder="Manual Entry..." value={it.manualName} onChange={e => updateItem(idx, 'manualName', e.target.value)} style={{...inputStyle, background: '#fff', padding: '0.5rem'}} />
+                                                            <input required placeholder="Manual Entry..." value={it.manualName} onChange={e => updateItem(idx, 'manualName', e.target.value)} style={{ ...inputStyle, background: '#fff', padding: '0.5rem' }} />
                                                         )}
                                                     </td>
                                                     <td style={{ padding: '0.5rem' }}>
-                                                        <input required type="number" min="1" value={it.quantity} onChange={e => updateItem(idx, 'quantity', parseInt(e.target.value)||0)} style={{...inputStyle, background: '#fff', padding: '0.5rem', textAlign: 'center'}} />
+                                                        <input required type="number" min="1" value={it.quantity} onChange={e => updateItem(idx, 'quantity', parseInt(e.target.value) || 0)} style={{ ...inputStyle, background: '#fff', padding: '0.5rem', textAlign: 'center' }} />
                                                     </td>
                                                     <td style={{ padding: '0.5rem' }}>
-                                                        <input required type="number" step="0.01" value={it.unitPrice} onChange={e => updateItem(idx, 'unitPrice', parseFloat(e.target.value)||0)} disabled={creationMode === 'automatic'} style={{...inputStyle, background: creationMode === 'automatic' ? '#f1f5f9' : '#fff', padding: '0.5rem', textAlign: 'right'}} />
+                                                        <input required type="number" step="0.01" value={it.unitPrice} onChange={e => updateItem(idx, 'unitPrice', parseFloat(e.target.value) || 0)} disabled={creationMode === 'automatic'} style={{ ...inputStyle, background: creationMode === 'automatic' ? '#f1f5f9' : '#fff', padding: '0.5rem', textAlign: 'right' }} />
                                                     </td>
                                                     <td style={{ padding: '0.5rem', textAlign: 'right', fontWeight: 800, color: '#0f172a' }}>
                                                         {it.lineTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
@@ -453,7 +520,7 @@ const QuotationManagement = ({ currentUser, showToast }) => {
                                                         <button type="button" onClick={() => {
                                                             const n = form.items.filter((_, i) => i !== idx);
                                                             const sub = n.reduce((acc, c) => acc + c.lineTotal, 0);
-                                                            calculateTotals(n, sub, form.hasDiscount, form.discountType, form.discountValue, form.hasTax, form.taxPercentage);
+                                                            recalculateFinal({ ...form, items: n, subTotal: sub }); // FIX
                                                         }} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}><X size={16} /></button>
                                                     </td>
                                                 </tr>
@@ -470,21 +537,106 @@ const QuotationManagement = ({ currentUser, showToast }) => {
                                     </table>
                                 </div>
 
-                                {/* TOTALS VERIFICATION - "Ask the user" logic */}
+                                {/* TOTALS VERIFICATION - Multiple Discounts + Custom */}
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '2rem' }}>
                                     {/* Discount Block */}
                                     <div style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                                            <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.9rem' }}>Apply Promotional Discout?</div>
-                                            <input type="checkbox" checked={form.hasDiscount} onChange={handleToggleDiscount} style={{ width: '18px', height: '18px', cursor: 'pointer' }} />
+                                            <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.9rem' }}>Discounts</div>
+                                            <input type="checkbox" checked={form.appliedDiscounts?.length > 0 || form.discountTotal > 0} onChange={(e) => {
+                                                if (e.target.checked && businessData?.discountProfiles?.length > 0) {
+                                                    setApplyDiscountMode(true);
+                                                } else {
+                                                    setForm({ ...form, appliedDiscounts: [], discountTotal: 0 });
+                                                    recalculateFinal();
+                                                }
+                                            }} style={{ width: '18px', height: '18px', cursor: 'pointer' }} />
                                         </div>
-                                        {form.hasDiscount && (
-                                            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
-                                                <select value={form.discountType} onChange={e => handleParamChange('discountType', e.target.value)} style={{...inputStyle, background: '#fff', padding: '0.5rem'}}>
-                                                    <option value="percentage">% Percentage</option>
-                                                    <option value="fixed">Fixed Flat</option>
-                                                </select>
-                                                <input type="number" step="0.01" placeholder="Value..." value={form.discountValue} onChange={e => handleParamChange('discountValue', parseFloat(e.target.value)||0)} style={{...inputStyle, background: '#fff', padding: '0.5rem'}} />
+                                        {(form.appliedDiscounts?.length > 0 || form.discountTotal > 0 || applyDiscountMode) && (
+                                            <div style={{ marginTop: '1rem' }}>
+
+                                                {/* Promotional Yields */}
+                                                <div style={{ marginBottom: '1rem' }}>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                                                        <label style={{ ...labelStyle, color: '#0f172a' }}>Promotional Yields</label>
+                                                        {currentUser.role === 'root' && (
+                                                            <button type="button" onClick={async () => {
+                                                                const newProfile = { name: 'New Profile', type: 'percentage', value: 0, minBillAmount: 0 };
+                                                                const updatedProfiles = [...(businessData.discountProfiles || []), newProfile];
+                                                                try {
+                                                                    await api.patch('/business', { discountProfiles: updatedProfiles });
+                                                                    setBusinessData({ ...businessData, discountProfiles: updatedProfiles });
+                                                                    showToast?.('New profile added', 'success');
+                                                                } catch (err) {
+                                                                    showToast?.('Failed to add profile', 'error');
+                                                                }
+                                                            }} style={{ fontSize: '0.7rem', background: '#10b981', color: '#fff', border: 'none', borderRadius: '6px', padding: '4px 8px', cursor: 'pointer', fontWeight: 700 }}>+ Add</button>
+                                                        )}
+                                                    </div>
+                                                    {businessData?.discountProfiles?.map((profile, i) => {
+                                                        const isEligible = form.subTotal >= profile.minBillAmount;
+                                                        const isApplied = form.appliedDiscounts?.some(d => d.name === profile.name);
+                                                        return (
+                                                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', padding: '0.5rem', background: isApplied ? '#d1fae5' : '#fff', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                                                                <input type="checkbox" checked={!!isApplied} disabled={!isEligible} onChange={(e) => {
+                                                                    if (e.target.checked) {
+                                                                        const amount = profile.type === 'percentage' ? (form.subTotal * profile.value) / 100 : profile.value;
+                                                                        const newDiscount = { name: profile.name, type: profile.type, value: profile.value, amount };
+                                                                        const updatedForm = { ...form, appliedDiscounts: [...(form.appliedDiscounts || []), newDiscount] };
+                                                                        recalculateFinal(updatedForm);
+                                                                    } else {
+                                                                        const updatedForm = { ...form, appliedDiscounts: form.appliedDiscounts.filter(d => d.name !== profile.name) };
+                                                                        recalculateFinal(updatedForm);
+                                                                    }
+                                                                }} style={{ width: '16px', height: '16px' }} />
+                                                                <div style={{ flex: 1, fontSize: '0.8rem', color: isEligible ? '#0f172a' : '#94a3b8' }}>
+                                                                    <strong>{profile.name}</strong> ({profile.type === 'percentage' ? profile.value + '%' : 'Rs. ' + profile.value})
+                                                                    <span style={{ fontSize: '0.7rem', marginLeft: '0.5rem' }}>Min: {profile.minBillAmount.toLocaleString()}</span>
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+
+                                                <div style={{ textAlign: 'center', margin: '0.5rem 0', color: '#94a3b8', fontSize: '0.75rem', fontWeight: 700 }}>+ Add Manual Discount</div>
+
+                                                {/* Custom Discount */}
+                                                <div style={{ background: '#fff', padding: '1rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                                                    <label style={{ ...labelStyle, color: '#0f172a' }}>Custom Discount</label>
+                                                    <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                                                        <select value={customDiscount.type} onChange={e => setCustomDiscount({ ...customDiscount, type: e.target.value })} style={{ ...inputStyle, background: '#f8fafc', padding: '0.5rem', flex: 1 }}>
+                                                            <option value="percentage">% Percentage</option>
+                                                            <option value="fixed">Fixed Amount</option>
+                                                        </select>
+                                                        <input type="number" step="0.01" placeholder="Value" value={customDiscount.value || ''} onChange={e => setCustomDiscount({ ...customDiscount, value: parseFloat(e.target.value) || 0 })} style={{ ...inputStyle, background: '#f8fafc', padding: '0.5rem', flex: 1 }} />
+                                                        <button type="button" onClick={() => {
+                                                            if (customDiscount.value > 0) {
+                                                                const amount = customDiscount.type === 'percentage' ? (form.subTotal * customDiscount.value) / 100 : customDiscount.value;
+                                                                const newDiscount = { name: 'Customer Discount', type: customDiscount.type, value: customDiscount.value, amount };
+                                                                const updatedForm = { ...form, appliedDiscounts: [...(form.appliedDiscounts || []), newDiscount] };
+                                                                setCustomDiscount({ type: 'percentage', value: 0 });
+                                                                recalculateFinal(updatedForm);
+                                                            }
+                                                        }} style={{ background: '#0f172a', color: '#fff', border: 'none', borderRadius: '8px', padding: '0.5rem 1rem', cursor: 'pointer', fontWeight: 700 }}>Add</button>
+                                                    </div>
+                                                </div>
+
+                                                {/* Applied Discounts List */}
+                                                {form.appliedDiscounts?.length > 0 && (
+                                                    <div style={{ marginTop: '1rem' }}>
+                                                        <label style={{ ...labelStyle, color: '#10b981' }}>Applied Discounts</label>
+                                                        {form.appliedDiscounts.map((disc, i) => (
+                                                            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem', background: '#d1fae5', borderRadius: '8px', marginBottom: '0.5rem' }}>
+                                                                <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{disc.name} ({disc.type === 'percentage' ? disc.value + '%' : 'Rs. ' + disc.value})</span>
+                                                                <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#059669' }}>- Rs. {disc.amount.toLocaleString()}</span>
+                                                                <button type="button" onClick={() => {
+                                                                    setForm({ ...form, appliedDiscounts: form.appliedDiscounts.filter((_, idx) => idx !== i) });
+                                                                    setTimeout(() => recalculateFinal(), 0);
+                                                                }} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '1rem' }}>×</button>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
                                             </div>
                                         )}
                                     </div>
@@ -501,7 +653,7 @@ const QuotationManagement = ({ currentUser, showToast }) => {
                                             <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem', flexWrap: 'wrap' }}>
                                                 {businessData?.otherTaxes && businessData.otherTaxes.length > 0 ? (
                                                     <>
-                                                        <select value={form.taxName} onChange={e => handleParamChange('taxName', e.target.value)} style={{...inputStyle, background: '#fff', padding: '0.5rem', minWidth: '150px'}}>
+                                                        <select value={form.taxName} onChange={e => handleParamChange('taxName', e.target.value)} style={{ ...inputStyle, background: '#fff', padding: '0.5rem', minWidth: '150px' }}>
                                                             {businessData.isVatRegistered && <option value="VAT">VAT ({businessData.vatPercentage}%)</option>}
                                                             {businessData.otherTaxes.map((t, i) => (
                                                                 <option key={i} value={t.name}>{t.name} ({t.type === 'percentage' ? t.value + '%' : 'Fixed'})</option>
@@ -512,18 +664,18 @@ const QuotationManagement = ({ currentUser, showToast }) => {
                                                             const isVat = form.taxName === 'VAT';
                                                             const pct = isVat ? businessData.vatPercentage : (selectedTax?.value || 0);
                                                             return (
-                                                                <input type="number" step="0.01" placeholder="Rate %" value={pct} 
-                                                                    onChange={e => handleParamChange('taxPercentage', parseFloat(e.target.value)||0)} 
-                                                                    style={{...inputStyle, background: '#f1f5f9', padding: '0.5rem', width: '80px'}} 
-                                                                    disabled={isVat || selectedTax?.type === 'percentage'} 
+                                                                <input type="number" step="0.01" placeholder="Rate %" value={pct}
+                                                                    onChange={e => handleParamChange('taxPercentage', parseFloat(e.target.value) || 0)}
+                                                                    style={{ ...inputStyle, background: '#f1f5f9', padding: '0.5rem', width: '80px' }}
+                                                                    disabled={isVat || selectedTax?.type === 'percentage'}
                                                                 />
                                                             );
                                                         })()}
                                                     </>
                                                 ) : (
                                                     <>
-                                                        <input type="text" placeholder="Tax Name (e.g. VAT)" value={form.taxName} onChange={e => handleParamChange('taxName', e.target.value)} style={{...inputStyle, background: '#fff', padding: '0.5rem'}} />
-                                                        <input type="number" step="0.01" placeholder="Rate %" value={form.taxPercentage} onChange={e => handleParamChange('taxPercentage', parseFloat(e.target.value)||0)} style={{...inputStyle, background: '#fff', padding: '0.5rem'}} />
+                                                        <input type="text" placeholder="Tax Name (e.g. VAT)" value={form.taxName} onChange={e => handleParamChange('taxName', e.target.value)} style={{ ...inputStyle, background: '#fff', padding: '0.5rem' }} />
+                                                        <input type="number" step="0.01" placeholder="Rate %" value={form.taxPercentage} onChange={e => handleParamChange('taxPercentage', parseFloat(e.target.value) || 0)} style={{ ...inputStyle, background: '#fff', padding: '0.5rem' }} />
                                                     </>
                                                 )}
                                             </div>
@@ -543,34 +695,34 @@ const QuotationManagement = ({ currentUser, showToast }) => {
                 )}
             </AnimatePresence>
 
-            {/* DELETE MODAL (Distinguishes Admin vs User) */}
-            <AnimatePresence>
-                {deleteModalOpen && (
-                    <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.4)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000}}>
-                        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} style={{ background: '#fff', borderRadius: '24px', padding: '2.5rem', width: '100%', maxWidth: 450, textAlign: 'center', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }}>
-                            {(currentUser.role === 'admin' || currentUser.role === 'root') ? (
-                                <>
-                                    <ShieldAlert size={48} color="#ef4444" style={{ marginBottom: '1rem', margin: '0 auto' }} />
-                                    <h3 style={{ margin: 0, fontWeight: 800, fontSize: '1.25rem', color: '#0f172a' }}>Authorize Direct Nullification?</h3>
-                                    <p style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '2rem' }}>As a high-level authority, executing this will permanently destroy this quotation.</p>
-                                </>
-                            ) : (
-                                <>
-                                    <AlertTriangle size={48} color="#f59e0b" style={{ marginBottom: '1rem', margin: '0 auto' }} />
-                                    <h3 style={{ margin: 0, fontWeight: 800, fontSize: '1.25rem', color: '#0f172a' }}>Propose Deletion Request</h3>
-                                    <p style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '1.5rem' }}>Provide diagnostic reason for Security Approval dashboard.</p>
-                                    <textarea placeholder="State explicit reason..." value={deleteReason} onChange={e => setDeleteReason(e.target.value)} required style={{...inputStyle, height: 100, resize: 'none', marginBottom: '2rem', textAlign: 'left'}} />
-                                </>
-                            )}
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                                <motion.button whileTap={{ scale: 0.95 }} onClick={() => setDeleteModalOpen(false)} style={{ background: '#f8fafc', color: '#64748b', border: 'none', borderRadius: '12px', padding: '0.8rem', fontWeight: 800, cursor: 'pointer' }}>Abort Action</motion.button>
-                                <motion.button whileTap={{ scale: 0.95 }} onClick={confirmDelete} style={{ background: (currentUser.role === 'admin' || currentUser.role === 'root') ? '#ef4444' : '#f59e0b', color: '#fff', border: 'none', borderRadius: '12px', padding: '0.8rem', fontWeight: 800, cursor: 'pointer' }}>Proceed with Command</motion.button>
-                            </div>
-                        </motion.div>
-                    </div>
+    {/* DELETE MODAL (Distinguishes Admin vs User) */}
+    <AnimatePresence>
+    {deleteModalOpen && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.4)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} style={{ background: '#fff', borderRadius: '24px', padding: '2.5rem', width: '100%', maxWidth: 450, textAlign: 'center', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }}>
+                {(currentUser.role === 'admin' || currentUser.role === 'root') ? (
+                    <>
+                        <ShieldAlert size={48} color="#ef4444" style={{ marginBottom: '1rem', margin: '0 auto' }} />
+                        <h3 style={{ margin: 0, fontWeight: 800, fontSize: '1.25rem', color: '#0f172a' }}>Authorize Direct Nullification?</h3>
+                        <p style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '2rem' }}>As a high-level authority, executing this will permanently destroy this quotation.</p>
+                    </>
+                ) : (
+                    <>
+                        <AlertTriangle size={48} color="#f59e0b" style={{ marginBottom: '1rem', margin: '0 auto' }} />
+                        <h3 style={{ margin: 0, fontWeight: 800, fontSize: '1.25rem', color: '#0f172a' }}>Propose Deletion Request</h3>
+                        <p style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '1.5rem' }}>Provide diagnostic reason for Security Approval dashboard.</p>
+                        <textarea placeholder="State explicit reason..." value={deleteReason} onChange={e => setDeleteReason(e.target.value)} required style={{ ...inputStyle, height: 100, resize: 'none', marginBottom: '2rem', textAlign: 'left' }} />
+                    </>
                 )}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                    <motion.button whileTap={{ scale: 0.95 }} onClick={() => setDeleteModalOpen(false)} style={{ background: '#f8fafc', color: '#64748b', border: 'none', borderRadius: '12px', padding: '0.8rem', fontWeight: 800, cursor: 'pointer' }}>Abort Action</motion.button>
+                    <motion.button whileTap={{ scale: 0.95 }} onClick={confirmDelete} style={{ background: (currentUser.role === 'admin' || currentUser.role === 'root') ? '#ef4444' : '#f59e0b', color: '#fff', border: 'none', borderRadius: '12px', padding: '0.8rem', fontWeight: 800, cursor: 'pointer' }}>Proceed with Command</motion.button>
+                </div>
+            </motion.div>
+        </div>
+    )}
             </AnimatePresence>
-
+            
             {/* PRINT/VIEW INVISIBLE TEMPLATE LAYER */}
             <AnimatePresence>
                 {viewQuotation && (

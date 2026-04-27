@@ -21,7 +21,11 @@ const BusinessSettings = ({ currentUser, showToast }) => {
         primaryCurrency: { code: 'LKR', symbol: 'Rs.' },
         secondaryCurrency: { code: 'USD', symbol: '$' },
         isVatRegistered: false, vatNumber: '', vatPercentage: 18,
-        otherTaxes: [], discountProfiles: [],
+        otherTaxes: [],
+        discountProfiles: [
+            { name: 'Summer Sale', type: 'percentage', value: 10, minBillAmount: 10000 },
+            { name: 'Test Profile', type: 'fixed', value: 500, minBillAmount: 0 }
+        ],
         quotationTerms: 'Standard terms and conditions apply.', quotationNotes: ''
     });
 
@@ -130,6 +134,17 @@ const BusinessSettings = ({ currentUser, showToast }) => {
                                 <div style={{ gridColumn: 'span 3' }}><label style={labelStyle}>Full Physical Address</label><textarea value={businessData.address} onChange={e => setBusinessData({ ...businessData, address: e.target.value })} disabled={!isEditMode} style={{ ...inputStyle(isEditMode), height: 80, resize: 'none' }} /></div>
                                 <div><label style={labelStyle}>City</label><input value={businessData.city} onChange={e => setBusinessData({ ...businessData, city: e.target.value })} disabled={!isEditMode} style={inputStyle(isEditMode)} /></div>
                                 <div style={{ gridColumn: 'span 2' }}><label style={labelStyle}>Country Protocol</label><select value={businessData.country} onChange={e => setBusinessData({ ...businessData, country: e.target.value })} disabled={!isEditMode} style={inputStyle(isEditMode)}>{["Sri Lanka", "United States", "United Kingdom", "India", "UAE"].map(c => <option key={c} value={c}>{c}</option>)}</select></div>
+                            </div>
+                        </div>
+
+                        {/* 2. BANK DETAILS */}
+                        <div style={cardStyle}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '2.5rem' }}><div style={{ background: '#3b82f615', color: '#7D1501', padding: '10px', borderRadius: '12px' }}><Landmark size={24} /></div> <h3 style={{ margin: 0, fontWeight: 900 }}>Bank Details</h3></div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1.5rem' }}>
+                                <div><label style={labelStyle}>Bank Account Number</label><input value={businessData.bankAccountNumber} onChange={e => setBusinessData({ ...businessData, bankAccountNumber: e.target.value })} disabled={!isEditMode} style={inputStyle(isEditMode)} /></div>
+                                <div><label style={labelStyle}>Bank Account Name</label><input value={businessData.bankAccountName} onChange={e => setBusinessData({ ...businessData, bankAccountName: e.target.value })} disabled={!isEditMode} style={inputStyle(isEditMode)} /></div>
+                                <div><label style={labelStyle}>Bank Name</label><input value={businessData.bankName} onChange={e => setBusinessData({ ...businessData, bankName: e.target.value })} disabled={!isEditMode} style={inputStyle(isEditMode)} /></div>
+                                <div><label style={labelStyle}>Branch Name</label><input value={businessData.branchName} onChange={e => setBusinessData({ ...businessData, branchName: e.target.value })} disabled={!isEditMode} style={inputStyle(isEditMode)} /></div>
                             </div>
                         </div>
 

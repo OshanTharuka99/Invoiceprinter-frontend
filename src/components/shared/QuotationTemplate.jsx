@@ -22,9 +22,6 @@ const QuotationTemplate = React.forwardRef(({ quotation, business }, ref) => {
     /* ── Calculations ── */
     const discountTotal = q.discountTotal || (q.appliedDiscounts || []).reduce((sum, d) => sum + (d.amount || 0), 0);
 
-    const taxableBase = q.subTotal - discountTotal;
-    const taxAmount = q.hasTax ? (taxableBase * q.taxPercentage) / 100 : 0;
-
     /* ── Client block ── */
     const getClient = () => {
         if (q.clientRef) {
@@ -203,10 +200,21 @@ const QuotationTemplate = React.forwardRef(({ quotation, business }, ref) => {
                         </div>
                     ))}
 
-                    {q.hasTax && (
+                    {/* Multiple Taxes Array Support */}
+                    {q.hasTax && q.appliedTaxes?.length > 0 && q.appliedTaxes.map((tax, i) => (
+                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 14px', background: '#f8fafc', borderBottom: `1px solid ${BORDER}` }}>
+                            <span style={{ fontFamily: FONT, color: '#000000ff', fontWeight: '600', fontSize: '12.5px' }}>
+                                {tax.name} {tax.type === 'percentage' ? `(${tax.value}%)` : ''}
+                            </span>
+                            <span style={{ fontFamily: FONT, color: '#000000ff', fontWeight: '700', fontSize: '12.5px' }}>+ {currencySymbol} {money(tax.amount)}</span>
+                        </div>
+                    ))}
+
+                    {/* Legacy Single Tax Support */}
+                    {q.hasTax && (!q.appliedTaxes || q.appliedTaxes.length === 0) && q.taxPercentage > 0 && (
                         <div style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 14px', background: '#f8fafc', borderBottom: `1px solid ${BORDER}` }}>
-                            <span style={{ fontFamily: FONT, color: '#000000ff', fontWeight: '600', fontSize: '12.5px' }}>{q.taxName} ({q.taxPercentage}%)</span>
-                            <span style={{ fontFamily: FONT, color: '#000000ff', fontWeight: '700', fontSize: '12.5px' }}>+ {currencySymbol} {money(taxAmount)}</span>
+                            <span style={{ fontFamily: FONT, color: '#000000ff', fontWeight: '600', fontSize: '12.5px' }}>{q.taxName || 'VAT'} ({q.taxPercentage}%)</span>
+                            <span style={{ fontFamily: FONT, color: '#000000ff', fontWeight: '700', fontSize: '12.5px' }}>+ {currencySymbol} {money(((q.subTotal - (q.discountTotal || 0)) * q.taxPercentage) / 100)}</span>
                         </div>
                     )}
 

@@ -35,7 +35,7 @@ const QuotationManagement = ({ currentUser, showToast }) => {
         subTotal: 0,
         appliedDiscounts: [],
         discountTotal: 0,
-        hasTax: false, taxName: 'VAT', taxPercentage: 0,
+        hasTax: false, appliedTaxes: [], taxTotal: 0,
         finalTotal: 0,
         currency: 'primary',
         validDate: ''
@@ -121,73 +121,76 @@ const QuotationManagement = ({ currentUser, showToast }) => {
         }, 400);
     };
 
+    const calculateTotals = (currentForm) => {
+        const subTotal = currentForm.subTotal;
+        const discountTotal = (currentForm.appliedDiscounts || []).reduce((sum, d) => sum + (d.amount || 0), 0);
+        let taxableBase = subTotal - discountTotal;
+        
+        let taxTotal = 0;
+        let updatedTaxes = [];
+        if (currentForm.hasTax && currentForm.appliedTaxes) {
+            updatedTaxes = currentForm.appliedTaxes.map(tax => {
+                const amount = tax.type === 'percentage' ? (taxableBase * tax.value) / 100 : tax.value;
+                taxTotal += amount;
+                return { ...tax, amount };
+            });
+        }
+        let finalTotal = taxableBase + taxTotal;
+        return { ...currentForm, discountTotal, appliedTaxes: updatedTaxes, taxTotal, finalTotal };
+    };
+
     const openCreation = (mode) => {
         setCreationMode(mode);
 
-        let autoTaxEnabled = false;
-        let taxName = 'VAT';
-        let taxPercentage = 0;
-
-        if (mode === 'automatic') {
-            const isVatRegistered = !!businessData?.isVatRegistered;
-            const hasOtherTaxes = businessData?.otherTaxes && businessData.otherTaxes.length > 0;
-            autoTaxEnabled = isVatRegistered || hasOtherTaxes;
-            taxName = businessData?.otherTaxes?.[0]?.name || 'VAT';
-            taxPercentage = isVatRegistered ? businessData.vatPercentage : (businessData?.otherTaxes?.[0]?.value || 0);
-        } else {
-            const isVatRegistered = !!businessData?.isVatRegistered;
-            autoTaxEnabled = isVatRegistered;
-            taxName = 'VAT';
-            taxPercentage = isVatRegistered ? businessData.vatPercentage : 0;
+        const initialTaxes = [];
+        if (businessData?.isVatRegistered) {
+            initialTaxes.push({ name: 'VAT', type: 'percentage', value: businessData.vatPercentage, amount: 0 });
+        }
+        if (businessData?.otherTaxes?.length > 0) {
+            businessData.otherTaxes.forEach(t => {
+                initialTaxes.push({ name: t.name, type: t.type, value: t.value, amount: 0 });
+            });
         }
 
         setForm({
             ...initialForm,
-            hasTax: autoTaxEnabled,
-            taxName,
-            taxPercentage,
+            hasTax: initialTaxes.length > 0,
+            appliedTaxes: initialTaxes,
+            taxTotal: 0,
             items: mode === 'automatic' ? form.items : []
         });
         setIsCreateModalOpen(true);
     };
 
     const handleAddItem = () => {
-        setForm({ ...form, items: [...form.items, { productRef: '', manualName: '', quantity: 1, unitPrice: 0, lineTotal: 0 }] });
+        setForm(prev => ({ ...prev, items: [...prev.items, { productRef: '', manualName: '', quantity: 1, unitPrice: 0, lineTotal: 0 }] }));
     };
 
     const updateItem = (index, field, value) => {
-        const newItems = [...form.items];
-        newItems[index][field] = value;
+        setForm(prev => {
+            const newItems = [...prev.items];
+            newItems[index] = { ...newItems[index], [field]: value };
 
-        if (field === 'productRef' && value) {
-            const prod = products.find(p => p._id === value);
-            if (prod) {
-                newItems[index].unitPrice = prod.price;
-                newItems[index].manualName = prod.name;
+            if (field === 'productRef' && value) {
+                const prod = products.find(p => p._id === value);
+                if (prod) {
+                    newItems[index].unitPrice = prod.price;
+                    newItems[index].manualName = prod.name;
+                }
             }
-        }
-
-        newItems[index].lineTotal = newItems[index].quantity * newItems[index].unitPrice;
-
-        const subTotal = newItems.reduce((acc, current) => acc + current.lineTotal, 0);
-        setForm({ ...form, items: newItems, subTotal });
-        recalculateFinal();
+            newItems[index].lineTotal = newItems[index].quantity * newItems[index].unitPrice;
+            const subTotal = newItems.reduce((acc, current) => acc + current.lineTotal, 0);
+            return calculateTotals({ ...prev, items: newItems, subTotal });
+        });
     };
 
     const recalculateFinal = () => {
-        const subTotal = form.subTotal;
-        const discountTotal = (form.appliedDiscounts || []).reduce((sum, d) => sum + (d.amount || 0), 0);
-        let finalTotal = subTotal - discountTotal;
-        if (form.hasTax && form.taxPercentage > 0) {
-            finalTotal += (finalTotal * form.taxPercentage) / 100;
-        }
-        setForm(prev => ({ ...prev, subTotal, discountTotal, finalTotal }));
+        setForm(prev => calculateTotals(prev));
     };
 
     const handleToggleTax = (e) => {
-        const val = e.target.checked;
-        setForm(prev => ({ ...prev, hasTax: val }));
-        setTimeout(() => recalculateFinal(), 0);
+        const checked = e.target.checked;
+        setForm(prev => calculateTotals({ ...prev, hasTax: checked }));
     };
 
     const submitQuotation = async (e) => {
@@ -514,9 +517,11 @@ const QuotationManagement = ({ currentUser, showToast }) => {
                                                     </td>
                                                     <td style={{ padding: '0.5rem', textAlign: 'right' }}>
                                                         <button type="button" onClick={() => {
-                                                            const n = form.items.filter((_, i) => i !== idx);
-                                                            const sub = n.reduce((acc, c) => acc + c.lineTotal, 0);
-                                                            calculateTotals(n, sub, form.hasDiscount, form.discountType, form.discountValue, form.hasTax, form.taxPercentage);
+                                                            setForm(prev => {
+                                                                const n = prev.items.filter((_, i) => i !== idx);
+                                                                const sub = n.reduce((acc, c) => acc + c.lineTotal, 0);
+                                                                return calculateTotals({ ...prev, items: n, subTotal: sub });
+                                                            });
                                                         }} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}><X size={16} /></button>
                                                     </td>
                                                 </tr>
@@ -575,14 +580,17 @@ const QuotationManagement = ({ currentUser, showToast }) => {
                                                         return (
                                                             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', padding: '0.5rem', background: isApplied ? '#d1fae5' : '#fff', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
                                                                 <input type="checkbox" checked={!!isApplied} disabled={!isEligible} onChange={(e) => {
-                                                                    if (e.target.checked) {
-                                                                        const amount = profile.type === 'percentage' ? (form.subTotal * profile.value) / 100 : profile.value;
-                                                                        const newDiscount = { name: profile.name, type: profile.type, value: profile.value, amount };
-                                                                        setForm({ ...form, appliedDiscounts: [...(form.appliedDiscounts || []), newDiscount] });
-                                                                    } else {
-                                                                        setForm({ ...form, appliedDiscounts: form.appliedDiscounts.filter(d => d.name !== profile.name) });
-                                                                    }
-                                                                    setTimeout(() => recalculateFinal(), 0);
+                                                                    setForm(prev => {
+                                                                        const applied = [...(prev.appliedDiscounts || [])];
+                                                                        if (e.target.checked) {
+                                                                            const amount = profile.type === 'percentage' ? (prev.subTotal * profile.value) / 100 : profile.value;
+                                                                            applied.push({ name: profile.name, type: profile.type, value: profile.value, amount });
+                                                                        } else {
+                                                                            const idx = applied.findIndex(d => d.name === profile.name);
+                                                                            if (idx > -1) applied.splice(idx, 1);
+                                                                        }
+                                                                        return calculateTotals({ ...prev, appliedDiscounts: applied });
+                                                                    });
                                                                 }} style={{ width: '16px', height: '16px' }} />
                                                                 <div style={{ flex: 1, fontSize: '0.8rem', color: isEligible ? '#0f172a' : '#94a3b8' }}>
                                                                     <strong>{profile.name}</strong> ({profile.type === 'percentage' ? profile.value + '%' : 'Rs. ' + profile.value})
@@ -606,11 +614,12 @@ const QuotationManagement = ({ currentUser, showToast }) => {
                                                         <input type="number" step="0.01" placeholder="Value" value={customDiscount.value || ''} onChange={e => setCustomDiscount({ ...customDiscount, value: parseFloat(e.target.value) || 0 })} style={{ ...inputStyle, background: '#f8fafc', padding: '0.5rem', flex: 1 }} />
                                                         <button type="button" onClick={() => {
                                                             if (customDiscount.value > 0) {
-                                                                const amount = customDiscount.type === 'percentage' ? (form.subTotal * customDiscount.value) / 100 : customDiscount.value;
-                                                                const newDiscount = { name: 'Custom', type: customDiscount.type, value: customDiscount.value, amount };
-                                                                setForm({ ...form, appliedDiscounts: [...(form.appliedDiscounts || []), newDiscount], customDiscount: { type: 'percentage', value: 0 } });
+                                                                setForm(prev => {
+                                                                    const amount = customDiscount.type === 'percentage' ? (prev.subTotal * customDiscount.value) / 100 : customDiscount.value;
+                                                                    const newDiscount = { name: 'Custom', type: customDiscount.type, value: customDiscount.value, amount };
+                                                                    return calculateTotals({ ...prev, appliedDiscounts: [...(prev.appliedDiscounts || []), newDiscount] });
+                                                                });
                                                                 setCustomDiscount({ type: 'percentage', value: 0 });
-                                                                setTimeout(() => recalculateFinal(), 0);
                                                             }
                                                         }} style={{ background: '#0f172a', color: '#fff', border: 'none', borderRadius: '8px', padding: '0.5rem 1rem', cursor: 'pointer', fontWeight: 700 }}>Add</button>
                                                     </div>
@@ -625,8 +634,7 @@ const QuotationManagement = ({ currentUser, showToast }) => {
                                                                 <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{disc.name} ({disc.type === 'percentage' ? disc.value + '%' : 'Rs. ' + disc.value})</span>
                                                                 <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#059669' }}>- Rs. {disc.amount.toLocaleString()}</span>
                                                                 <button type="button" onClick={() => {
-                                                                    setForm({ ...form, appliedDiscounts: form.appliedDiscounts.filter((_, idx) => idx !== i) });
-                                                                    setTimeout(() => recalculateFinal(), 0);
+                                                                    setForm(prev => calculateTotals({ ...prev, appliedDiscounts: prev.appliedDiscounts.filter((_, idx) => idx !== i) }));
                                                                 }} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '1rem' }}>×</button>
                                                             </div>
                                                         ))}
@@ -641,39 +649,53 @@ const QuotationManagement = ({ currentUser, showToast }) => {
                                 <div style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                                         <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.9rem' }}>
-                                            {creationMode === 'manual' ? 'Apply Govt/Sector Tax?' : `Apply Tax (VAT: ${businessData?.isVatRegistered ? businessData.vatPercentage + '%' : 'N/A'})?`}
+                                            Apply Govt/Sector Taxes
                                         </div>
                                         <input type="checkbox" checked={form.hasTax} onChange={handleToggleTax} style={{ width: '18px', height: '18px', cursor: 'pointer' }} />
                                     </div>
                                     {form.hasTax && (
-                                        <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem', flexWrap: 'wrap' }}>
-                                            {businessData?.otherTaxes && businessData.otherTaxes.length > 0 ? (
-                                                <>
-                                                    <select value={form.taxName} onChange={e => handleParamChange('taxName', e.target.value)} style={{ ...inputStyle, background: '#fff', padding: '0.5rem', minWidth: '150px' }}>
-                                                        {businessData.isVatRegistered && <option value="VAT">VAT ({businessData.vatPercentage}%)</option>}
-                                                        {businessData.otherTaxes.map((t, i) => (
-                                                            <option key={i} value={t.name}>{t.name} ({t.type === 'percentage' ? t.value + '%' : 'Fixed'})</option>
-                                                        ))}
-                                                    </select>
-                                                    {(() => {
-                                                        const selectedTax = businessData.otherTaxes.find(t => t.name === form.taxName);
-                                                        const isVat = form.taxName === 'VAT';
-                                                        const pct = isVat ? businessData.vatPercentage : (selectedTax?.value || 0);
-                                                        return (
-                                                            <input type="number" step="0.01" placeholder="Rate %" value={pct}
-                                                                onChange={e => handleParamChange('taxPercentage', parseFloat(e.target.value) || 0)}
-                                                                style={{ ...inputStyle, background: '#f1f5f9', padding: '0.5rem', width: '80px' }}
-                                                                disabled={isVat || selectedTax?.type === 'percentage'}
-                                                            />
-                                                        );
-                                                    })()}
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <input type="text" placeholder="Tax Name (e.g. VAT)" value={form.taxName} onChange={e => handleParamChange('taxName', e.target.value)} style={{ ...inputStyle, background: '#fff', padding: '0.5rem' }} />
-                                                    <input type="number" step="0.01" placeholder="Rate %" value={form.taxPercentage} onChange={e => handleParamChange('taxPercentage', parseFloat(e.target.value) || 0)} style={{ ...inputStyle, background: '#fff', padding: '0.5rem' }} />
-                                                </>
-                                            )}
+                                        <div style={{ marginTop: '1rem' }}>
+                                            <div style={{ marginBottom: '1rem' }}>
+                                                {businessData?.isVatRegistered && (() => {
+                                                    const isApplied = form.appliedTaxes?.some(t => t.name === 'VAT');
+                                                    return (
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', padding: '0.5rem', background: isApplied ? '#d1fae5' : '#fff', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                                                            <input type="checkbox" checked={isApplied} onChange={e => {
+                                                                const checked = e.target.checked;
+                                                                setForm(prev => {
+                                                                    let taxes = [...(prev.appliedTaxes || [])];
+                                                                    if (checked) taxes.push({ name: 'VAT', type: 'percentage', value: businessData.vatPercentage, amount: 0 });
+                                                                    else taxes = taxes.filter(t => t.name !== 'VAT');
+                                                                    return calculateTotals({ ...prev, appliedTaxes: taxes });
+                                                                });
+                                                            }} style={{ cursor: 'pointer' }} />
+                                                            <div style={{ flex: 1, fontSize: '0.8rem', color: '#0f172a' }}>
+                                                                <strong>VAT</strong> ({businessData.vatPercentage}%)
+                                                            </div>
+                                                        </div>
+                                                    )
+                                                })()}
+                                                
+                                                {businessData?.otherTaxes?.map((tax, i) => {
+                                                    const isApplied = form.appliedTaxes?.some(t => t.name === tax.name);
+                                                    return (
+                                                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', padding: '0.5rem', background: isApplied ? '#d1fae5' : '#fff', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                                                            <input type="checkbox" checked={isApplied} onChange={e => {
+                                                                const checked = e.target.checked;
+                                                                setForm(prev => {
+                                                                    let taxes = [...(prev.appliedTaxes || [])];
+                                                                    if (checked) taxes.push({ name: tax.name, type: tax.type, value: tax.value, amount: 0 });
+                                                                    else taxes = taxes.filter(t => t.name !== tax.name);
+                                                                    return calculateTotals({ ...prev, appliedTaxes: taxes });
+                                                                });
+                                                            }} style={{ cursor: 'pointer' }} />
+                                                            <div style={{ flex: 1, fontSize: '0.8rem', color: '#0f172a' }}>
+                                                                <strong>{tax.name}</strong> ({tax.type === 'percentage' ? tax.value + '%' : 'Rs. ' + tax.value})
+                                                            </div>
+                                                        </div>
+                                                    )
+                                                })}
+                                            </div>
                                         </div>
                                     )}
                                 </div>

@@ -170,22 +170,18 @@ const QuotationManagement = ({ currentUser, showToast }) => {
         newItems[index].lineTotal = newItems[index].quantity * newItems[index].unitPrice;
 
         const subTotal = newItems.reduce((acc, current) => acc + current.lineTotal, 0);
-        recalculateFinal({ ...form, items: newItems, subTotal });
+        setForm({ ...form, items: newItems, subTotal });
+        recalculateFinal();
     };
 
-    const recalculateFinal = (currentForm = form) => {
-        const subTotal = currentForm.subTotal || 0;
-        const discountTotal = (currentForm.appliedDiscounts || []).reduce((sum, d) => sum + (d.amount || 0), 0);
+    const recalculateFinal = () => {
+        const subTotal = form.subTotal;
+        const discountTotal = (form.appliedDiscounts || []).reduce((sum, d) => sum + (d.amount || 0), 0);
         let finalTotal = subTotal - discountTotal;
-        if (currentForm.hasTax && currentForm.taxPercentage > 0) {
-            finalTotal += (finalTotal * currentForm.taxPercentage) / 100;
+        if (form.hasTax && form.taxPercentage > 0) {
+            finalTotal += (finalTotal * form.taxPercentage) / 100;
         }
-        setForm({ ...currentForm, discountTotal, finalTotal });
-    };
-
-    const handleParamChange = (field, val) => {
-        const merged = { ...form, [field]: val };
-        recalculateFinal(merged);
+        setForm(prev => ({ ...prev, subTotal, discountTotal, finalTotal }));
     };
 
     const handleToggleTax = (e) => {
@@ -520,7 +516,7 @@ const QuotationManagement = ({ currentUser, showToast }) => {
                                                         <button type="button" onClick={() => {
                                                             const n = form.items.filter((_, i) => i !== idx);
                                                             const sub = n.reduce((acc, c) => acc + c.lineTotal, 0);
-                                                            recalculateFinal({ ...form, items: n, subTotal: sub }); // FIX
+                                                            calculateTotals(n, sub, form.hasDiscount, form.discountType, form.discountValue, form.hasTax, form.taxPercentage);
                                                         }} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}><X size={16} /></button>
                                                     </td>
                                                 </tr>
@@ -582,12 +578,11 @@ const QuotationManagement = ({ currentUser, showToast }) => {
                                                                     if (e.target.checked) {
                                                                         const amount = profile.type === 'percentage' ? (form.subTotal * profile.value) / 100 : profile.value;
                                                                         const newDiscount = { name: profile.name, type: profile.type, value: profile.value, amount };
-                                                                        const updatedForm = { ...form, appliedDiscounts: [...(form.appliedDiscounts || []), newDiscount] };
-                                                                        recalculateFinal(updatedForm);
+                                                                        setForm({ ...form, appliedDiscounts: [...(form.appliedDiscounts || []), newDiscount] });
                                                                     } else {
-                                                                        const updatedForm = { ...form, appliedDiscounts: form.appliedDiscounts.filter(d => d.name !== profile.name) };
-                                                                        recalculateFinal(updatedForm);
+                                                                        setForm({ ...form, appliedDiscounts: form.appliedDiscounts.filter(d => d.name !== profile.name) });
                                                                     }
+                                                                    setTimeout(() => recalculateFinal(), 0);
                                                                 }} style={{ width: '16px', height: '16px' }} />
                                                                 <div style={{ flex: 1, fontSize: '0.8rem', color: isEligible ? '#0f172a' : '#94a3b8' }}>
                                                                     <strong>{profile.name}</strong> ({profile.type === 'percentage' ? profile.value + '%' : 'Rs. ' + profile.value})
@@ -612,10 +607,10 @@ const QuotationManagement = ({ currentUser, showToast }) => {
                                                         <button type="button" onClick={() => {
                                                             if (customDiscount.value > 0) {
                                                                 const amount = customDiscount.type === 'percentage' ? (form.subTotal * customDiscount.value) / 100 : customDiscount.value;
-                                                                const newDiscount = { name: 'Customer Discount', type: customDiscount.type, value: customDiscount.value, amount };
-                                                                const updatedForm = { ...form, appliedDiscounts: [...(form.appliedDiscounts || []), newDiscount] };
+                                                                const newDiscount = { name: 'Custom', type: customDiscount.type, value: customDiscount.value, amount };
+                                                                setForm({ ...form, appliedDiscounts: [...(form.appliedDiscounts || []), newDiscount], customDiscount: { type: 'percentage', value: 0 } });
                                                                 setCustomDiscount({ type: 'percentage', value: 0 });
-                                                                recalculateFinal(updatedForm);
+                                                                setTimeout(() => recalculateFinal(), 0);
                                                             }
                                                         }} style={{ background: '#0f172a', color: '#fff', border: 'none', borderRadius: '8px', padding: '0.5rem 1rem', cursor: 'pointer', fontWeight: 700 }}>Add</button>
                                                     </div>
@@ -637,67 +632,68 @@ const QuotationManagement = ({ currentUser, showToast }) => {
                                                         ))}
                                                     </div>
                                                 )}
+
                                             </div>
                                         )}
                                     </div>
 
-                                    {/* Tax Block */}
-                                    <div style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                                            <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.9rem' }}>
-                                                {creationMode === 'manual' ? 'Apply Govt/Sector Tax?' : `Apply Tax (VAT: ${businessData?.isVatRegistered ? businessData.vatPercentage + '%' : 'N/A'})?`}
-                                            </div>
-                                            <input type="checkbox" checked={form.hasTax} onChange={handleToggleTax} style={{ width: '18px', height: '18px', cursor: 'pointer' }} />
+                                {/* Tax Block */}
+                                <div style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                                        <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.9rem' }}>
+                                            {creationMode === 'manual' ? 'Apply Govt/Sector Tax?' : `Apply Tax (VAT: ${businessData?.isVatRegistered ? businessData.vatPercentage + '%' : 'N/A'})?`}
                                         </div>
-                                        {form.hasTax && (
-                                            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem', flexWrap: 'wrap' }}>
-                                                {businessData?.otherTaxes && businessData.otherTaxes.length > 0 ? (
-                                                    <>
-                                                        <select value={form.taxName} onChange={e => handleParamChange('taxName', e.target.value)} style={{ ...inputStyle, background: '#fff', padding: '0.5rem', minWidth: '150px' }}>
-                                                            {businessData.isVatRegistered && <option value="VAT">VAT ({businessData.vatPercentage}%)</option>}
-                                                            {businessData.otherTaxes.map((t, i) => (
-                                                                <option key={i} value={t.name}>{t.name} ({t.type === 'percentage' ? t.value + '%' : 'Fixed'})</option>
-                                                            ))}
-                                                        </select>
-                                                        {(() => {
-                                                            const selectedTax = businessData.otherTaxes.find(t => t.name === form.taxName);
-                                                            const isVat = form.taxName === 'VAT';
-                                                            const pct = isVat ? businessData.vatPercentage : (selectedTax?.value || 0);
-                                                            return (
-                                                                <input type="number" step="0.01" placeholder="Rate %" value={pct}
-                                                                    onChange={e => handleParamChange('taxPercentage', parseFloat(e.target.value) || 0)}
-                                                                    style={{ ...inputStyle, background: '#f1f5f9', padding: '0.5rem', width: '80px' }}
-                                                                    disabled={isVat || selectedTax?.type === 'percentage'}
-                                                                />
-                                                            );
-                                                        })()}
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <input type="text" placeholder="Tax Name (e.g. VAT)" value={form.taxName} onChange={e => handleParamChange('taxName', e.target.value)} style={{ ...inputStyle, background: '#fff', padding: '0.5rem' }} />
-                                                        <input type="number" step="0.01" placeholder="Rate %" value={form.taxPercentage} onChange={e => handleParamChange('taxPercentage', parseFloat(e.target.value) || 0)} style={{ ...inputStyle, background: '#fff', padding: '0.5rem' }} />
-                                                    </>
-                                                )}
-                                            </div>
-                                        )}
+                                        <input type="checkbox" checked={form.hasTax} onChange={handleToggleTax} style={{ width: '18px', height: '18px', cursor: 'pointer' }} />
                                     </div>
+                                    {form.hasTax && (
+                                        <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem', flexWrap: 'wrap' }}>
+                                            {businessData?.otherTaxes && businessData.otherTaxes.length > 0 ? (
+                                                <>
+                                                    <select value={form.taxName} onChange={e => handleParamChange('taxName', e.target.value)} style={{ ...inputStyle, background: '#fff', padding: '0.5rem', minWidth: '150px' }}>
+                                                        {businessData.isVatRegistered && <option value="VAT">VAT ({businessData.vatPercentage}%)</option>}
+                                                        {businessData.otherTaxes.map((t, i) => (
+                                                            <option key={i} value={t.name}>{t.name} ({t.type === 'percentage' ? t.value + '%' : 'Fixed'})</option>
+                                                        ))}
+                                                    </select>
+                                                    {(() => {
+                                                        const selectedTax = businessData.otherTaxes.find(t => t.name === form.taxName);
+                                                        const isVat = form.taxName === 'VAT';
+                                                        const pct = isVat ? businessData.vatPercentage : (selectedTax?.value || 0);
+                                                        return (
+                                                            <input type="number" step="0.01" placeholder="Rate %" value={pct}
+                                                                onChange={e => handleParamChange('taxPercentage', parseFloat(e.target.value) || 0)}
+                                                                style={{ ...inputStyle, background: '#f1f5f9', padding: '0.5rem', width: '80px' }}
+                                                                disabled={isVat || selectedTax?.type === 'percentage'}
+                                                            />
+                                                        );
+                                                    })()}
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <input type="text" placeholder="Tax Name (e.g. VAT)" value={form.taxName} onChange={e => handleParamChange('taxName', e.target.value)} style={{ ...inputStyle, background: '#fff', padding: '0.5rem' }} />
+                                                    <input type="number" step="0.01" placeholder="Rate %" value={form.taxPercentage} onChange={e => handleParamChange('taxPercentage', parseFloat(e.target.value) || 0)} style={{ ...inputStyle, background: '#fff', padding: '0.5rem' }} />
+                                                </>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
+                            </div>
 
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.5rem', background: '#0f172a', borderRadius: '16px', color: '#fff', marginBottom: '2rem' }}>
-                                    <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '2px', fontWeight: 900, color: '#94a3b8' }}>Final Total</div>
-                                    <div style={{ fontSize: '2rem', fontWeight: 900, letterSpacing: '-1px' }}>{form.finalTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
-                                </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.5rem', background: '#0f172a', borderRadius: '16px', color: '#fff', marginBottom: '2rem' }}>
+                                <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '2px', fontWeight: 900, color: '#94a3b8' }}>Final Total</div>
+                                <div style={{ fontSize: '2rem', fontWeight: 900, letterSpacing: '-1px' }}>{form.finalTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
+                            </div>
 
-                                <motion.button whileTap={{ scale: 0.98 }} type="submit" style={{ background: '#10b981', color: '#fff', border: 'none', borderRadius: '12px', padding: '1rem', width: '100%', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', fontSize: '1rem' }}><CheckCircle size={20} /> Create Quotation</motion.button>
-                            </form>
-                        </motion.div>
+                            <motion.button whileTap={{ scale: 0.98 }} type="submit" style={{ background: '#10b981', color: '#fff', border: 'none', borderRadius: '12px', padding: '1rem', width: '100%', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', fontSize: '1rem' }}><CheckCircle size={20} /> Create Quotation</motion.button>
+                        </form>
+                    </motion.div>
                     </div>
                 )}
             </AnimatePresence>
 
-    {/* DELETE MODAL (Distinguishes Admin vs User) */}
-    <AnimatePresence>
-    {deleteModalOpen && (
+    {/* DELETE MODAL (Distinguishes Admin vs User) */ }
+    < AnimatePresence >
+    { deleteModalOpen && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.4)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
             <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} style={{ background: '#fff', borderRadius: '24px', padding: '2.5rem', width: '100%', maxWidth: 450, textAlign: 'center', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }}>
                 {(currentUser.role === 'admin' || currentUser.role === 'root') ? (
@@ -721,25 +717,25 @@ const QuotationManagement = ({ currentUser, showToast }) => {
             </motion.div>
         </div>
     )}
-            </AnimatePresence>
-            
-            {/* PRINT/VIEW INVISIBLE TEMPLATE LAYER */}
-            <AnimatePresence>
-                {viewQuotation && (
-                    <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.8)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 1000, overflowY: 'auto', padding: '2rem' }}>
-                        <div style={{ width: '100%', maxWidth: '210mm', position: 'relative' }}>
-                            <div style={{ position: 'sticky', top: 0, display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginBottom: '1rem', zIndex: 10 }}>
-                                <motion.button whileTap={{ scale: 0.95 }} onClick={handlePrint} style={{ background: '#10b981', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: '12px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', boxShadow: '0 10px 15px -3px rgba(16, 185, 129, 0.4)' }}><Printer size={18} /> A4 Print / PDF</motion.button>
-                                <motion.button whileTap={{ scale: 0.95 }} onClick={() => setViewQuotation(null)} style={{ background: '#fff', color: '#0f172a', border: 'none', width: 42, height: 42, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}><X size={20} /></motion.button>
-                            </div>
-                            <div style={{ boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)', borderRadius: '4px', overflow: 'hidden' }}>
-                                <QuotationTemplate ref={printRef} quotation={viewQuotation} business={businessData} />
-                            </div>
-                        </div>
-                    </div>
-                )}
-            </AnimatePresence>
+            </AnimatePresence >
+
+    {/* PRINT/VIEW INVISIBLE TEMPLATE LAYER */ }
+    < AnimatePresence >
+    { viewQuotation && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.8)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 1000, overflowY: 'auto', padding: '2rem' }}>
+            <div style={{ width: '100%', maxWidth: '210mm', position: 'relative' }}>
+                <div style={{ position: 'sticky', top: 0, display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginBottom: '1rem', zIndex: 10 }}>
+                    <motion.button whileTap={{ scale: 0.95 }} onClick={handlePrint} style={{ background: '#10b981', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: '12px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', boxShadow: '0 10px 15px -3px rgba(16, 185, 129, 0.4)' }}><Printer size={18} /> A4 Print / PDF</motion.button>
+                    <motion.button whileTap={{ scale: 0.95 }} onClick={() => setViewQuotation(null)} style={{ background: '#fff', color: '#0f172a', border: 'none', width: 42, height: 42, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}><X size={20} /></motion.button>
+                </div>
+                <div style={{ boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)', borderRadius: '4px', overflow: 'hidden' }}>
+                    <QuotationTemplate ref={printRef} quotation={viewQuotation} business={businessData} />
+                </div>
+            </div>
         </div>
+    )}
+            </AnimatePresence >
+        </div >
     );
 };
 

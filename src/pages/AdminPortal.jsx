@@ -17,6 +17,7 @@ import ProjectManagement from '../components/admin/ProjectManagement';
 import SupplierManagement from '../components/admin/SupplierManagement';
 import ApprovalsDashboard from '../components/admin/ApprovalsDashboard';
 import QuotationManagement from '../components/shared/QuotationManagement';
+import InvoiceManagement from '../components/shared/InvoiceManagement';
 
 /**
  * ADMIN PORTAL - PREMIUM ENTERPRISE EDITION
@@ -51,7 +52,7 @@ const AdminPortal = () => {
         { id: 'suppliers', label: 'Vendor Intranet', icon: Truck },
         { id: 'users', label: 'User Management', icon: ShieldCheck },
         { id: 'business', label: 'General Settings', icon: Settings },
-        { id: 'invoices', label: 'Invoice History', icon: FileText },
+        { id: 'invoices', label: 'Invoice Engine', icon: FileText },
         { id: 'analytics', label: 'System Analytics', icon: TrendingUp },
     ];
 
@@ -89,6 +90,7 @@ const AdminPortal = () => {
             case 'projects': return <ProjectManagement currentUser={user} showToast={showToast} />;
             case 'suppliers': return <SupplierManagement currentUser={user} showToast={showToast} />;
             case 'quotations': return <QuotationManagement currentUser={user} showToast={showToast} />;
+            case 'invoices': return <InvoiceManagement currentUser={user} showToast={showToast} />;
             default: return <div style={{ padding: '2rem', textAlign: 'center' }}>Module under development...</div>;
         }
     };

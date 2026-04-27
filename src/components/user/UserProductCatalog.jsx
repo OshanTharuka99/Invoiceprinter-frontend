@@ -8,7 +8,7 @@ const UserProductCatalog = () => {
     const [categories, setCategories] = useState([]); // added categories state
     const [businessData, setBusinessData] = useState(null);
     const [loading, setLoading] = useState(false);
-    
+
     // FILTERS
     const [searchTerm, setSearchTerm] = useState('');
     const [categoryFilter, setCategoryFilter] = useState('');

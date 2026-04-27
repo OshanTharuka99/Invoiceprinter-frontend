@@ -12,6 +12,7 @@ import UserProductCatalog from '../components/user/UserProductCatalog';
 import UserClientManagement from '../components/user/UserClientManagement';
 import UserProjectCatalog from '../components/user/UserProjectCatalog';
 import QuotationManagement from '../components/shared/QuotationManagement';
+import InvoiceManagement from '../components/shared/InvoiceManagement';
 
 const MOCK_INVOICES = [
     { id: 'INV-2024-001', client: 'Acme Corp', amount: 3200.00, date: 'Apr 14, 2024', status: 'paid', due: 'Apr 28, 2024' },
@@ -330,6 +331,8 @@ const UserPortal = () => {
                     <UserProductCatalog />
                 ) : activeTab === 'Quotations' ? (
                     <QuotationManagement currentUser={user} showToast={showToast} />
+                ) : activeTab === 'Invoices' ? (
+                    <InvoiceManagement currentUser={user} showToast={showToast} />
                 ) : activeTab === 'Clients' ? (
                     <UserClientManagement showToast={showToast} /> 
                 ) : activeTab === 'Projects' ? (

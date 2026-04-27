@@ -7,7 +7,7 @@ const UserClientManagement = ({ showToast }) => {
     const [clients, setClients] = useState([]);
     const [loading, setLoading] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
-    
+
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [selectedClient, setSelectedClient] = useState(null);
@@ -67,8 +67,8 @@ const UserClientManagement = ({ showToast }) => {
         }
     };
 
-    const filtered = clients.filter(c => 
-        c.firstName.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    const filtered = clients.filter(c =>
+        c.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         c.clientId.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
@@ -142,21 +142,21 @@ const UserClientManagement = ({ showToast }) => {
                             </div>
                             <form onSubmit={saveNewClient}>
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
-                                    <div><label style={labelStyle}>Given / Entity Name</label><input value={form.firstName} onChange={e => setForm({...form, firstName: e.target.value})} required style={inputStyle} /></div>
-                                    <div><label style={labelStyle}>Surname</label><input value={form.lastName} onChange={e => setForm({...form, lastName: e.target.value})} style={inputStyle} /></div>
+                                    <div><label style={labelStyle}>Given / Entity Name</label><input value={form.firstName} onChange={e => setForm({ ...form, firstName: e.target.value })} required style={inputStyle} /></div>
+                                    <div><label style={labelStyle}>Surname</label><input value={form.lastName} onChange={e => setForm({ ...form, lastName: e.target.value })} style={inputStyle} /></div>
                                 </div>
                                 <div style={{ marginBottom: '1.5rem' }}>
                                     <label style={labelStyle}>Schema Classification</label>
-                                    <select value={form.clientType} onChange={e => setForm({...form, clientType: e.target.value})} required style={inputStyle}>
+                                    <select value={form.clientType} onChange={e => setForm({ ...form, clientType: e.target.value })} required style={inputStyle}>
                                         <option value="Person">Single Actor</option>
                                         <option value="Business">Registered Commerce</option>
                                         <option value="Organization">Non-Profit / Network</option>
                                     </select>
                                 </div>
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '2rem', background: '#f8fafc', padding: '1.5rem', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
-                                    <div><label style={labelStyle}>Phone Comms</label><input value={form.telephoneNumber} onChange={e => setForm({...form, telephoneNumber: e.target.value})} style={{...inputStyle, background: '#fff'}} /></div>
-                                    <div><label style={labelStyle}>WhatsApp ID</label><input value={form.whatsappNumber} onChange={e => setForm({...form, whatsappNumber: e.target.value})} style={{...inputStyle, background: '#fff'}} /></div>
-                                    <div style={{ gridColumn: '1 / -1' }}><label style={labelStyle}>Global E-Mail Hash</label><input type="email" value={form.emailAddress} onChange={e => setForm({...form, emailAddress: e.target.value})} style={{...inputStyle, background: '#fff'}} /></div>
+                                    <div><label style={labelStyle}>Phone Comms</label><input value={form.telephoneNumber} onChange={e => setForm({ ...form, telephoneNumber: e.target.value })} style={{ ...inputStyle, background: '#fff' }} /></div>
+                                    <div><label style={labelStyle}>WhatsApp ID</label><input value={form.whatsappNumber} onChange={e => setForm({ ...form, whatsappNumber: e.target.value })} style={{ ...inputStyle, background: '#fff' }} /></div>
+                                    <div style={{ gridColumn: '1 / -1' }}><label style={labelStyle}>Global E-Mail Hash</label><input type="email" value={form.emailAddress} onChange={e => setForm({ ...form, emailAddress: e.target.value })} style={{ ...inputStyle, background: '#fff' }} /></div>
                                 </div>
                                 <motion.button whileTap={{ scale: 0.98 }} type="submit" style={{ ...btnStyle, width: '100%', justifyContent: 'center' }}>Compile Record in Datastore</motion.button>
                             </form>
@@ -173,19 +173,19 @@ const UserClientManagement = ({ showToast }) => {
                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
                                 <div>
                                     <h2 style={{ margin: 0, fontWeight: 900, color: '#db2777' }}>Propose Datastream Override</h2>
-                                    <p style={{ margin: '0.2rem 0 0', fontSize: '0.8rem', color: '#64748b' }}>Standard accounts cannot forcibly rewrite verified client data. <br/>Your modified parameters below will be sent to Central Authority for manual validation.</p>
+                                    <p style={{ margin: '0.2rem 0 0', fontSize: '0.8rem', color: '#64748b' }}>Standard accounts cannot forcibly rewrite verified client data. <br />Your modified parameters below will be sent to Central Authority for manual validation.</p>
                                 </div>
                                 <motion.button whileTap={{ scale: 0.9 }} onClick={() => setIsEditModalOpen(false)} style={{ background: '#fdf2f8', border: 'none', borderRadius: '50%', width: 32, height: 32, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#db2777' }}><X size={18} /></motion.button>
                             </div>
                             <form onSubmit={submitEditRequest}>
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
-                                    <div><label style={labelStyle}>Given / Entity Name</label><input value={form.firstName} onChange={e => setForm({...form, firstName: e.target.value})} required style={inputStyle} /></div>
-                                    <div><label style={labelStyle}>Surname</label><input value={form.lastName} onChange={e => setForm({...form, lastName: e.target.value})} style={inputStyle} /></div>
+                                    <div><label style={labelStyle}>Given / Entity Name</label><input value={form.firstName} onChange={e => setForm({ ...form, firstName: e.target.value })} required style={inputStyle} /></div>
+                                    <div><label style={labelStyle}>Surname</label><input value={form.lastName} onChange={e => setForm({ ...form, lastName: e.target.value })} style={inputStyle} /></div>
                                 </div>
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '2rem', background: '#f8fafc', padding: '1.5rem', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
-                                    <div><label style={labelStyle}>Phone Comms</label><input value={form.telephoneNumber} onChange={e => setForm({...form, telephoneNumber: e.target.value})} style={{...inputStyle, background: '#fff'}} /></div>
-                                    <div><label style={labelStyle}>WhatsApp ID</label><input value={form.whatsappNumber} onChange={e => setForm({...form, whatsappNumber: e.target.value})} style={{...inputStyle, background: '#fff'}} /></div>
-                                    <div style={{ gridColumn: '1 / -1' }}><label style={labelStyle}>Address Matrix</label><input value={form.address} onChange={e => setForm({...form, address: e.target.value})} style={{...inputStyle, background: '#fff'}} /></div>
+                                    <div><label style={labelStyle}>Phone Comms</label><input value={form.telephoneNumber} onChange={e => setForm({ ...form, telephoneNumber: e.target.value })} style={{ ...inputStyle, background: '#fff' }} /></div>
+                                    <div><label style={labelStyle}>WhatsApp ID</label><input value={form.whatsappNumber} onChange={e => setForm({ ...form, whatsappNumber: e.target.value })} style={{ ...inputStyle, background: '#fff' }} /></div>
+                                    <div style={{ gridColumn: '1 / -1' }}><label style={labelStyle}>Address Matrix</label><input value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} style={{ ...inputStyle, background: '#fff' }} /></div>
                                 </div>
                                 <motion.button whileTap={{ scale: 0.98 }} type="submit" style={{ background: '#db2777', color: '#fff', border: 'none', borderRadius: '12px', padding: '1rem 1.5rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', width: '100%' }}><Send size={18} /> Transmit Request Packet</motion.button>
                             </form>

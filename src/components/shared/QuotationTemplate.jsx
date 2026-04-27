@@ -185,25 +185,25 @@ const QuotationTemplate = React.forwardRef(({ quotation, business }, ref) => {
                 </tbody>
             </table>
 
-{/* ── TOTALS ── */}
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '24px' }}>
-                    <div style={{ width: '310px', border: `1px solid ${BORDER}`, borderRadius: '3px', overflow: 'hidden' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 14px', background: '#f8fafc', borderBottom: `1px solid ${BORDER}` }}>
-                            <span style={{ fontFamily: FONT, color: MID, fontWeight: '600', fontSize: '12.5px' }}>Subtotal</span>
-                            <span style={{ fontFamily: FONT, color: DARK, fontWeight: '700', fontSize: '12.5px' }}>{currencySymbol} {money(q.subTotal)}</span>
+            {/* ── TOTALS ── */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '24px' }}>
+                <div style={{ width: '310px', border: `1px solid ${BORDER}`, borderRadius: '3px', overflow: 'hidden' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 14px', background: '#f8fafc', borderBottom: `1px solid ${BORDER}` }}>
+                        <span style={{ fontFamily: FONT, color: MID, fontWeight: '600', fontSize: '12.5px' }}>Subtotal</span>
+                        <span style={{ fontFamily: FONT, color: DARK, fontWeight: '700', fontSize: '12.5px' }}>{currencySymbol} {money(q.subTotal)}</span>
+                    </div>
+
+                    {/* Multiple Discounts */}
+                    {q.appliedDiscounts?.map((disc, i) => (
+                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 14px', background: '#f8fafc', borderBottom: `1px solid ${BORDER}` }}>
+                            <span style={{ fontFamily: FONT, color: '#000000ff', fontWeight: '600', fontSize: '12.5px' }}>
+                                Discount ({disc.name} {disc.type === 'percentage' ? disc.value + '%' : ''})
+                            </span>
+                            <span style={{ fontFamily: FONT, color: '#000000ff', fontWeight: '700', fontSize: '12.5px' }}>− {currencySymbol} {money(disc.amount)}</span>
                         </div>
+                    ))}
 
-                        {/* Multiple Discounts */}
-                        {q.appliedDiscounts?.map((disc, i) => (
-                            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 14px', background: '#f8fafc', borderBottom: `1px solid ${BORDER}` }}>
-                                <span style={{ fontFamily: FONT, color: '#000000ff', fontWeight: '600', fontSize: '12.5px' }}>
-                                    Discount ({disc.name} {disc.type === 'percentage' ? disc.value + '%' : ''})
-                                </span>
-                                <span style={{ fontFamily: FONT, color: '#000000ff', fontWeight: '700', fontSize: '12.5px' }}>− {currencySymbol} {money(disc.amount)}</span>
-                            </div>
-                        ))}
-
-                        {q.hasTax && (
+                    {q.hasTax && (
                         <div style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 14px', background: '#f8fafc', borderBottom: `1px solid ${BORDER}` }}>
                             <span style={{ fontFamily: FONT, color: '#000000ff', fontWeight: '600', fontSize: '12.5px' }}>{q.taxName} ({q.taxPercentage}%)</span>
                             <span style={{ fontFamily: FONT, color: '#000000ff', fontWeight: '700', fontSize: '12.5px' }}>+ {currencySymbol} {money(taxAmount)}</span>

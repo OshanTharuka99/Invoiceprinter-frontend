@@ -22,8 +22,8 @@ const UserProjectCatalog = () => {
 
     useEffect(() => { fetchData(); }, []);
 
-    const filtered = projects.filter(p => 
-        p.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    const filtered = projects.filter(p =>
+        p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         p.projectId.toLowerCase().includes(searchTerm.toLowerCase())
     );
 

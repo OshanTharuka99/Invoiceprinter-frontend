@@ -1,0 +1,631 @@
+/* ── User Management - Professional Business Style ── */
+
+/* Main Container */
+.user-management {
+    display: flex;
+    flex-direction: column;
+    gap: 3rem;
+    padding: 2rem;
+}
+
+/* Stats Grid */
+.user-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+}
+
+.user-stat-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 24px;
+    padding: 2rem;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.user-stat-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px -8px rgba(0, 0, 0, 0.08);
+}
+
+.user-stat-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+}
+
+.user-stat-label {
+    font-size: 0.85rem;
+    color: #64748b;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.user-stat-icon {
+    padding: 10px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.user-stat-value {
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: #0f172a;
+}
+
+/* Table Container */
+.user-table-container {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 24px;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+}
+
+/* Table Controls */
+.user-table-controls {
+    padding: 2rem;
+    border-bottom: 1px solid #f1f5f9;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+}
+
+.user-search-wrapper {
+    position: relative;
+    width: 320px;
+}
+
+.user-search-icon {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #94a3b8;
+    pointer-events: none;
+}
+
+.user-search-input {
+    width: 100%;
+    background: #f8fafc;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 0.85rem 1.25rem 0.85rem 3rem;
+    color: #0f172a;
+    outline: none;
+    font-size: 1rem;
+    font-family: 'Outfit', sans-serif;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    box-sizing: border-box;
+}
+
+.user-search-input:focus {
+    border-color: #dc2626;
+    background: #ffffff;
+    box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.08);
+}
+
+.user-filters {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.user-filter-select {
+    background: #f8fafc;
+    padding: 0.6rem 1rem;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    font-weight: 600;
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.9rem;
+    color: #0f172a;
+    outline: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.user-filter-select:focus {
+    border-color: #dc2626;
+}
+
+.user-filter-select:hover {
+    border-color: #cbd5e1;
+}
+
+.user-add-btn {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    color: #ffffff;
+    border: none;
+    border-radius: 14px;
+    padding: 1rem 1.5rem;
+    cursor: pointer;
+    font-weight: 700;
+    font-family: 'Outfit', sans-serif;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.2);
+}
+
+.user-add-btn:hover {
+    background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(220, 38, 38, 0.3);
+}
+
+/* Table */
+.user-table-wrapper {
+    overflow-x: auto;
+}
+
+.user-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.user-table-head {
+    border-bottom: 1px solid #f1f5f9;
+    background: #f8fafc;
+}
+
+.user-table-th {
+    padding: 1.25rem 2.5rem;
+    text-align: left;
+    color: #64748b;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.user-table-th-right {
+    text-align: right;
+}
+
+.user-table-row {
+    border-bottom: 1px solid #f1f5f9;
+    transition: background 0.2s ease;
+}
+
+.user-table-row:hover {
+    background: #f8fafc;
+}
+
+.user-table-td {
+    padding: 1.25rem 2.5rem;
+}
+
+.user-table-cell-user {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+}
+
+.user-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 1rem;
+    font-family: 'Outfit', sans-serif;
+}
+
+.user-avatar-root {
+    background: #fffbeb;
+    color: #b45309;
+}
+
+.user-avatar-admin {
+    background: #f1f5f9;
+    color: #0f172a;
+}
+
+.user-avatar-user {
+    background: #f1f5f9;
+    color: #0f172a;
+}
+
+.user-name {
+    font-weight: 800;
+    color: #0f172a;
+}
+
+.user-email {
+    color: #64748b;
+    font-size: 0.85rem;
+}
+
+.user-designation {
+    font-weight: 700;
+    color: #475569;
+    padding: 1.25rem 2.5rem;
+}
+
+.user-role-badge {
+    padding: 4px 12px;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 900;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+.user-role-root {
+    background: #fffbeb;
+    color: #b45309;
+}
+
+.user-role-admin {
+    background: #0f172a;
+    color: #ffffff;
+}
+
+.user-role-user {
+    background: #f1f5f9;
+    color: #64748b;
+}
+
+.user-table-actions {
+    padding: 1.25rem 2.5rem;
+    text-align: right;
+}
+
+.user-actions-wrapper {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+}
+
+.user-action-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.25rem;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.user-action-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.3;
+}
+
+.user-edit-btn {
+    color: #64748b;
+}
+
+.user-edit-btn:hover:not(:disabled) {
+    color: #dc2626;
+    background: rgba(220, 38, 38, 0.08);
+}
+
+.user-promote-btn {
+    color: #6366f1;
+}
+
+.user-promote-btn:hover:not(:disabled) {
+    color: #4f46e5;
+    background: rgba(99, 102, 241, 0.08);
+}
+
+.user-delete-btn {
+    color: #ef4444;
+}
+
+.user-delete-btn:hover:not(:disabled) {
+    color: #dc2626;
+    background: rgba(220, 38, 38, 0.08);
+}
+
+/* Modal Overlay */
+.user-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.5);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Modal Content */
+.user-modal {
+    background: #ffffff;
+    border-radius: 32px;
+    padding: 3rem;
+    width: 100%;
+    max-width: 580px;
+    box-shadow: 0 20px 60px -15px rgba(0, 0, 0, 0.15);
+}
+
+.user-modal-title {
+    font-size: 2rem;
+    font-weight: 950;
+    margin-bottom: 2.5rem;
+    color: #0f172a;
+}
+
+/* Form */
+.user-form {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+}
+
+.user-form-full {
+    grid-column: span 2;
+}
+
+.user-label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #64748b;
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-family: 'Montserrat', sans-serif;
+}
+
+.user-input {
+    width: 100%;
+    background: #f8fafc;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 0.85rem 1.25rem;
+    color: #0f172a;
+    outline: none;
+    font-size: 1rem;
+    font-family: 'Outfit', sans-serif;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    box-sizing: border-box;
+}
+
+.user-input:focus {
+    border-color: #dc2626;
+    background: #ffffff;
+    box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.08);
+}
+
+.user-password-wrapper {
+    position: relative;
+}
+
+.user-password-toggle {
+    position: absolute;
+    right: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #94a3b8;
+    padding: 0.25rem;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    transition: all 0.2s ease;
+}
+
+.user-password-toggle:hover {
+    color: #dc2626;
+    background: rgba(220, 38, 38, 0.08);
+}
+
+.user-select {
+    width: 100%;
+    background: #f8fafc;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 0.85rem 1.25rem;
+    color: #0f172a;
+    outline: none;
+    font-size: 1rem;
+    font-family: 'Outfit', sans-serif;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.user-select:focus {
+    border-color: #dc2626;
+    background: #ffffff;
+    box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.08);
+}
+
+.user-form-actions {
+    grid-column: span 2;
+    display: flex;
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+.user-submit-btn {
+    flex: 2;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    color: #ffffff;
+    border: none;
+    border-radius: 14px;
+    padding: 1rem 1.5rem;
+    cursor: pointer;
+    font-weight: 700;
+    font-family: 'Outfit', sans-serif;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.2);
+}
+
+.user-submit-btn:hover {
+    background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(220, 38, 38, 0.3);
+}
+
+.user-cancel-btn {
+    flex: 1;
+    background: #f1f5f9;
+    border: none;
+    border-radius: 14px;
+    padding: 1rem 1.5rem;
+    cursor: pointer;
+    font-weight: 800;
+    font-family: 'Outfit', sans-serif;
+    font-size: 1rem;
+    color: #64748b;
+    transition: all 0.2s ease;
+}
+
+.user-cancel-btn:hover {
+    background: #e2e8f0;
+}
+
+/* Confirm Modal */
+.user-confirm-modal {
+    background: #ffffff;
+    border-radius: 32px;
+    padding: 3rem;
+    width: 100%;
+    max-width: 450px;
+    text-align: center;
+    box-shadow: 0 20px 60px -15px rgba(0, 0, 0, 0.15);
+}
+
+.user-confirm-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1.5rem;
+}
+
+.user-confirm-icon-promote {
+    background: #e0e7ff;
+    color: #6366f1;
+}
+
+.user-confirm-icon-delete {
+    background: #fee2e2;
+    color: #ef4444;
+}
+
+.user-confirm-title {
+    font-size: 1.5rem;
+    font-weight: 900;
+    margin-bottom: 0.5rem;
+    color: #0f172a;
+}
+
+.user-confirm-text {
+    color: #64748b;
+    margin-bottom: 2rem;
+}
+
+.user-confirm-text strong {
+    color: #0f172a;
+}
+
+.user-confirm-input {
+    width: 100%;
+    background: #f8fafc;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 0.85rem 1.25rem;
+    color: #0f172a;
+    outline: none;
+    font-size: 1rem;
+    font-family: 'Outfit', sans-serif;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    text-align: center;
+    margin-bottom: 1.5rem;
+    box-sizing: border-box;
+}
+
+.user-confirm-input:focus {
+    border-color: #dc2626;
+    background: #ffffff;
+    box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.08);
+}
+
+.user-confirm-actions {
+    display: flex;
+    gap: 1rem;
+}
+
+.user-confirm-btn {
+    flex: 1.5;
+    border: none;
+    border-radius: 14px;
+    padding: 1rem;
+    cursor: pointer;
+    font-weight: 900;
+    font-family: 'Outfit', sans-serif;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    color: #ffffff;
+}
+
+.user-confirm-btn-promote {
+    background: #6366f1;
+}
+
+.user-confirm-btn-promote:hover {
+    background: #4f46e5;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(99, 102, 241, 0.3);
+}
+
+.user-confirm-btn-delete {
+    background: #ef4444;
+}
+
+.user-confirm-btn-delete:hover:not(:disabled) {
+    background: #dc2626;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(220, 38, 38, 0.3);
+}
+
+.user-confirm-btn-delete:disabled {
+    background: #fee2e2;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.user-cancel-confirm-btn {
+    flex: 1;
+    background: #f1f5f9;
+    border: none;
+    border-radius: 14px;
+    padding: 1rem;
+    cursor: pointer;
+    font-weight: 800;
+    font-family: 'Outfit', sans-serif;
+    font-size: 1rem;
+    color: #64748b;
+    transition: all 0.2s ease;
+}
+
+.user-cancel-confirm-btn:hover {
+    background: #e2e8f0;
+}

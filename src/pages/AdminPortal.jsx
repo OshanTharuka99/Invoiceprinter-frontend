@@ -92,9 +92,9 @@ const AdminPortal = () => {
         <div className="admin-container">
             <Toaster position="top-right" reverseOrder={false} />
 
-            {/* SIDEBAR */}
+            {/* SIDEBAR - 20% width */}
             <motion.aside
-                animate={{ width: sidebarOpen ? '20%' : 90 }}
+                animate={{ width: sidebarOpen ? '20%' : '90px' }}
                 transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
                 className="admin-sidebar"
             >
@@ -130,18 +130,19 @@ const AdminPortal = () => {
                         </div>
                         {sidebarOpen && (
                             <div className="admin-sidebar-user-info">
-                                <div className="admin-sidebar-user-name">{user?.firstName}</div>
-                                <div className="admin-sidebar-user-role">{user?.role?.toUpperCase()}</div>
+                                <div className="admin-sidebar-username">{user?.firstName}</div>
+                                <div className="admin-sidebar-userrole">{user?.role?.toUpperCase()}</div>
                             </div>
                         )}
                     </div>
                 </div>
             </motion.aside>
 
-            {/* MAIN PORTAL AREA */}
+            {/* MAIN AREA */}
             <div className="admin-main">
+                {/* Header - 1/8 height */}
                 <header className="admin-header">
-                    {/* Left: Page Name */}
+                    {/* Left: Page Title */}
                     <div className="admin-header-left">
                         <motion.button
                             onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -151,22 +152,22 @@ const AdminPortal = () => {
                             <LayoutDashboard size={18} />
                         </motion.button>
                         <div className="admin-header-title">
-                            <div className="admin-header-title-text">
+                            <div className="admin-header-pagename">
                                 {navItems.find(n => n.id === activeNav)?.label}
                             </div>
-                            <div className="admin-header-title-subtitle">Platform Control</div>
+                            <div className="admin-header-subtitle">Platform Control</div>
                         </div>
                     </div>
 
-                    {/* Right: User Details → Notifications → Sign Out */}
+                    {/* Right: User → Notification → Sign Out */}
                     <div className="admin-header-right">
-                        <div className="admin-header-user-info">
-                            <div className="admin-header-avatar">
+                        <div className="admin-user-section">
+                            <div className="admin-user-avatar">
                                 {user?.firstName?.[0]?.toUpperCase()}{user?.lastName?.[0]?.toUpperCase()}
                             </div>
-                            <div>
-                                <div className="admin-header-user-name">{user?.firstName} {user?.lastName}</div>
-                                <div className="admin-header-user-role">{user?.role?.toUpperCase()}</div>
+                            <div className="admin-user-details">
+                                <div className="admin-user-name">{user?.firstName} {user?.lastName}</div>
+                                <div className="admin-user-role">{user?.role?.toUpperCase()}</div>
                             </div>
                         </div>
 
@@ -193,7 +194,7 @@ const AdminPortal = () => {
                                                     await api.put('/notifications/read-all');
                                                     fetchNotifications();
                                                 }}
-                                                className="admin-notification-mark-all"
+                                                className="admin-notification-markall"
                                             >
                                                 Mark all read
                                             </button>
@@ -228,7 +229,7 @@ const AdminPortal = () => {
 
                         <div className="admin-header-divider" />
 
-                        <button onClick={handleLogout} className="admin-logout-btn">
+                        <button onClick={handleLogout} className="admin-signout-btn">
                             <LogOut size={16} />
                             <span>Sign Out</span>
                         </button>

@@ -125,7 +125,7 @@ const QuotationManagement = ({ currentUser, showToast }) => {
         const subTotal = currentForm.subTotal;
         const discountTotal = (currentForm.appliedDiscounts || []).reduce((sum, d) => sum + (d.amount || 0), 0);
         let taxableBase = subTotal - discountTotal;
-        
+
         let taxTotal = 0;
         let updatedTaxes = [];
         if (currentForm.hasTax && currentForm.appliedTaxes) {
@@ -487,9 +487,9 @@ const QuotationManagement = ({ currentUser, showToast }) => {
                                         <thead>
                                             <tr>
                                                 <th style={{ padding: '0.5rem', textAlign: 'left', fontSize: '0.75rem', color: '#64748b' }}>Item/Module</th>
-                                                <th style={{ padding: '0.5rem', textAlign: 'center', fontSize: '0.75rem', color: '#64748b', width: '15%' }}>QTY</th>
-                                                <th style={{ padding: '0.5rem', textAlign: 'right', fontSize: '0.75rem', color: '#64748b', width: '20%' }}>Unit Price</th>
-                                                <th style={{ padding: '0.5rem', textAlign: 'right', fontSize: '0.75rem', color: '#64748b', width: '20%' }}>Line Total</th>
+                                                <th style={{ padding: '0.5rem', textAlign: 'center', fontSize: '0.75rem', color: '#64748b', width: '10%' }}>QTY</th>
+                                                <th style={{ padding: '0.5rem', textAlign: 'right', fontSize: '0.75rem', color: '#64748b', width: '15%' }}>Unit Price</th>
+                                                <th style={{ padding: '0.5rem', textAlign: 'right', fontSize: '0.75rem', color: '#64748b', width: '15%' }}>Line Total</th>
                                                 <th></th>
                                             </tr>
                                         </thead>
@@ -645,117 +645,117 @@ const QuotationManagement = ({ currentUser, showToast }) => {
                                         )}
                                     </div>
 
-                                {/* Tax Block */}
-                                <div style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                                        <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.9rem' }}>
-                                            Apply Govt/Sector Taxes
-                                        </div>
-                                        <input type="checkbox" checked={form.hasTax} onChange={handleToggleTax} style={{ width: '18px', height: '18px', cursor: 'pointer' }} />
-                                    </div>
-                                    {form.hasTax && (
-                                        <div style={{ marginTop: '1rem' }}>
-                                            <div style={{ marginBottom: '1rem' }}>
-                                                {businessData?.isVatRegistered && (() => {
-                                                    const isApplied = form.appliedTaxes?.some(t => t.name === 'VAT');
-                                                    return (
-                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', padding: '0.5rem', background: isApplied ? '#d1fae5' : '#fff', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                                                            <input type="checkbox" checked={isApplied} onChange={e => {
-                                                                const checked = e.target.checked;
-                                                                setForm(prev => {
-                                                                    let taxes = [...(prev.appliedTaxes || [])];
-                                                                    if (checked) taxes.push({ name: 'VAT', type: 'percentage', value: businessData.vatPercentage, amount: 0 });
-                                                                    else taxes = taxes.filter(t => t.name !== 'VAT');
-                                                                    return calculateTotals({ ...prev, appliedTaxes: taxes });
-                                                                });
-                                                            }} style={{ cursor: 'pointer' }} />
-                                                            <div style={{ flex: 1, fontSize: '0.8rem', color: '#0f172a' }}>
-                                                                <strong>VAT</strong> ({businessData.vatPercentage}%)
-                                                            </div>
-                                                        </div>
-                                                    )
-                                                })()}
-                                                
-                                                {businessData?.otherTaxes?.map((tax, i) => {
-                                                    const isApplied = form.appliedTaxes?.some(t => t.name === tax.name);
-                                                    return (
-                                                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', padding: '0.5rem', background: isApplied ? '#d1fae5' : '#fff', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                                                            <input type="checkbox" checked={isApplied} onChange={e => {
-                                                                const checked = e.target.checked;
-                                                                setForm(prev => {
-                                                                    let taxes = [...(prev.appliedTaxes || [])];
-                                                                    if (checked) taxes.push({ name: tax.name, type: tax.type, value: tax.value, amount: 0 });
-                                                                    else taxes = taxes.filter(t => t.name !== tax.name);
-                                                                    return calculateTotals({ ...prev, appliedTaxes: taxes });
-                                                                });
-                                                            }} style={{ cursor: 'pointer' }} />
-                                                            <div style={{ flex: 1, fontSize: '0.8rem', color: '#0f172a' }}>
-                                                                <strong>{tax.name}</strong> ({tax.type === 'percentage' ? tax.value + '%' : 'Rs. ' + tax.value})
-                                                            </div>
-                                                        </div>
-                                                    )
-                                                })}
+                                    {/* Tax Block */}
+                                    <div style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                                            <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.9rem' }}>
+                                                Apply Govt/Sector Taxes
                                             </div>
+                                            <input type="checkbox" checked={form.hasTax} onChange={handleToggleTax} style={{ width: '18px', height: '18px', cursor: 'pointer' }} />
                                         </div>
-                                    )}
+                                        {form.hasTax && (
+                                            <div style={{ marginTop: '1rem' }}>
+                                                <div style={{ marginBottom: '1rem' }}>
+                                                    {businessData?.isVatRegistered && (() => {
+                                                        const isApplied = form.appliedTaxes?.some(t => t.name === 'VAT');
+                                                        return (
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', padding: '0.5rem', background: isApplied ? '#d1fae5' : '#fff', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                                                                <input type="checkbox" checked={isApplied} onChange={e => {
+                                                                    const checked = e.target.checked;
+                                                                    setForm(prev => {
+                                                                        let taxes = [...(prev.appliedTaxes || [])];
+                                                                        if (checked) taxes.push({ name: 'VAT', type: 'percentage', value: businessData.vatPercentage, amount: 0 });
+                                                                        else taxes = taxes.filter(t => t.name !== 'VAT');
+                                                                        return calculateTotals({ ...prev, appliedTaxes: taxes });
+                                                                    });
+                                                                }} style={{ cursor: 'pointer' }} />
+                                                                <div style={{ flex: 1, fontSize: '0.8rem', color: '#0f172a' }}>
+                                                                    <strong>VAT</strong> ({businessData.vatPercentage}%)
+                                                                </div>
+                                                            </div>
+                                                        )
+                                                    })()}
+
+                                                    {businessData?.otherTaxes?.map((tax, i) => {
+                                                        const isApplied = form.appliedTaxes?.some(t => t.name === tax.name);
+                                                        return (
+                                                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', padding: '0.5rem', background: isApplied ? '#d1fae5' : '#fff', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                                                                <input type="checkbox" checked={isApplied} onChange={e => {
+                                                                    const checked = e.target.checked;
+                                                                    setForm(prev => {
+                                                                        let taxes = [...(prev.appliedTaxes || [])];
+                                                                        if (checked) taxes.push({ name: tax.name, type: tax.type, value: tax.value, amount: 0 });
+                                                                        else taxes = taxes.filter(t => t.name !== tax.name);
+                                                                        return calculateTotals({ ...prev, appliedTaxes: taxes });
+                                                                    });
+                                                                }} style={{ cursor: 'pointer' }} />
+                                                                <div style={{ flex: 1, fontSize: '0.8rem', color: '#0f172a' }}>
+                                                                    <strong>{tax.name}</strong> ({tax.type === 'percentage' ? tax.value + '%' : 'Rs. ' + tax.value})
+                                                                </div>
+                                                            </div>
+                                                        )
+                                                    })}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
-                            </div>
 
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.5rem', background: '#0f172a', borderRadius: '16px', color: '#fff', marginBottom: '2rem' }}>
-                                <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '2px', fontWeight: 900, color: '#94a3b8' }}>Final Total</div>
-                                <div style={{ fontSize: '2rem', fontWeight: 900, letterSpacing: '-1px' }}>{form.finalTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
-                            </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.5rem', background: '#0f172a', borderRadius: '16px', color: '#fff', marginBottom: '2rem' }}>
+                                    <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '2px', fontWeight: 900, color: '#94a3b8' }}>Final Total</div>
+                                    <div style={{ fontSize: '2rem', fontWeight: 900, letterSpacing: '-1px' }}>{form.finalTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
+                                </div>
 
-                            <motion.button whileTap={{ scale: 0.98 }} type="submit" style={{ background: '#10b981', color: '#fff', border: 'none', borderRadius: '12px', padding: '1rem', width: '100%', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', fontSize: '1rem' }}><CheckCircle size={20} /> Create Quotation</motion.button>
-                        </form>
-                    </motion.div>
+                                <motion.button whileTap={{ scale: 0.98 }} type="submit" style={{ background: '#10b981', color: '#fff', border: 'none', borderRadius: '12px', padding: '1rem', width: '100%', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', fontSize: '1rem' }}><CheckCircle size={20} /> Create Quotation</motion.button>
+                            </form>
+                        </motion.div>
                     </div>
                 )}
             </AnimatePresence>
 
-    {/* DELETE MODAL (Distinguishes Admin vs User) */ }
-    < AnimatePresence >
-    { deleteModalOpen && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.4)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} style={{ background: '#fff', borderRadius: '24px', padding: '2.5rem', width: '100%', maxWidth: 450, textAlign: 'center', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }}>
-                {(currentUser.role === 'admin' || currentUser.role === 'root') ? (
-                    <>
-                        <ShieldAlert size={48} color="#ef4444" style={{ marginBottom: '1rem', margin: '0 auto' }} />
-                        <h3 style={{ margin: 0, fontWeight: 800, fontSize: '1.25rem', color: '#0f172a' }}>Authorize Direct Nullification?</h3>
-                        <p style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '2rem' }}>As a high-level authority, executing this will permanently destroy this quotation.</p>
-                    </>
-                ) : (
-                    <>
-                        <AlertTriangle size={48} color="#f59e0b" style={{ marginBottom: '1rem', margin: '0 auto' }} />
-                        <h3 style={{ margin: 0, fontWeight: 800, fontSize: '1.25rem', color: '#0f172a' }}>Propose Deletion Request</h3>
-                        <p style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '1.5rem' }}>Provide diagnostic reason for Security Approval dashboard.</p>
-                        <textarea placeholder="State explicit reason..." value={deleteReason} onChange={e => setDeleteReason(e.target.value)} required style={{ ...inputStyle, height: 100, resize: 'none', marginBottom: '2rem', textAlign: 'left' }} />
-                    </>
+            {/* DELETE MODAL (Distinguishes Admin vs User) */}
+            < AnimatePresence >
+                {deleteModalOpen && (
+                    <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.4)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+                        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} style={{ background: '#fff', borderRadius: '24px', padding: '2.5rem', width: '100%', maxWidth: 450, textAlign: 'center', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }}>
+                            {(currentUser.role === 'admin' || currentUser.role === 'root') ? (
+                                <>
+                                    <ShieldAlert size={48} color="#ef4444" style={{ marginBottom: '1rem', margin: '0 auto' }} />
+                                    <h3 style={{ margin: 0, fontWeight: 800, fontSize: '1.25rem', color: '#0f172a' }}>Authorize Direct Nullification?</h3>
+                                    <p style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '2rem' }}>As a high-level authority, executing this will permanently destroy this quotation.</p>
+                                </>
+                            ) : (
+                                <>
+                                    <AlertTriangle size={48} color="#f59e0b" style={{ marginBottom: '1rem', margin: '0 auto' }} />
+                                    <h3 style={{ margin: 0, fontWeight: 800, fontSize: '1.25rem', color: '#0f172a' }}>Propose Deletion Request</h3>
+                                    <p style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '1.5rem' }}>Provide diagnostic reason for Security Approval dashboard.</p>
+                                    <textarea placeholder="State explicit reason..." value={deleteReason} onChange={e => setDeleteReason(e.target.value)} required style={{ ...inputStyle, height: 100, resize: 'none', marginBottom: '2rem', textAlign: 'left' }} />
+                                </>
+                            )}
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                <motion.button whileTap={{ scale: 0.95 }} onClick={() => setDeleteModalOpen(false)} style={{ background: '#f8fafc', color: '#64748b', border: 'none', borderRadius: '12px', padding: '0.8rem', fontWeight: 800, cursor: 'pointer' }}>Abort Action</motion.button>
+                                <motion.button whileTap={{ scale: 0.95 }} onClick={confirmDelete} style={{ background: (currentUser.role === 'admin' || currentUser.role === 'root') ? '#ef4444' : '#f59e0b', color: '#fff', border: 'none', borderRadius: '12px', padding: '0.8rem', fontWeight: 800, cursor: 'pointer' }}>Proceed with Command</motion.button>
+                            </div>
+                        </motion.div>
+                    </div>
                 )}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                    <motion.button whileTap={{ scale: 0.95 }} onClick={() => setDeleteModalOpen(false)} style={{ background: '#f8fafc', color: '#64748b', border: 'none', borderRadius: '12px', padding: '0.8rem', fontWeight: 800, cursor: 'pointer' }}>Abort Action</motion.button>
-                    <motion.button whileTap={{ scale: 0.95 }} onClick={confirmDelete} style={{ background: (currentUser.role === 'admin' || currentUser.role === 'root') ? '#ef4444' : '#f59e0b', color: '#fff', border: 'none', borderRadius: '12px', padding: '0.8rem', fontWeight: 800, cursor: 'pointer' }}>Proceed with Command</motion.button>
-                </div>
-            </motion.div>
-        </div>
-    )}
             </AnimatePresence >
 
-    {/* PRINT/VIEW INVISIBLE TEMPLATE LAYER */ }
-    < AnimatePresence >
-    { viewQuotation && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.8)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 1000, overflowY: 'auto', padding: '2rem' }}>
-            <div style={{ width: '100%', maxWidth: '210mm', position: 'relative' }}>
-                <div style={{ position: 'sticky', top: 0, display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginBottom: '1rem', zIndex: 10 }}>
-                    <motion.button whileTap={{ scale: 0.95 }} onClick={handlePrint} style={{ background: '#10b981', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: '12px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', boxShadow: '0 10px 15px -3px rgba(16, 185, 129, 0.4)' }}><Printer size={18} /> A4 Print / PDF</motion.button>
-                    <motion.button whileTap={{ scale: 0.95 }} onClick={() => setViewQuotation(null)} style={{ background: '#fff', color: '#0f172a', border: 'none', width: 42, height: 42, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}><X size={20} /></motion.button>
-                </div>
-                <div style={{ boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)', borderRadius: '4px', overflow: 'hidden' }}>
-                    <QuotationTemplate ref={printRef} quotation={viewQuotation} business={businessData} />
-                </div>
-            </div>
-        </div>
-    )}
+            {/* PRINT/VIEW INVISIBLE TEMPLATE LAYER */}
+            < AnimatePresence >
+                {viewQuotation && (
+                    <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.8)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 1000, overflowY: 'auto', padding: '2rem' }}>
+                        <div style={{ width: '100%', maxWidth: '210mm', position: 'relative' }}>
+                            <div style={{ position: 'sticky', top: 0, display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginBottom: '1rem', zIndex: 10 }}>
+                                <motion.button whileTap={{ scale: 0.95 }} onClick={handlePrint} style={{ background: '#10b981', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: '12px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', boxShadow: '0 10px 15px -3px rgba(16, 185, 129, 0.4)' }}><Printer size={18} /> A4 Print / PDF</motion.button>
+                                <motion.button whileTap={{ scale: 0.95 }} onClick={() => setViewQuotation(null)} style={{ background: '#fff', color: '#0f172a', border: 'none', width: 42, height: 42, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}><X size={20} /></motion.button>
+                            </div>
+                            <div style={{ boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)', borderRadius: '4px', overflow: 'hidden' }}>
+                                <QuotationTemplate ref={printRef} quotation={viewQuotation} business={businessData} />
+                            </div>
+                        </div>
+                    </div>
+                )}
             </AnimatePresence >
         </div >
     );

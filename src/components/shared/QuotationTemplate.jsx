@@ -140,7 +140,7 @@ const QuotationTemplate = React.forwardRef(({ quotation, business }, ref) => {
             </div>
 
             {/* ── DIVIDER ── */}
-            <div style={{ height: '2px', background: DARK, margin: '14px 0 16px' }} />
+            <div style={{ height: '4px', background: DARK, margin: '14px 0 16px' }} />
 
             {/* ── BILL TO ── */}
             <div style={{ marginBottom: '18px' }}>
@@ -194,7 +194,7 @@ const QuotationTemplate = React.forwardRef(({ quotation, business }, ref) => {
                     {q.appliedDiscounts?.map((disc, i) => (
                         <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 14px', background: '#f8fafc', borderBottom: `1px solid ${BORDER}` }}>
                             <span style={{ fontFamily: FONT, color: '#000000ff', fontWeight: '600', fontSize: '12.5px' }}>
-                                Discount ({disc.name} {disc.type === 'percentage' ? disc.value + '%' : ''})
+                                {disc.name} ({disc.type === 'percentage' ? disc.value + '%' : ''})
                             </span>
                             <span style={{ fontFamily: FONT, color: '#000000ff', fontWeight: '700', fontSize: '12.5px' }}>− {currencySymbol} {money(disc.amount)}</span>
                         </div>
@@ -225,9 +225,12 @@ const QuotationTemplate = React.forwardRef(({ quotation, business }, ref) => {
                 </div>
             </div>
 
+            {/* ── DIVIDER ── */}
+            <div style={{ height: '4px', background: DARK, margin: '14px 0 16px' }} />
+
             {/* ── GENERAL TERMS & CONDITIONS ── */}
             {showTerms && (
-                <div style={{ marginBottom: '14px', paddingBottom: '14px', borderBottom: `1px dashed ${BORDER}` }}>
+                <div style={{ marginBottom: '14px', paddingBottom: '14px' }}>
                     <div style={{ ...sectionTitle, fontFamily: FONT }}>General Terms &amp; Conditions</div>
                     <div style={{ fontFamily: FONT, fontSize: '11.5px', color: MID, lineHeight: '1.75', whiteSpace: 'pre-wrap' }}>
                         {b.quotationTerms}
@@ -237,7 +240,7 @@ const QuotationTemplate = React.forwardRef(({ quotation, business }, ref) => {
 
             {/* ── NOTE ── */}
             {showNotes && (
-                <div style={{ marginBottom: '14px', paddingBottom: '14px', borderBottom: `1px dashed ${BORDER}` }}>
+                <div style={{ marginBottom: '14px', paddingBottom: '14px', }}>
                     <div style={{ ...sectionTitle, fontFamily: FONT }}>Note</div>
                     <div style={{ fontFamily: FONT, fontSize: '11.5px', color: MID, lineHeight: '1.75', whiteSpace: 'pre-wrap' }}>
                         {b.quotationNotes}

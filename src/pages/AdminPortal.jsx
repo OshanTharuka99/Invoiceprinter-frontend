@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
-import { 
-    Users, ShieldCheck, LayoutDashboard, FileText, Settings, 
+import {
+    Users, ShieldCheck, LayoutDashboard, FileText, Settings,
     TrendingUp, LogOut, ChevronRight, Activity, Bell, X, Check, AlertCircle, Shield, Crown, Edit3, Filter, Package, Briefcase, Truck, ShieldAlert, ScrollText
 } from 'lucide-react';
 import api from '../api';
@@ -100,10 +100,10 @@ const AdminPortal = () => {
             <Toaster position="top-right" reverseOrder={false} />
 
             {/* SIDEBAR PROTOCOL */}
-            <motion.aside 
-                animate={{ width: sidebarOpen ? 300 : 90 }} 
-                transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }} 
-                style={{ background: '#08090a', color: '#fff', display: 'flex', flexDirection: 'column', position: 'sticky', top: 0, height: '100vh', overflow: 'hidden', zIndex: 100, boxShadow: '4px 0 24px rgba(0,0,0,0.1)' }}
+            <motion.aside
+                animate={{ width: sidebarOpen ? 300 : 90 }}
+                transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
+                style={{ background: '#08090a', color: '#fff', display: 'flex', flexDirection: 'column', position: 'sticky', top: 0, height: '100%vh', overflow: 'hidden', zIndex: 100, boxShadow: '4px 0 24px rgba(0,0,0,0.1)', }}
             >
                 <div style={{ padding: '2.5rem 2rem', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', gap: '1rem' }}>
                     <div style={{ width: 44, height: 44, background: '#fff', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><ShieldCheck size={24} color="#000" /></div>
@@ -112,12 +112,12 @@ const AdminPortal = () => {
 
                 <nav style={{ padding: '2rem 1rem', flex: 1 }}>
                     {navItems.map((item) => (
-                        <button 
-                            key={item.id} 
-                            onClick={() => setActiveNav(item.id)} 
-                            style={{ 
-                                width: '100%', display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem', 
-                                borderRadius: '14px', marginBottom: '0.5rem', border: 'none', cursor: 'pointer', 
+                        <button
+                            key={item.id}
+                            onClick={() => setActiveNav(item.id)}
+                            style={{
+                                width: '100%', display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem',
+                                borderRadius: '14px', marginBottom: '0.5rem', border: 'none', cursor: 'pointer',
                                 background: activeNav === item.id ? 'rgba(255,255,255,0.1)' : 'transparent',
                                 color: activeNav === item.id ? '#fff' : '#64748b', transition: 'all 0.2s',
                                 fontWeight: activeNav === item.id ? 800 : 600
@@ -170,12 +170,12 @@ const AdminPortal = () => {
                                     ) : (
                                         notifications.slice(0, 10).map(n => (
                                             <div key={n._id} style={{ padding: '0.75rem 1rem', borderBottom: '1px solid #f1f5f9', background: n.isRead ? '#fff' : '#f0f9ff', cursor: 'pointer' }}
-                                                onClick={async () => { 
-                                                    if (!n.isRead) { 
-                                                        await api.put(`/notifications/${n._id}/read`); 
-                                                        fetchNotifications(); 
-                                                        setActiveNav('approvals'); 
-                                                    } 
+                                                onClick={async () => {
+                                                    if (!n.isRead) {
+                                                        await api.put(`/notifications/${n._id}/read`);
+                                                        fetchNotifications();
+                                                        setActiveNav('approvals');
+                                                    }
                                                 }}>
                                                 <div style={{ fontWeight: 600, fontSize: '0.8rem', color: '#0f172a' }}>{n.title}</div>
                                                 <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: 2 }}>{n.message}</div>

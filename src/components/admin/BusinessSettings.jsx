@@ -84,7 +84,7 @@ const BusinessSettings = ({ currentUser, showToast }) => {
 
             <div style={{ display: 'flex', gap: '0.5rem', background: '#f1f5f9', padding: '6px', borderRadius: '16px', marginBottom: '3rem', width: 'fit-content' }}>
                 <button onClick={() => { setActiveSubTab('business'); setIsEditMode(false); }} style={subTabButtonStyle('business')}>Business Settings</button>
-                <button onClick={() => { setActiveSubTab('quotation'); setIsEditMode(false); }} style={subTabButtonStyle('quotation')}>Quotation Settings</button>
+                <button onClick={() => { setActiveSubTab('quotation'); setIsEditMode(false); }} style={subTabButtonStyle('quotation')}>Document Format Settings</button>
             </div>
 
             <AnimatePresence mode="wait">
@@ -244,6 +244,7 @@ const BusinessSettings = ({ currentUser, showToast }) => {
                     </motion.div>
                 ) : (
                     <motion.div key="quotation" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }}>
+                        {/*Quotation Format*/}
                         <div style={cardStyle}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2.5rem' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -277,6 +278,48 @@ const BusinessSettings = ({ currentUser, showToast }) => {
                                     <textarea
                                         value={businessData.quotationNotes}
                                         onChange={e => setBusinessData({ ...businessData, quotationNotes: e.target.value })}
+                                        disabled={!isEditMode}
+                                        style={{ ...inputStyle(isEditMode), height: 80, resize: 'vertical' }}
+                                        placeholder="Enter default notes or thank you messages..."
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/*Invoice Format*/}
+                        <div style={cardStyle}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2.5rem' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                    <div style={{ background: '#0ea5e915', color: '#e92f0eff', padding: '10px', borderRadius: '12px' }}><Receipt size={24} /></div>
+                                    <h3 style={{ margin: 0, fontWeight: 900 }}>Invoice Format
+                                    </h3>
+                                </div>
+                                {currentUser.role === 'root' && (
+                                    <button onClick={isEditMode ? handleSave : () => setIsEditMode(true)} disabled={isSaving} style={isEditMode ? btnGradient('#10b981', '#059669') : btnGradient('#0f172a', '#1e293b')}>
+                                        {isSaving ? <RefreshCw className="animate-spin" size={18} /> : (isEditMode ? <CheckCircle size={18} /> : <Edit3 size={18} />)}
+                                        {isEditMode ? 'SAVE FORMAT' : 'EDIT FORMAT'}
+                                    </button>
+                                )}
+                            </div>
+
+
+
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1.5rem' }}>
+                                <div>
+                                    <label style={labelStyle}>Invoice Terms & Conditions</label>
+                                    <textarea
+                                        value={businessData.invoiceTerms}
+                                        onChange={e => setBusinessData({ ...businessData, invoiceTerms: e.target.value })}
+                                        disabled={!isEditMode}
+                                        style={{ ...inputStyle(isEditMode), height: 120, resize: 'vertical' }}
+                                        placeholder="Enter standard terms (e.g. Valid for 30 days...)"
+                                    />
+                                </div>
+                                <div>
+                                    <label style={labelStyle}>Default Invoice Notes</label>
+                                    <textarea
+                                        value={businessData.invoiceNotes}
+                                        onChange={e => setBusinessData({ ...businessData, invoiceNotes: e.target.value })}
                                         disabled={!isEditMode}
                                         style={{ ...inputStyle(isEditMode), height: 80, resize: 'vertical' }}
                                         placeholder="Enter default notes or thank you messages..."

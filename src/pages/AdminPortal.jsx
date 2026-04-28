@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import {
     Users, ShieldCheck, LayoutDashboard, FileText, Settings,
-    TrendingUp, LogOut, ChevronRight, Activity, Bell, X, Check, AlertCircle, Shield, Crown, Edit3, Filter, Package, Briefcase, Truck, ShieldAlert, ScrollText
+    TrendingUp, LogOut, Bell, Package, Briefcase, Truck, ShieldAlert, ScrollText, Printer
 } from 'lucide-react';
 import api from '../api';
 import toast, { Toaster } from 'react-hot-toast';
+import './AdminPortal.css';
 
 // MODULAR COMPONENTS
 import UserManagement from '../components/admin/UserManagement';
@@ -91,120 +92,148 @@ const AdminPortal = () => {
             case 'suppliers': return <SupplierManagement currentUser={user} showToast={showToast} />;
             case 'quotations': return <QuotationManagement currentUser={user} showToast={showToast} />;
             case 'invoices': return <InvoiceManagement currentUser={user} showToast={showToast} />;
-            default: return <div style={{ padding: '2rem', textAlign: 'center' }}>Module under development...</div>;
+            default: return <div className="admin-empty-module">Module under development...</div>;
         }
     };
 
     return (
-        <div style={{ display: 'flex', minHeight: '100vh', background: '#f8fafc', fontVariantNumeric: 'tabular-nums', fontFamily: "'Outfit', sans-serif" }}>
+        <div className="admin-container">
             <Toaster position="top-right" reverseOrder={false} />
 
             {/* SIDEBAR PROTOCOL */}
             <motion.aside
                 animate={{ width: sidebarOpen ? 300 : 90 }}
                 transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
-                style={{ background: '#08090a', color: '#fff', display: 'flex', flexDirection: 'column', position: 'sticky', top: 0, height: '100%vh', overflow: 'hidden', zIndex: 100, boxShadow: '4px 0 24px rgba(0,0,0,0.1)', }}
+                className={`admin-sidebar ${sidebarOpen ? 'admin-sidebar-open' : 'admin-sidebar-closed'}`}
             >
-                <div style={{ padding: '2.5rem 2rem', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    <div style={{ width: 44, height: 44, background: '#fff', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><ShieldCheck size={24} color="#000" /></div>
-                    {sidebarOpen && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}><div style={{ fontSize: '1.4rem', fontWeight: 900, letterSpacing: '-0.5px' }}>InvoPrint</div><div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 900, letterSpacing: '1px' }}>CORE PROTOCOL</div></motion.div>}
+                <div className="admin-sidebar-brand">
+                    <div className="admin-sidebar-logo">
+                        <Printer size={26} color="#08090a" />
+                    </div>
+                    {sidebarOpen && (
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="admin-fade-in">
+                            <div className="admin-sidebar-title">Invo<span style={{ color: '#dc2626', fontStyle: 'italic' }}>Print</span></div>
+                            <div className="admin-sidebar-subtitle">CORE PROTOCOL</div>
+                        </motion.div>
+                    )}
                 </div>
 
-                <nav style={{ padding: '2rem 1rem', flex: 1 }}>
+                <nav className="admin-sidebar-nav">
                     {navItems.map((item) => (
                         <button
                             key={item.id}
                             onClick={() => setActiveNav(item.id)}
-                            style={{
-                                width: '100%', display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem',
-                                borderRadius: '14px', marginBottom: '0.5rem', border: 'none', cursor: 'pointer',
-                                background: activeNav === item.id ? 'rgba(255,255,255,0.1)' : 'transparent',
-                                color: activeNav === item.id ? '#fff' : '#64748b', transition: 'all 0.2s',
-                                fontWeight: activeNav === item.id ? 800 : 600
-                            }}
+                            className={`admin-nav-item ${activeNav === item.id ? 'admin-nav-item-active' : ''}`}
                         >
                             <item.icon size={20} />
-                            {sidebarOpen && <span style={{ fontSize: '1.05rem' }}>{item.label}</span>}
+                            {sidebarOpen && <span>{item.label}</span>}
                         </button>
                     ))}
                 </nav>
 
-                <div style={{ padding: '1.5rem', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.5rem' }}>
-                        <div style={{ width: 48, height: 48, background: '#fff', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, color: '#000' }}>{user?.firstName?.[0]}{user?.lastName?.[0]}</div>
-                        {sidebarOpen && <div style={{ flex: 1 }}><div style={{ fontSize: '1rem', fontWeight: 800 }}>{user?.firstName}</div><div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 800 }}>{user?.role?.toUpperCase()}</div></div>}
+                <div className="admin-sidebar-footer">
+                    <div className="admin-sidebar-user">
+                        <div className="admin-sidebar-avatar">
+                            {user?.firstName?.[0]}{user?.lastName?.[0]}
+                        </div>
+                        {sidebarOpen && (
+                            <div className="admin-sidebar-user-info">
+                                <div className="admin-sidebar-user-name">{user?.firstName}</div>
+                                <div className="admin-sidebar-user-role">{user?.role?.toUpperCase()}</div>
+                            </div>
+                        )}
                     </div>
                 </div>
             </motion.aside>
 
             {/* MAIN PORTAL AREA */}
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'auto' }}>
-                <header style={{ position: 'sticky', top: 0, zIndex: 10, background: 'rgba(248, 250, 252, 0.85)', backdropFilter: 'blur(16px)', borderBottom: '1px solid #e2e8f0', padding: '0 3rem', height: 90, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-                        <motion.button onClick={() => setSidebarOpen(!sidebarOpen)} whileTap={{ scale: 0.9 }} style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '10px', cursor: 'pointer', color: '#64748b' }}><LayoutDashboard size={18} /></motion.button>
-                        <div style={{ pointerEvents: 'none' }}>
-                            <div style={{ fontSize: '1.2rem', fontWeight: 900, letterSpacing: '-0.5px' }}>{navItems.find(n => n.id === activeNav)?.label}</div>
-                            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b' }}>Platform Control</div>
+            <div className="admin-main">
+                <header className="admin-header">
+                    <div className="admin-header-left">
+                        <motion.button
+                            onClick={() => setSidebarOpen(!sidebarOpen)}
+                            whileTap={{ scale: 0.9 }}
+                            className="admin-sidebar-toggle"
+                        >
+                            <LayoutDashboard size={18} />
+                        </motion.button>
+                        <div className="admin-header-title">
+                            <div className="admin-header-title-text">
+                                {navItems.find(n => n.id === activeNav)?.label}
+                            </div>
+                            <div className="admin-header-title-subtitle">Platform Control</div>
                         </div>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-                        <div style={{ position: 'relative' }}>
-                            <button onClick={() => { setShowNotifications(!showNotifications); fetchNotifications(); }}
-                                style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '8px 12px', cursor: 'pointer', color: '#64748b', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.82rem', fontFamily: "'Outfit', sans-serif", transition: 'all 0.2s', position: 'relative' }}
-                                onMouseEnter={e => { e.currentTarget.style.color = '#0f172a'; e.currentTarget.style.borderColor = '#0f172a'; }}
-                                onMouseLeave={e => { e.currentTarget.style.color = '#64748b'; e.currentTarget.style.borderColor = '#e2e8f0'; }}
+                    <div className="admin-header-right">
+                        <div className="admin-notification-wrapper">
+                            <button
+                                onClick={() => { setShowNotifications(!showNotifications); fetchNotifications(); }}
+                                className="admin-notification-btn"
                             >
-                                <Bell size={16} /> Notifications
+                                <Bell size={16} />
+                                <span>Notifications</span>
                                 {unreadCount > 0 && (
-                                    <span style={{ position: 'absolute', top: -4, right: -4, background: '#ef4444', color: '#fff', borderRadius: '50%', width: 18, height: 18, fontSize: '0.65rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{unreadCount}</span>
+                                    <span className="admin-notification-badge">{unreadCount}</span>
                                 )}
                             </button>
                             {showNotifications && (
-                                <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: 8, width: 340, background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12, boxShadow: '0 10px 40px rgba(0,0,0,0.15)', zIndex: 100, maxHeight: 400, overflowY: 'auto' }}>
-                                    <div style={{ padding: '1rem', borderBottom: '1px solid #e2e8f0', fontWeight: 700, fontSize: '0.9rem', color: '#0f172a', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <div className="admin-notification-dropdown">
+                                    <div className="admin-notification-header">
                                         <span>Notifications</span>
-                                        {unreadCount > 0 && <button onClick={async () => { await api.put('/notifications/read-all'); fetchNotifications(); }} style={{ background: 'none', border: 'none', color: '#6366f1', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600 }}>Mark all read</button>}
+                                        {unreadCount > 0 && (
+                                            <button
+                                                onClick={async () => {
+                                                    await api.put('/notifications/read-all');
+                                                    fetchNotifications();
+                                                }}
+                                                className="admin-notification-mark-all"
+                                            >
+                                                Mark all read
+                                            </button>
+                                        )}
                                     </div>
                                     {notifications.length === 0 ? (
-                                        <div style={{ padding: '1.5rem', textAlign: 'center', color: '#94a3b8', fontSize: '0.85rem' }}>No notifications</div>
+                                        <div className="admin-notification-empty">No notifications</div>
                                     ) : (
                                         notifications.slice(0, 10).map(n => (
-                                            <div key={n._id} style={{ padding: '0.75rem 1rem', borderBottom: '1px solid #f1f5f9', background: n.isRead ? '#fff' : '#f0f9ff', cursor: 'pointer' }}
+                                            <div
+                                                key={n._id}
+                                                className={`admin-notification-item ${!n.isRead ? 'admin-notification-item-unread' : ''}`}
                                                 onClick={async () => {
                                                     if (!n.isRead) {
                                                         await api.put(`/notifications/${n._id}/read`);
                                                         fetchNotifications();
                                                         setActiveNav('approvals');
                                                     }
-                                                }}>
-                                                <div style={{ fontWeight: 600, fontSize: '0.8rem', color: '#0f172a' }}>{n.title}</div>
-                                                <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: 2 }}>{n.message}</div>
-                                                <div style={{ fontSize: '0.65rem', color: '#94a3b8', marginTop: 4 }}>{new Date(n.createdAt).toLocaleString()}</div>
+                                                }}
+                                            >
+                                                <div className="admin-notification-item-title">{n.title}</div>
+                                                <div className="admin-notification-item-message">{n.message}</div>
+                                                <div className="admin-notification-item-time">
+                                                    {new Date(n.createdAt).toLocaleString()}
+                                                </div>
                                             </div>
                                         ))
                                     )}
                                 </div>
                             )}
                         </div>
-                        <div style={{ textAlign: 'right' }}>
-                            <div style={{ fontWeight: 800, fontSize: '0.95rem' }}>{user?.firstName} {user?.lastName}</div>
-                            <div style={{ fontSize: '0.75rem', color: '#6366f1', fontWeight: 900, letterSpacing: '1px' }}>{user?.role?.toUpperCase()}</div>
+                        <div className="admin-header-user">
+                            <div className="admin-header-user-name">{user?.firstName} {user?.lastName}</div>
+                            <div className="admin-header-user-role">{user?.role?.toUpperCase()}</div>
                         </div>
-                        <div style={{ width: 48, height: 48, background: '#0f172a', color: '#fff', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '1rem', letterSpacing: '1px' }}>
+                        <div className="admin-header-avatar">
                             {user?.firstName?.[0]?.toUpperCase()}{user?.lastName?.[0]?.toUpperCase()}
                         </div>
-                        <div style={{ width: 1, height: 24, background: '#e2e8f0' }} />
-                        <button onClick={handleLogout}
-                            style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '6px 12px', cursor: 'pointer', color: '#64748b', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.82rem', fontFamily: "'Outfit', sans-serif", transition: 'all 0.2s' }}
-                            onMouseEnter={e => { e.currentTarget.style.color = '#dc2626'; e.currentTarget.style.borderColor = '#fecdd3'; e.currentTarget.style.background = '#fff1f2'; }}
-                            onMouseLeave={e => { e.currentTarget.style.color = '#64748b'; e.currentTarget.style.borderColor = '#e2e8f0'; e.currentTarget.style.background = '#f8fafc'; }}
-                        >
-                            <LogOut size={14} /> Sign Out
+                        <div className="admin-header-divider" />
+                        <button onClick={handleLogout} className="admin-logout-btn">
+                            <LogOut size={14} />
+                            <span>Sign Out</span>
                         </button>
                     </div>
                 </header>
 
-                <main style={{ padding: '3.5rem', width: '100%', maxWidth: 1400, margin: '0 auto' }}>
+                <main className="admin-content">
                     {renderContent()}
                 </main>
             </div>

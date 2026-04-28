@@ -71,7 +71,7 @@ const QuotationTemplate = React.forwardRef(({ quotation, business }, ref) => {
 
     /* ── Render ── */
     return (
-        <div ref={ref} style={{
+        <div ref={ref} data-qtemplate style={{ /* data label for css injections */
             background: '#fff',
             color: DARK,
             fontFamily: FONT,
@@ -81,6 +81,8 @@ const QuotationTemplate = React.forwardRef(({ quotation, business }, ref) => {
             width: '210mm',
             minHeight: '297mm',
             margin: '0 auto',
+            display: 'flex',
+            flexDirection: 'column',
             /* padding handled by @page margin in print; for screen preview we add padding: */
             padding: '12mm 14mm 14mm 14mm'
         }}>
@@ -182,45 +184,40 @@ const QuotationTemplate = React.forwardRef(({ quotation, business }, ref) => {
 
             {/* ── TOTALS ── */}
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '24px' }}>
-                <div style={{ width: '310px', border: `1px solid ${BORDER}`, borderRadius: '3px', overflow: 'hidden' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 14px', background: '#f8fafc', borderBottom: `1px solid ${BORDER}` }}>
-                        <span style={{ fontFamily: FONT, color: MID, fontWeight: '600', fontSize: '12.5px' }}>Subtotal</span>
-                        <span style={{ fontFamily: FONT, color: DARK, fontWeight: '700', fontSize: '12.5px' }}>{currencySymbol} {money(q.subTotal)}</span>
-                    </div>
-
-                    {/* Multiple Discounts */}
-                    {q.appliedDiscounts?.map((disc, i) => (
-                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 14px', background: '#f8fafc', borderBottom: `1px solid ${BORDER}` }}>
-                            <span style={{ fontFamily: FONT, color: '#000000ff', fontWeight: '600', fontSize: '12.5px' }}>
-                                {disc.name} ({disc.type === 'percentage' ? disc.value + '%' : ''})
-                            </span>
-                            <span style={{ fontFamily: FONT, color: '#000000ff', fontWeight: '700', fontSize: '12.5px' }}>− {currencySymbol} {money(disc.amount)}</span>
-                        </div>
-                    ))}
-
-                    {/* Multiple Taxes Array Support */}
-                    {q.hasTax && q.appliedTaxes?.length > 0 && q.appliedTaxes.map((tax, i) => (
-                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 14px', background: '#f8fafc', borderBottom: `1px solid ${BORDER}` }}>
-                            <span style={{ fontFamily: FONT, color: '#000000ff', fontWeight: '600', fontSize: '12.5px' }}>
-                                {tax.name} {tax.type === 'percentage' ? `(${tax.value}%)` : ''}
-                            </span>
-                            <span style={{ fontFamily: FONT, color: '#000000ff', fontWeight: '700', fontSize: '12.5px' }}>+ {currencySymbol} {money(tax.amount)}</span>
-                        </div>
-                    ))}
-
-                    {/* Legacy Single Tax Support */}
-                    {q.hasTax && (!q.appliedTaxes || q.appliedTaxes.length === 0) && q.taxPercentage > 0 && (
-                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 14px', background: '#f8fafc', borderBottom: `1px solid ${BORDER}` }}>
-                            <span style={{ fontFamily: FONT, color: '#000000ff', fontWeight: '600', fontSize: '12.5px' }}>{q.taxName || 'VAT'} ({q.taxPercentage}%)</span>
-                            <span style={{ fontFamily: FONT, color: '#000000ff', fontWeight: '700', fontSize: '12.5px' }}>+ {currencySymbol} {money(((q.subTotal - (q.discountTotal || 0)) * q.taxPercentage) / 100)}</span>
-                        </div>
-                    )}
-
-                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '11px 14px', background: DARK }}>
-                        <span style={{ fontFamily: FONT, color: '#fff', fontWeight: '900', fontSize: '13.5px' }}>Total Amount</span>
-                        <span style={{ fontFamily: FONT, color: '#fff', fontWeight: '900', fontSize: '14.5px' }}>{currencySymbol} {money(q.finalTotal)}</span>
-                    </div>
-                </div>
+                <table style={{ width: '360px', borderCollapse: 'collapse', border: `1px solid ${BORDER}` }}>
+                    <tbody>
+                        <tr>
+                            <td style={{ fontFamily: FONT, color: MID, fontWeight: '600', fontSize: '12.5px', padding: '8px 14px', background: '#f8fafc', borderBottom: `1px solid ${BORDER}` }}>Subtotal</td>
+                            <td style={{ fontFamily: FONT, color: DARK, fontWeight: '700', fontSize: '12.5px', padding: '8px 14px', background: '#f8fafc', borderBottom: `1px solid ${BORDER}`, textAlign: 'right' }}>{currencySymbol} {money(q.subTotal)}</td>
+                        </tr>
+                        {q.appliedDiscounts?.map((disc, i) => (
+                            <tr key={`d-${i}`}>
+                                <td style={{ fontFamily: FONT, color: DARK, fontWeight: '600', fontSize: '12.5px', padding: '8px 14px', background: '#f8fafc', borderBottom: `1px solid ${BORDER}` }}>
+                                    Discount ({disc.name} {disc.type === 'percentage' ? disc.value + '%' : ''})
+                                </td>
+                                <td style={{ fontFamily: FONT, color: DARK, fontWeight: '700', fontSize: '12.5px', padding: '8px 14px', background: '#f8fafc', borderBottom: `1px solid ${BORDER}`, textAlign: 'right' }}>− {currencySymbol} {money(disc.amount)}</td>
+                            </tr>
+                        ))}
+                        {q.hasTax && q.appliedTaxes?.length > 0 && q.appliedTaxes.map((tax, i) => (
+                            <tr key={`t-${i}`}>
+                                <td style={{ fontFamily: FONT, color: DARK, fontWeight: '600', fontSize: '12.5px', padding: '8px 14px', background: '#f8fafc', borderBottom: `1px solid ${BORDER}` }}>
+                                    {tax.name} {tax.type === 'percentage' ? `(${tax.value}%)` : ''}
+                                </td>
+                                <td style={{ fontFamily: FONT, color: DARK, fontWeight: '700', fontSize: '12.5px', padding: '8px 14px', background: '#f8fafc', borderBottom: `1px solid ${BORDER}`, textAlign: 'right' }}>+ {currencySymbol} {money(tax.amount)}</td>
+                            </tr>
+                        ))}
+                        {q.hasTax && (!q.appliedTaxes || q.appliedTaxes.length === 0) && q.taxPercentage > 0 && (
+                            <tr>
+                                <td style={{ fontFamily: FONT, color: DARK, fontWeight: '600', fontSize: '12.5px', padding: '8px 14px', background: '#f8fafc', borderBottom: `1px solid ${BORDER}` }}>{q.taxName || 'VAT'} ({q.taxPercentage}%)</td>
+                                <td style={{ fontFamily: FONT, color: DARK, fontWeight: '700', fontSize: '12.5px', padding: '8px 14px', background: '#f8fafc', borderBottom: `1px solid ${BORDER}`, textAlign: 'right' }}>+ {currencySymbol} {money(((q.subTotal - (q.discountTotal || 0)) * q.taxPercentage) / 100)}</td>
+                            </tr>
+                        )}
+                        <tr>
+                            <td style={{ fontFamily: FONT, color: '#fff', fontWeight: '900', fontSize: '13.5px', padding: '12px 14px', background: DARK }}>Total Amount</td>
+                            <td style={{ fontFamily: FONT, color: '#fff', fontWeight: '900', fontSize: '14.5px', padding: '12px 14px', background: DARK, textAlign: 'right' }}>{currencySymbol} {money(q.finalTotal)}</td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
 
             {/* ── DIVIDER ── */}
@@ -272,9 +269,9 @@ const QuotationTemplate = React.forwardRef(({ quotation, business }, ref) => {
             )}
 
             {/* ── FOOTER ── */}
-            <div style={{ borderTop: `1px solid ${BORDER}`, paddingTop: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div className="quotation-print-footer" style={{ borderTop: `1px solid ${BORDER}`, paddingTop: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '40px', background: '#fff' }}>
                 <div style={{ fontFamily: FONT, fontSize: '10px', color: LIGHT, fontStyle: 'italic' }}>
-
+                    <span className="page-number-target"></span>
                 </div>
                 <div style={{ fontFamily: FONT, fontSize: '10px', color: LIGHT, textAlign: 'right' }}>
                     {b.businessName} &nbsp;|&nbsp; {fmt(q.createdAt || new Date())}
@@ -283,10 +280,13 @@ const QuotationTemplate = React.forwardRef(({ quotation, business }, ref) => {
 
             {/* ── PRINT CSS ── */}
             <style>{`
+                /* Container styling block for UI preview scale */
+                .quotation-print-footer { marginTop: auto !important; }
+
                 @media print {
                     @page {
                         size: A4 portrait;
-                        margin: 14mm 15mm 14mm 15mm;
+                        margin: 14mm 15mm 20mm 15mm;
                     }
                     body {
                         margin: 0 !important;
@@ -298,9 +298,28 @@ const QuotationTemplate = React.forwardRef(({ quotation, business }, ref) => {
                     div[data-qtemplate] {
                         padding: 0 !important;
                         width: 100% !important;
+                        margin: 0 !important;
+                        position: relative !important;
                     }
                     * { box-shadow: none !important; }
                     tr { page-break-inside: avoid; }
+                    
+                    /* ABSOLUTE BOTTOM FOOTER TRICK */
+                    .quotation-print-footer {
+                        position: fixed !important;
+                        bottom: 0 !important;
+                        left: 0 !important;
+                        width: 100% !important;
+                        padding-bottom: 2mm !important;
+                        background: white !important;
+                        z-index: 10;
+                    }
+
+                    /* PAGE NUMBER COUNTER */
+                    .page-number-target::before {
+                        counter-increment: page;
+                        content: "Page " counter(page);
+                    }
                 }
             `}</style>
         </div>

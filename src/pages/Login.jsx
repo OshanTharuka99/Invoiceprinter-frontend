@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import './login.css';
 
-const TRUST_BADGES = ['End-to-end Encryption', '99.9% Uptime', 'ISO Certified'];
+const TRUST_BADGES = ['SOC 2 Type II Certified', '99.99% Uptime SLA', 'Bank-Grade Encryption'];
 
 const Login = () => {
     const [email, setEmail] = useState('');
@@ -105,15 +105,15 @@ const Login = () => {
                     className="login-hero"
                 >
                     <p className="login-hero-badge">
-                        Enterprise Billing Platform
+                        Enterprise Financial Infrastructure
                     </p>
                     <h1 className="login-hero-title">
-                        Intelligence<br />
+                        Precision<br />
                         behind every<br />
                         <span className="login-hero-title-muted">transaction.</span>
                     </h1>
                     <p className="login-hero-description">
-                        The most sophisticated billing platform ever built for high-growth enterprises.
+                        Trusted by industry leaders for mission-critical billing operations.
                     </p>
                 </motion.div>
 

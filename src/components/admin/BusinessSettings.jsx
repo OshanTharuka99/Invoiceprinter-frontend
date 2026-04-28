@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
     Building2, Phone, MapPin, Coins, Receipt, Tag, Save,
     Edit3, CheckCircle, PlusCircle, MinusCircle, AlertCircle,
-    Check, RefreshCw, Hash, Mail, Globe, Landmark, DollarSign, ChevronDown, Settings2, Shield
+    Check, RefreshCw, Hash, Mail, Globe, Landmark, DollarSign, ChevronDown, Settings2, Shield, Award
 } from 'lucide-react';
 import api from '../../api';
 
@@ -105,6 +105,38 @@ const BusinessSettings = ({ currentUser, showToast }) => {
                                     {isEditMode ? 'SAVE CONFIGURATION' : 'EDIT BUSINESS DETAILS'}
                                 </button>
                             )}
+                        </div>
+
+                        {/* 1. Logo */}
+                        <div style={cardStyle}>
+                            <div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '2.5rem' }}><div style={{ background: '#6366f115', color: '#000000ff', padding: '10px', borderRadius: '12px' }}><Award size={24} /></div> <h3 style={{ margin: 0, fontWeight: 900 }}>Organization Logo</h3></div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', marginBottom: '2rem' }}>
+                                    <div style={{ width: 140, height: 140, background: '#f8fafc', border: '2px dashed #cbd5e1', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', position: 'relative' }}>
+                                        {businessData.quotationLogo ? (
+                                            <img src={businessData.quotationLogo} alt="Quotation Logo" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                                        ) : (
+                                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', color: '#94a3b8' }}>
+                                                <PlusCircle size={32} style={{ marginBottom: '8px' }} />
+                                                <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>Empty</span>
+                                            </div>
+                                        )}
+                                        {isEditMode && (
+                                            <input type="file" accept="image/*" onChange={(e) => {
+                                                const file = e.target.files[0];
+                                                if (file) {
+                                                    const reader = new FileReader();
+                                                    reader.onloadend = () => setBusinessData({ ...businessData, quotationLogo: reader.result });
+                                                    reader.readAsDataURL(file);
+                                                }
+                                            }} style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer' }} title="Upload new logo" />
+                                        )}
+                                    </div>
+                                    <div style={{ flex: 1 }}>
+                                        <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '1rem', fontWeight: 600 }}>Upload a high-quality logo. This logo will be cleanly embedded into all dynamically generated PDF quotations. Click the area on the left to select an image.</p>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         {/* 1. IDENTITY */}
@@ -227,34 +259,7 @@ const BusinessSettings = ({ currentUser, showToast }) => {
                                 )}
                             </div>
 
-                            <div>
-                                <label style={labelStyle}>Official Quotation Logo</label>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', marginBottom: '2rem' }}>
-                                    <div style={{ width: 140, height: 140, background: '#f8fafc', border: '2px dashed #cbd5e1', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', position: 'relative' }}>
-                                        {businessData.quotationLogo ? (
-                                            <img src={businessData.quotationLogo} alt="Quotation Logo" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
-                                        ) : (
-                                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', color: '#94a3b8' }}>
-                                                <PlusCircle size={32} style={{ marginBottom: '8px' }} />
-                                                <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>Empty</span>
-                                            </div>
-                                        )}
-                                        {isEditMode && (
-                                            <input type="file" accept="image/*" onChange={(e) => {
-                                                const file = e.target.files[0];
-                                                if (file) {
-                                                    const reader = new FileReader();
-                                                    reader.onloadend = () => setBusinessData({ ...businessData, quotationLogo: reader.result });
-                                                    reader.readAsDataURL(file);
-                                                }
-                                            }} style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer' }} title="Upload new logo" />
-                                        )}
-                                    </div>
-                                    <div style={{ flex: 1 }}>
-                                        <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '1rem', fontWeight: 600 }}>Upload a high-quality logo. This logo will be cleanly embedded into all dynamically generated PDF quotations. Click the area on the left to select an image.</p>
-                                    </div>
-                                </div>
-                            </div>
+
 
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1.5rem' }}>
                                 <div>

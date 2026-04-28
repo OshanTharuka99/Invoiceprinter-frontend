@@ -95,10 +95,8 @@ const QuotationTemplate = React.forwardRef(({ quotation, business }, ref) => {
                             style={{ maxHeight: '75px', maxWidth: '180px', objectFit: 'contain', display: 'block', marginBottom: '8px' }} />
                         : <div style={{ fontFamily: FONT, fontSize: '20px', fontWeight: '900', color: DARK, marginBottom: '6px' }}>{b.businessName}</div>
                     }
-                    {b.quotationLogo && (
-                        <div style={{ fontFamily: FONT, fontSize: '14px', fontWeight: '800', color: DARK, marginBottom: '5px' }}>{b.businessName}</div>
-                    )}
                     <div style={{ fontFamily: FONT, color: MID, fontSize: '11.5px', lineHeight: '1.75' }}>
+                        {b.businessName && <div>{b.businessName}</div>}
                         {b.address && <div>{b.address}</div>}
                         {b.phoneNumber && <div>Tel: {b.phoneNumber}</div>}
                         {b.email && <div>Email: {b.email}</div>}

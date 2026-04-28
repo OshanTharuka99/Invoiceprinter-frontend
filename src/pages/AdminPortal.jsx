@@ -6,10 +6,9 @@ import {
     TrendingUp, LogOut, Bell, Package, Briefcase, Truck, ShieldAlert, ScrollText, Printer
 } from 'lucide-react';
 import api from '../api';
-import toast, { Toaster } from 'react-hot-toast';
+import { toast, Toaster } from 'react-hot-toast';
 import './AdminPortal.css';
 
-// MODULAR COMPONENTS
 import UserManagement from '../components/admin/UserManagement';
 import BusinessSettings from '../components/admin/BusinessSettings';
 import ProductManagement from '../components/admin/ProductManagement';
@@ -20,12 +19,6 @@ import ApprovalsDashboard from '../components/admin/ApprovalsDashboard';
 import QuotationManagement from '../components/shared/QuotationManagement';
 import InvoiceManagement from '../components/shared/InvoiceManagement';
 
-/**
- * ADMIN PORTAL - PREMIUM ENTERPRISE EDITION
- * -----------------------------------------
- * This is the root container for administrative modules.
- * Restored with custom styled toast notifications.
- */
 const AdminPortal = () => {
     const { user, logout } = useAuth();
     const [activeNav, setActiveNav] = useState('users');
@@ -57,7 +50,6 @@ const AdminPortal = () => {
         { id: 'analytics', label: 'System Analytics', icon: TrendingUp },
     ];
 
-    // CUSTOM PREMIUM TOAST LOGIC
     const showToast = (message, type = 'success') => {
         toast(message, {
             duration: 4000,
@@ -100,11 +92,11 @@ const AdminPortal = () => {
         <div className="admin-container">
             <Toaster position="top-right" reverseOrder={false} />
 
-            {/* SIDEBAR PROTOCOL */}
+            {/* SIDEBAR */}
             <motion.aside
-                animate={{ width: sidebarOpen ? 300 : 90 }}
+                animate={{ width: sidebarOpen ? '20%' : 90 }}
                 transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
-                className={`admin-sidebar ${sidebarOpen ? 'admin-sidebar-open' : 'admin-sidebar-closed'}`}
+                className="admin-sidebar"
             >
                 <div className="admin-sidebar-brand">
                     <div className="admin-sidebar-logo">
@@ -149,6 +141,7 @@ const AdminPortal = () => {
             {/* MAIN PORTAL AREA */}
             <div className="admin-main">
                 <header className="admin-header">
+                    {/* Left: Page Name */}
                     <div className="admin-header-left">
                         <motion.button
                             onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -164,13 +157,27 @@ const AdminPortal = () => {
                             <div className="admin-header-title-subtitle">Platform Control</div>
                         </div>
                     </div>
+
+                    {/* Right: User Details → Notifications → Sign Out */}
                     <div className="admin-header-right">
+                        <div className="admin-header-user-info">
+                            <div className="admin-header-avatar">
+                                {user?.firstName?.[0]?.toUpperCase()}{user?.lastName?.[0]?.toUpperCase()}
+                            </div>
+                            <div>
+                                <div className="admin-header-user-name">{user?.firstName} {user?.lastName}</div>
+                                <div className="admin-header-user-role">{user?.role?.toUpperCase()}</div>
+                            </div>
+                        </div>
+
+                        <div className="admin-header-divider" />
+
                         <div className="admin-notification-wrapper">
                             <button
                                 onClick={() => { setShowNotifications(!showNotifications); fetchNotifications(); }}
                                 className="admin-notification-btn"
                             >
-                                <Bell size={16} />
+                                <Bell size={18} />
                                 <span>Notifications</span>
                                 {unreadCount > 0 && (
                                     <span className="admin-notification-badge">{unreadCount}</span>
@@ -218,16 +225,11 @@ const AdminPortal = () => {
                                 </div>
                             )}
                         </div>
-                        <div className="admin-header-user">
-                            <div className="admin-header-user-name">{user?.firstName} {user?.lastName}</div>
-                            <div className="admin-header-user-role">{user?.role?.toUpperCase()}</div>
-                        </div>
-                        <div className="admin-header-avatar">
-                            {user?.firstName?.[0]?.toUpperCase()}{user?.lastName?.[0]?.toUpperCase()}
-                        </div>
+
                         <div className="admin-header-divider" />
+
                         <button onClick={handleLogout} className="admin-logout-btn">
-                            <LogOut size={14} />
+                            <LogOut size={16} />
                             <span>Sign Out</span>
                         </button>
                     </div>

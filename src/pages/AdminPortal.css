@@ -1,6 +1,6 @@
 /* ── Admin Portal - Professional Business Layout ── */
 
-/* Main Container - Full Screen */
+/* Main Container */
 .admin-container {
     display: flex;
     min-height: 100vh;
@@ -9,7 +9,7 @@
     font-family: 'Outfit', sans-serif;
 }
 
-/* ── SIDEBAR - 1/5 width (20%) ────────── */
+/* ── SIDEBAR - 1/5 width (20%) ─────────────── */
 .admin-sidebar {
     width: 20%;
     min-width: 250px;
@@ -25,7 +25,6 @@
     overflow: hidden;
     z-index: 100;
     box-shadow: 4px 0 24px rgba(220, 38, 38, 0.1);
-    transition: box-shadow 0.3s ease;
 }
 
 /* Sidebar Brand */
@@ -277,7 +276,7 @@
     letter-spacing: 0.5px;
 }
 
-/* Header Right: User Info → Notification → Sign Out */
+/* Header Right: User → Notification → Sign Out */
 .admin-header-right {
     display: flex;
     align-items: center;
@@ -365,7 +364,7 @@
     color: #dc2626;
     border-color: rgba(220, 38, 38, 0.3);
     background: rgba(220, 38, 38, 0.03);
-    transform: translateY(-1px);
+    transform: translateY(-2px);
     box-shadow: 0 8px 24px -8px rgba(220, 38, 38, 0.15);
 }
 
@@ -497,13 +496,14 @@
     box-shadow: 0 8px 24px -8px rgba(220, 38, 38, 0.2);
 }
 
-/* Main Content - 7/8 height */
+/* Main Content - 7/8 height with 1/12 margins */
 .admin-content {
     flex: 1;
     overflow-y: auto;
-    padding: 3rem;
     width: 100%;
     max-width: 100%;
+    padding: 8.33% 8.33% 8.33% 0;
+    box-sizing: border-box;
 }
 
 .admin-content::-webkit-scrollbar {
@@ -536,7 +536,7 @@
     box-shadow: 0 8px 32px -8px rgba(0, 0, 0, 0.05);
 }
 
-/* ── ANIMATIONS ────────────────────────────────── */
+/* ── ANIMATIONS ─────────────────────────────────── */
 @keyframes admin-fadein {
     from {
         opacity: 0;

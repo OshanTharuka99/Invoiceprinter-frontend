@@ -48,7 +48,7 @@ const UserClientManagement = ({ showToast }) => {
         e.preventDefault();
         try {
             await api.post('/clients', form);
-            showToast?.('Client entity securely created', 'success');
+            showToast?.('Client successfully created', 'success');
             setIsCreateModalOpen(false);
             fetchClients();
         } catch (error) {
@@ -60,7 +60,7 @@ const UserClientManagement = ({ showToast }) => {
         e.preventDefault();
         try {
             await api.post(`/clients/${selectedClient._id}/request-edit`, form);
-            showToast?.('Modification request transmitted to security clearance node.', 'success');
+            showToast?.('Edit request submitted successfully.', 'success');
             setIsEditModalOpen(false);
         } catch (error) {
             showToast?.(error.response?.data?.message || 'Request failed to transmit', 'error');
@@ -91,19 +91,19 @@ const UserClientManagement = ({ showToast }) => {
                         <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
                             <div style={{ position: 'relative' }}>
                                 <Search size={16} title="Locate Entity" style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
-                                <input type="text" placeholder="Entity search matrix..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} style={{ padding: '0.8rem 1rem 0.8rem 2.5rem', borderRadius: '12px', border: '1px solid #e2e8f0', width: 280, outline: 'none', fontFamily: "'Outfit', sans-serif" }} />
+                                <input type="text" placeholder="Search clients..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} style={{ padding: '0.8rem 1rem 0.8rem 2.5rem', borderRadius: '12px', border: '1px solid #e2e8f0', width: 280, outline: 'none', fontFamily: "'Outfit', sans-serif" }} />
                             </div>
-                            <motion.button whileTap={{ scale: 0.95 }} title="Enroll New Agent" onClick={openCreateModal} style={btnStyle}><Plus size={18} /> Enroll Client</motion.button>
+                            <motion.button whileTap={{ scale: 0.95 }} title="Add Client" onClick={openCreateModal} style={btnStyle}><Plus size={18} /> Add Client</motion.button>
                         </div>
                     </div>
 
                     <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                         <thead>
                             <tr style={{ borderBottom: '2px solid #f1f5f9' }}>
-                                <th style={{ padding: '1rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.8rem' }}>Identifier & Node</th>
-                                <th style={{ padding: '1rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.8rem' }}>Class Type</th>
-                                <th style={{ padding: '1rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.8rem' }}>Comms Channels</th>
-                                <th style={{ padding: '1rem', textAlign: 'right' }}>Security Actions</th>
+                                <th style={{ padding: '1rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.8rem' }}>Identifier</th>
+                                <th style={{ padding: '1rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.8rem' }}>Client Type</th>
+                                <th style={{ padding: '1rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.8rem' }}>Contact Details</th>
+                                <th style={{ padding: '1rem', textAlign: 'right' }}>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -137,7 +137,7 @@ const UserClientManagement = ({ showToast }) => {
                     <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.4)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
                         <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -20, opacity: 0 }} style={{ background: '#fff', borderRadius: '24px', padding: '2.5rem', width: '100%', maxWidth: 550, boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', maxHeight: '90vh', overflowY: 'auto' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2rem' }}>
-                                <h2 style={{ margin: 0, fontWeight: 900 }}>Create General System Client</h2>
+                                <h2 style={{ margin: 0, fontWeight: 900 }}>Create Client</h2>
                                 <motion.button whileTap={{ scale: 0.9 }} onClick={() => setIsCreateModalOpen(false)} style={{ background: '#f1f5f9', border: 'none', borderRadius: '50%', width: 32, height: 32, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={18} /></motion.button>
                             </div>
                             <form onSubmit={saveNewClient}>
@@ -146,19 +146,19 @@ const UserClientManagement = ({ showToast }) => {
                                     <div><label style={labelStyle}>Surname</label><input value={form.lastName} onChange={e => setForm({ ...form, lastName: e.target.value })} style={inputStyle} /></div>
                                 </div>
                                 <div style={{ marginBottom: '1.5rem' }}>
-                                    <label style={labelStyle}>Schema Classification</label>
+                                    <label style={labelStyle}>Client Type</label>
                                     <select value={form.clientType} onChange={e => setForm({ ...form, clientType: e.target.value })} required style={inputStyle}>
-                                        <option value="Person">Single Actor</option>
-                                        <option value="Business">Registered Commerce</option>
-                                        <option value="Organization">Non-Profit / Network</option>
+                                        <option value="Person">Individual Person</option>
+                                        <option value="Business">Business / Company</option>
+                                        <option value="Organization">Non-Profit / Organization</option>
                                     </select>
                                 </div>
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '2rem', background: '#f8fafc', padding: '1.5rem', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
-                                    <div><label style={labelStyle}>Phone Comms</label><input value={form.telephoneNumber} onChange={e => setForm({ ...form, telephoneNumber: e.target.value })} style={{ ...inputStyle, background: '#fff' }} /></div>
-                                    <div><label style={labelStyle}>WhatsApp ID</label><input value={form.whatsappNumber} onChange={e => setForm({ ...form, whatsappNumber: e.target.value })} style={{ ...inputStyle, background: '#fff' }} /></div>
-                                    <div style={{ gridColumn: '1 / -1' }}><label style={labelStyle}>Global E-Mail Hash</label><input type="email" value={form.emailAddress} onChange={e => setForm({ ...form, emailAddress: e.target.value })} style={{ ...inputStyle, background: '#fff' }} /></div>
+                                    <div><label style={labelStyle}>Phone Number</label><input value={form.telephoneNumber} onChange={e => setForm({ ...form, telephoneNumber: e.target.value })} style={{ ...inputStyle, background: '#fff' }} /></div>
+                                    <div><label style={labelStyle}>WhatsApp Number</label><input value={form.whatsappNumber} onChange={e => setForm({ ...form, whatsappNumber: e.target.value })} style={{ ...inputStyle, background: '#fff' }} /></div>
+                                    <div style={{ gridColumn: '1 / -1' }}><label style={labelStyle}>Email Address</label><input type="email" value={form.emailAddress} onChange={e => setForm({ ...form, emailAddress: e.target.value })} style={{ ...inputStyle, background: '#fff' }} /></div>
                                 </div>
-                                <motion.button whileTap={{ scale: 0.98 }} type="submit" style={{ ...btnStyle, width: '100%', justifyContent: 'center' }}>Compile Record in Datastore</motion.button>
+                                <motion.button whileTap={{ scale: 0.98 }} type="submit" style={{ ...btnStyle, width: '100%', justifyContent: 'center' }}>Save Client</motion.button>
                             </form>
                         </motion.div>
                     </div>
@@ -172,8 +172,8 @@ const UserClientManagement = ({ showToast }) => {
                         <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} style={{ background: '#fff', border: '2px solid #fce7f3', borderRadius: '24px', padding: '2.5rem', width: '100%', maxWidth: 550, boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', maxHeight: '90vh', overflowY: 'auto' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
                                 <div>
-                                    <h2 style={{ margin: 0, fontWeight: 900, color: '#db2777' }}>Propose Datastream Override</h2>
-                                    <p style={{ margin: '0.2rem 0 0', fontSize: '0.8rem', color: '#64748b' }}>Standard accounts cannot forcibly rewrite verified client data. <br />Your modified parameters below will be sent to Central Authority for manual validation.</p>
+                                    <h2 style={{ margin: 0, fontWeight: 900, color: '#db2777' }}>Request Client Edit</h2>
+                                    <p style={{ margin: '0.2rem 0 0', fontSize: '0.8rem', color: '#64748b' }}>Standard accounts cannot directly modify client data. <br />Your requested changes will be sent to an Administrator for validation.</p>
                                 </div>
                                 <motion.button whileTap={{ scale: 0.9 }} onClick={() => setIsEditModalOpen(false)} style={{ background: '#fdf2f8', border: 'none', borderRadius: '50%', width: 32, height: 32, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#db2777' }}><X size={18} /></motion.button>
                             </div>
@@ -183,11 +183,11 @@ const UserClientManagement = ({ showToast }) => {
                                     <div><label style={labelStyle}>Surname</label><input value={form.lastName} onChange={e => setForm({ ...form, lastName: e.target.value })} style={inputStyle} /></div>
                                 </div>
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '2rem', background: '#f8fafc', padding: '1.5rem', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
-                                    <div><label style={labelStyle}>Phone Comms</label><input value={form.telephoneNumber} onChange={e => setForm({ ...form, telephoneNumber: e.target.value })} style={{ ...inputStyle, background: '#fff' }} /></div>
-                                    <div><label style={labelStyle}>WhatsApp ID</label><input value={form.whatsappNumber} onChange={e => setForm({ ...form, whatsappNumber: e.target.value })} style={{ ...inputStyle, background: '#fff' }} /></div>
-                                    <div style={{ gridColumn: '1 / -1' }}><label style={labelStyle}>Address Matrix</label><input value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} style={{ ...inputStyle, background: '#fff' }} /></div>
+                                    <div><label style={labelStyle}>Phone Number</label><input value={form.telephoneNumber} onChange={e => setForm({ ...form, telephoneNumber: e.target.value })} style={{ ...inputStyle, background: '#fff' }} /></div>
+                                    <div><label style={labelStyle}>WhatsApp Number</label><input value={form.whatsappNumber} onChange={e => setForm({ ...form, whatsappNumber: e.target.value })} style={{ ...inputStyle, background: '#fff' }} /></div>
+                                    <div style={{ gridColumn: '1 / -1' }}><label style={labelStyle}>Address</label><input value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} style={{ ...inputStyle, background: '#fff' }} /></div>
                                 </div>
-                                <motion.button whileTap={{ scale: 0.98 }} type="submit" style={{ background: '#db2777', color: '#fff', border: 'none', borderRadius: '12px', padding: '1rem 1.5rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', width: '100%' }}><Send size={18} /> Transmit Request Packet</motion.button>
+                                <motion.button whileTap={{ scale: 0.98 }} type="submit" style={{ background: '#db2777', color: '#fff', border: 'none', borderRadius: '12px', padding: '1rem 1.5rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', width: '100%' }}><Send size={18} /> Submit Request</motion.button>
                             </form>
                         </motion.div>
                     </div>

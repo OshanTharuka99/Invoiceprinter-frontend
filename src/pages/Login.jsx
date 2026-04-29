@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import './login.css';
 
-const TRUST_BADGES = ['SOC 2 Type II Certified', '99.99% Uptime SLA', 'Bank-Grade Encryption'];
+const TRUST_BADGES = ['Fast & Secure', 'Reliable Uptime', 'Encrypted Data'];
 
 const Login = () => {
     const [email, setEmail] = useState('');
@@ -105,15 +105,15 @@ const Login = () => {
                     className="login-hero"
                 >
                     <p className="login-hero-badge">
-                        Enterprise Financial Infrastructure
+                        Professional Invoice Management
                     </p>
                     <h1 className="login-hero-title">
-                        Precision<br />
-                        behind every<br />
-                        <span className="login-hero-title-muted">transaction.</span>
+                        Seamlessly<br />
+                        manage your<br />
+                        <span className="login-hero-title-muted">billing.</span>
                     </h1>
                     <p className="login-hero-description">
-                        Trusted by industry leaders for mission-critical billing operations.
+                        The trusted solution for modern businesses.
                     </p>
                 </motion.div>
 
@@ -215,7 +215,7 @@ const Login = () => {
                             >
                                 {isLoading
                                     ? <Loader2 size={22} className="login-spinner" />
-                                    : <><span>Sign In to Terminal</span><ArrowRight size={20} /></>
+                                    : <><span>Sign In</span><ArrowRight size={20} /></>
                                 }
                             </button>
                         </form>

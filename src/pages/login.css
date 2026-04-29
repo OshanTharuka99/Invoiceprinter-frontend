@@ -598,20 +598,51 @@
 
 /* ── RESPONSIVE FOR TABLETS/MOBILE ───────────────── */
 @media (max-width: 1023px) {
-    .login-left-panel {
-        display: none !important;
+    .login-container {
+        flex-direction: column;
+        overflow-y: auto;
+        height: 100%;
+        min-height: 100vh;
     }
 
-    .login-container {
-        background: #ffffff;
+    .login-left-panel {
+        width: 100%;
+        min-height: auto;
+        height: auto;
+        padding: 3rem 2rem;
+        flex-shrink: 0;
+        align-items: center;
+        text-align: center;
+    }
+
+    .login-hero {
+        align-items: center;
+        margin-top: 2rem;
+        margin-bottom: 2rem;
+    }
+
+    .login-hero-title {
+        font-size: 2.5rem;
+    }
+
+    .login-hero-description {
+        max-width: 100%;
+    }
+
+    .login-trust {
+        display: none; /* Hide badges on small screens for cleaner look */
     }
 
     .login-right-panel {
-        background: #ffffff;
+        flex: 1;
+        height: auto;
+        min-height: auto;
+        padding: 2rem 1rem;
+        align-items: flex-start;
     }
 
     .login-card {
-        background: #ffffff;
-        border-color: #f3f4f6;
+        width: 100%;
+        padding: 2rem 1.5rem;
     }
 }

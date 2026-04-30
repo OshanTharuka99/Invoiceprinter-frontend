@@ -8,7 +8,7 @@ import {
     X, DollarSign, ArrowUpRight, ArrowDownRight, Bell
 } from 'lucide-react';
 import api from '../api';
-import UserProductCatalog from '../components/user/UserProductCatalog';
+import ProductManagement from '../components/admin/ProductManagement';
 import UserClientManagement from '../components/user/UserClientManagement';
 import UserProjectCatalog from '../components/user/UserProjectCatalog';
 import QuotationManagement from '../components/shared/QuotationManagement';
@@ -320,7 +320,7 @@ const UserPortal = () => {
                 </motion.div>
                     </>
                 ) : activeTab === 'Products' ? (
-                    <UserProductCatalog />
+                    <ProductManagement currentUser={user} showToast={showToast} />
                 ) : activeTab === 'Quotations' ? (
                     <QuotationManagement currentUser={user} showToast={showToast} />
                 ) : activeTab === 'Invoices' ? (

@@ -1,12 +1,11 @@
 /* ── User Management - Professional Business Style ── */
 
-body {
-    margin-top: 0;
-}
+
 
 /* Main Container */
 .user-management {
     width: 100%;
+
     display: flex;
     flex-direction: column;
     box-sizing: border-box;

@@ -101,87 +101,78 @@ const UserPortal = () => {
     };
 
     return (
-        <div style={{ minHeight: '100vh', background: '#f1f5f9', color: '#0f172a', fontFamily: "'Outfit', sans-serif" }}>
+        <div className="user-container">
 
             {/* ── Navigation Bar ──────────────────────── */}
-            <nav style={{
-                position: 'sticky', top: 0, zIndex: 50,
-                background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(20px)',
-                borderBottom: '1px solid #e2e8f0',
-                padding: '0 2rem', height: 64,
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
-            }}>
+            <nav className="user-nav">
                 {/* Logo + Nav links */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '2.5rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                        <div style={{ width: 36, height: 36, background: '#0f172a', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div className="user-nav-brand">
+                    <div className="user-nav-logo">
+                        <div className="user-nav-logo-icon">
                             <Printer size={19} color="#fff" />
                         </div>
-                        <span style={{ fontSize: '1rem', fontWeight: 800, letterSpacing: '-0.03em', color: '#0f172a' }}>
-                            Invo<span style={{ color: '#94a3b8', fontStyle: 'italic' }}>Print</span>
+                        <span className="user-nav-logo-text">
+                            Invo<span className="user-nav-logo-text-highlight">Print</span>
                         </span>
                     </div>
-                    <div style={{ display: 'flex', gap: '0.25rem' }}>
+                    <div className="user-nav-links">
                         {['Dashboard', 'Invoices', 'Quotations', 'Products', 'Projects', 'Clients', 'Reports'].map((item, i) => (
-                            <button key={i} onClick={() => setActiveTab(item)} style={{
-                                background: activeTab === item ? '#f1f5f9' : 'transparent',
-                                border: 'none', cursor: 'pointer',
-                                color: activeTab === item ? '#0f172a' : '#94a3b8',
-                                padding: '0.4rem 0.875rem', borderRadius: '8px',
-                                fontFamily: "'Outfit', sans-serif", fontSize: '0.875rem',
-                                fontWeight: activeTab === item ? 600 : 400, transition: 'all 0.2s'
-                            }}
-                                onMouseEnter={e => { if (activeTab !== item) { e.currentTarget.style.color = '#0f172a'; e.currentTarget.style.background = '#f1f5f9'; } }}
-                                onMouseLeave={e => { if (activeTab !== item) { e.currentTarget.style.color = '#94a3b8'; e.currentTarget.style.background = 'transparent'; } }}
+                            <button key={i} onClick={() => setActiveTab(item)}
+                                className={`user-nav-link ${activeTab === item ? 'active' : ''}`}
                             >{item}</button>
                         ))}
                     </div>
                 </div>
 
                 {/* Right side */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    <div style={{ position: 'relative' }}>
+                <div className="user-nav-right">
+                    <div className="user-notification-wrapper">
                         <button onClick={() => { setShowNotifications(!showNotifications); fetchNotifications(); }}
-                            style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '6px 10px', cursor: 'pointer', color: '#64748b', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.82rem', fontFamily: "'Outfit', sans-serif", transition: 'all 0.2s', position: 'relative' }}
-                            onMouseEnter={e => { e.currentTarget.style.color = '#0f172a'; e.currentTarget.style.borderColor = '#0f172a'; }}
-                            onMouseLeave={e => { e.currentTarget.style.color = '#64748b'; e.currentTarget.style.borderColor = '#e2e8f0'; }}
+                            className="user-notification-btn"
                         >
                             <Bell size={16} /> Notifications
                             {unreadCount > 0 && (
-                                <span style={{ position: 'absolute', top: -4, right: -4, background: '#ef4444', color: '#fff', borderRadius: '50%', width: 18, height: 18, fontSize: '0.65rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{unreadCount}</span>
+                                <span className="user-notification-badge">{unreadCount}</span>
                             )}
                         </button>
                         {showNotifications && (
-                            <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: 8, width: 320, background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12, boxShadow: '0 10px 40px rgba(0,0,0,0.15)', zIndex: 100, maxHeight: 400, overflowY: 'auto' }}>
-                                <div style={{ padding: '1rem', borderBottom: '1px solid #e2e8f0', fontWeight: 700, fontSize: '0.9rem', color: '#0f172a' }}>Notifications</div>
+                            <div className="user-notification-dropdown">
+                                <div className="user-notification-header">
+                                    Notifications
+                                    {notifications.length > 0 && (
+                                        <button className="user-notification-markall" onClick={async () => {
+                                            await api.put('/notifications/mark-all-read');
+                                            fetchNotifications();
+                                        }}>Mark all read</button>
+                                    )}
+                                </div>
                                 {notifications.length === 0 ? (
-                                    <div style={{ padding: '1.5rem', textAlign: 'center', color: '#94a3b8', fontSize: '0.85rem' }}>No notifications</div>
+                                    <div className="user-notification-empty">No notifications</div>
                                 ) : (
                                     notifications.slice(0, 10).map(n => (
-                                        <div key={n._id} style={{ padding: '0.75rem 1rem', borderBottom: '1px solid #f1f5f9', background: n.isRead ? '#fff' : '#f0f9ff', cursor: 'pointer' }}
+                                        <div key={n._id} className={`user-notification-item ${n.isRead ? '' : 'unread'}`}
                                             onClick={async () => { if (!n.isRead) { await api.put(`/notifications/${n._id}/read`); fetchNotifications(); } }}>
-                                            <div style={{ fontWeight: 600, fontSize: '0.8rem', color: '#0f172a' }}>{n.title}</div>
-                                            <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: 2 }}>{n.message}</div>
-                                            <div style={{ fontSize: '0.65rem', color: '#94a3b8', marginTop: 4 }}>{new Date(n.createdAt).toLocaleString()}</div>
+                                            <div className="user-notification-item-title">{n.title}</div>
+                                            <div className="user-notification-item-message">{n.message}</div>
+                                            <div className="user-notification-item-time">{new Date(n.createdAt).toLocaleString()}</div>
                                         </div>
                                     ))
                                 )}
                             </div>
                         )}
                     </div>
-                    <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0f172a' }}>{user?.firstName} {user?.lastName}</div>
-                        <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>{user?.designation || 'User Account'}</div>
+                    <div className="user-nav-user-wrapper">
+                        <div className="user-nav-user">
+                            <div className="user-nav-username">{user?.firstName} {user?.lastName}</div>
+                            <div className="user-nav-userrole">{user?.designation || 'User Account'}</div>
+                        </div>
+                        <div className="user-nav-avatar">
+                            {user?.firstName?.[0]}{user?.lastName?.[0]}
+                        </div>
                     </div>
-                    <div style={{ width: 36, height: 36, background: '#0f172a', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.78rem', fontWeight: 700, color: '#fff', flexShrink: 0 }}>
-                        {user?.firstName?.[0]}{user?.lastName?.[0]}
-                    </div>
-                    <div style={{ width: 1, height: 24, background: '#e2e8f0' }} />
-                    <button onClick={logout}
-                        style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '6px 12px', cursor: 'pointer', color: '#64748b', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.82rem', fontFamily: "'Outfit', sans-serif", transition: 'all 0.2s' }}
-                        onMouseEnter={e => { e.currentTarget.style.color = '#dc2626'; e.currentTarget.style.borderColor = '#fecdd3'; e.currentTarget.style.background = '#fff1f2'; }}
-                        onMouseLeave={e => { e.currentTarget.style.color = '#64748b'; e.currentTarget.style.borderColor = '#e2e8f0'; e.currentTarget.style.background = '#f8fafc'; }}
+                    <div className="user-nav-divider" />
+                    <button onClick={handleLogout}
+                        className="user-signout-btn"
                     >
                         <LogOut size={14} /> Sign Out
                     </button>
@@ -189,7 +180,7 @@ const UserPortal = () => {
             </nav>
 
             {/* ── Main Content ─────────────────────────── */}
-            <main style={{ maxWidth: 1280, margin: '0 auto', padding: '2.5rem 2rem' }}>
+            <main className="user-main">
                 {activeTab === 'Dashboard' ? (
                     <>
                 {/* Page Header */}

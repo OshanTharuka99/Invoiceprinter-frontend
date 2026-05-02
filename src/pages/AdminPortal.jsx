@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import {
     Users, ShieldCheck, LayoutDashboard, FileText, Settings,
-    TrendingUp, LogOut, Bell, Package, Briefcase, Truck, ShieldAlert, ScrollText, Printer
+    TrendingUp, LogOut, Bell, Package, Briefcase, Truck, ShieldAlert, ScrollText, Printer, Shield
 } from 'lucide-react';
 import api from '../api';
 import { toast, Toaster } from 'react-hot-toast';
@@ -18,6 +18,7 @@ import SupplierManagement from '../components/admin/SupplierManagement';
 import ApprovalsDashboard from '../components/admin/ApprovalsDashboard';
 import QuotationManagement from '../components/shared/QuotationManagement';
 import InvoiceManagement from '../components/shared/InvoiceManagement';
+import WarrantyManagement from '../components/admin/WarrantyManagement';
 
 const AdminPortal = () => {
     const { user, logout } = useAuth();
@@ -47,6 +48,7 @@ const AdminPortal = () => {
         { id: 'users', label: 'User Management', icon: ShieldCheck },
         { id: 'business', label: 'General Settings', icon: Settings },
         { id: 'invoices', label: 'Invoice Engine', icon: FileText },
+        { id: 'warranties', label: 'Warranty Registry', icon: Shield },
         { id: 'analytics', label: 'System Analytics', icon: TrendingUp },
     ];
 
@@ -84,6 +86,7 @@ const AdminPortal = () => {
             case 'suppliers': return <SupplierManagement currentUser={user} showToast={showToast} />;
             case 'quotations': return <QuotationManagement currentUser={user} showToast={showToast} />;
             case 'invoices': return <InvoiceManagement currentUser={user} showToast={showToast} />;
+            case 'warranties': return <WarrantyManagement currentUser={user} showToast={showToast} />;
             default: return <div className="admin-empty-module">Module under development...</div>;
         }
     };

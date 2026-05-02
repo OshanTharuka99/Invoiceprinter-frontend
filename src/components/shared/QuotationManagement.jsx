@@ -28,6 +28,7 @@ const QuotationManagement = ({ currentUser, showToast }) => {
     const initialForm = {
         clientRef: '',
         projectId: '',
+        deliveryAddress: '',
         customDuration: '',
         customUnit: 'days',
         manualClientDetails: { title: 'Mr', organization: '', name: '', address: '', telephoneNumber: '', emailAddress: '' },
@@ -363,6 +364,7 @@ const QuotationManagement = ({ currentUser, showToast }) => {
                                                 setForm({
                                                     ...form,
                                                     clientRef: e.target.value,
+                                                    deliveryAddress: selected?.address || '',
                                                     manualClientDetails: selected ? {
                                                         title: 'Mr',
                                                         organization: selected.clientType === 'Organization' ? selected.firstName : '',
@@ -395,6 +397,11 @@ const QuotationManagement = ({ currentUser, showToast }) => {
                                             <div style={{ gridColumn: 'span 3' }}><label style={labelStyle}>Email (Optional)</label><input type="email" value={form.manualClientDetails.emailAddress} onChange={e => setForm({ ...form, manualClientDetails: { ...form.manualClientDetails, emailAddress: e.target.value } })} style={{ ...inputStyle, background: '#fff' }} /></div>
                                         </div>
                                     )}
+
+                                    <div style={{ marginTop: '1rem' }}>
+                                        <label style={labelStyle}>Delivery Address</label>
+                                        <input value={form.deliveryAddress} onChange={e => setForm({ ...form, deliveryAddress: e.target.value })} placeholder="Auto-filled from client or enter manually" style={{ ...inputStyle, background: '#fff' }} />
+                                    </div>
                                 </div>
 
                                 {/* QUOTATION VALIDITY */}

@@ -1,13 +1,12 @@
 import React from 'react';
 
-const QuotationTemplate = React.forwardRef(({ quotation, business }, ref) => {
-    if (!quotation || !business) return null;
+const InvoiceTemplate = React.forwardRef(({ invoice, business }, ref) => {
+    if (!invoice || !business) return null;
 
     const b = business;
-    const q = quotation;
+    const inv = invoice;
 
-    /* ── Helpers ── */
-    const currencySymbol = q.currency === 'primary'
+    const currencySymbol = inv.currency === 'primary'
         ? (b.primaryCurrency?.symbol || 'Rs.')
         : (b.secondaryCurrency?.symbol || '$');
 
@@ -19,13 +18,11 @@ const QuotationTemplate = React.forwardRef(({ quotation, business }, ref) => {
     const money = (n) =>
         parseFloat(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-    /* ── Calculations ── */
-    const discountTotal = q.discountTotal || (q.appliedDiscounts || []).reduce((sum, d) => sum + (d.amount || 0), 0);
+    const discountTotal = inv.discountTotal || (inv.appliedDiscounts || []).reduce((sum, d) => sum + (d.amount || 0), 0);
 
-    /* ── Client block ── */
     const getClient = () => {
-        if (q.clientRef) {
-            const c = q.clientRef;
+        if (inv.clientRef) {
+            const c = inv.clientRef;
             const isOrg = c.clientType === 'Organization';
             return {
                 org: isOrg ? c.firstName : '',
@@ -33,7 +30,7 @@ const QuotationTemplate = React.forwardRef(({ quotation, business }, ref) => {
                 address: c.address || '', phone: c.telephoneNumber || '', email: c.emailAddress || ''
             };
         }
-        const m = q.manualClientDetails || {};
+        const m = inv.manualClientDetails || {};
         const isOrg = m.title === 'Organization';
         return {
             org: m.organization || (isOrg ? m.name : ''),
@@ -44,15 +41,12 @@ const QuotationTemplate = React.forwardRef(({ quotation, business }, ref) => {
 
     const client = getClient();
 
-    /* ── Visibility flags ── */
-    const showTerms = b.quotationTerms && b.quotationTerms.trim() !== '';
-    const showNotes = b.quotationNotes && b.quotationNotes.trim() !== '';
+    const showTerms = b.invoiceTerms && b.invoiceTerms.trim() !== '';
+    const showNotes = b.invoiceNotes && b.invoiceNotes.trim() !== '';
     const showVatNo = b.isVatRegistered && b.vatNumber && b.vatNumber.trim() !== '';
-    const showValidDate = !!q.validDate;
     const showBank = !!(b.bankAccountNumber || b.bankName);
-    const hasDeliveryAddress = q.deliveryAddress && q.deliveryAddress.trim() !== '';
+    const hasDeliveryAddress = inv.deliveryAddress && inv.deliveryAddress.trim() !== '';
 
-    /* ── Shared style tokens ── */
     const FONT = "'Arial', 'Helvetica Neue', sans-serif";
     const DARK = '#0f172a';
     const MID = '#475569';
@@ -70,9 +64,15 @@ const QuotationTemplate = React.forwardRef(({ quotation, business }, ref) => {
         marginBottom: '8px'
     };
 
-    /* ── Render ── */
+    const paymentLabels = {
+        cash: 'Cash',
+        cheque: 'Cheque',
+        bank_transfer: 'Bank Transfer',
+        credit: 'Credit'
+    };
+
     return (
-        <div ref={ref} data-qtemplate style={{ /* data label for css injections */
+        <div ref={ref} data-invoicetemplate style={{
             background: '#fff',
             color: DARK,
             fontFamily: FONT,
@@ -84,14 +84,10 @@ const QuotationTemplate = React.forwardRef(({ quotation, business }, ref) => {
             margin: '0 auto',
             display: 'flex',
             flexDirection: 'column',
-            /* padding handled by @page margin in print; for screen preview we add padding: */
             padding: '12mm 14mm 14mm 14mm'
         }}>
-
-            {/* ── HEADER ── */}
+            {/* HEADER */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-
-                {/* Left: logo / company */}
                 <div style={{ maxWidth: '52%' }}>
                     {b.quotationLogo
                         ? <img src={b.quotationLogo} alt="Logo"
@@ -107,19 +103,21 @@ const QuotationTemplate = React.forwardRef(({ quotation, business }, ref) => {
                     </div>
                 </div>
 
-                {/* Right: QUOTATION title + meta */}
                 <div style={{ textAlign: 'right' }}>
                     <div style={{ fontFamily: FONT, fontSize: '28px', fontWeight: '900', color: DARK, letterSpacing: '2px', textTransform: 'uppercase', marginBottom: '12px' }}>
-                        QUOTATION
+                        INVOICE
                     </div>
                     <table style={{ marginLeft: 'auto', borderCollapse: 'collapse' }}>
                         <tbody>
                             {[
-                                { label: 'Quotation No', value: q.quotationId, mono: true, large: true },
-                                { label: 'Date', value: fmt(q.createdAt || new Date()) },
-                                ...(showValidDate ? [{ label: 'Valid Until', value: fmt(q.validDate) }] : []),
-                                { label: 'Prepared By', value: `${q.createdBy?.firstName || ''} ${q.createdBy?.lastName || ''}`.trim() }
-                            ].map(({ label, value, mono, large }) => (
+                                { label: 'Invoice No', value: inv.invoiceId, mono: true, large: true },
+                                { label: 'Date', value: fmt(inv.createdAt || new Date()) },
+                                { label: 'Payment', value: paymentLabels[inv.paymentMethod] || inv.paymentMethod },
+                                inv.paymentMethod === 'credit' && inv.creditPeriod?.duration > 0
+                                    ? { label: 'Credit Terms', value: `${inv.creditPeriod.duration} ${inv.creditPeriod.unit}` }
+                                    : null,
+                                { label: 'Status', value: inv.status || 'Unpaid' }
+                            ].filter(Boolean).map(({ label, value, mono, large }) => (
                                 <tr key={label}>
                                     <td style={{ fontFamily: FONT, padding: '3px 10px 3px 0', color: LIGHT, fontWeight: '600', fontSize: '11px', textAlign: 'right', whiteSpace: 'nowrap' }}>
                                         {label}:
@@ -140,14 +138,14 @@ const QuotationTemplate = React.forwardRef(({ quotation, business }, ref) => {
                 </div>
             </div>
 
-            {/* ── DIVIDER ── */}
+            {/* DIVIDER */}
             <div style={{ height: '4px', background: DARK, margin: '14px 0 16px' }} />
 
-            {/* ── BILL TO & DELIVERY ADDRESS ── */}
+            {/* BILL TO & DELIVERY ADDRESS */}
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '18px' }}>
                 <div style={{ flex: 1 }}>
                     <div style={{ fontFamily: FONT, fontSize: '10px', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.12em', color: LIGHT, marginBottom: '7px' }}>
-                        Quotation For
+                        Bill To
                     </div>
                     <div style={{ fontFamily: FONT, lineHeight: '1.8' }}>
                         {client.org && <div style={{ fontWeight: '800', fontSize: '14px', color: DARK }}>{client.org}</div>}
@@ -164,7 +162,7 @@ const QuotationTemplate = React.forwardRef(({ quotation, business }, ref) => {
                             Delivery Address
                         </div>
                         <div style={{ fontFamily: FONT, lineHeight: '1.8', color: MID, fontSize: '12px' }}>
-                            {q.deliveryAddress.split('\n').map((line, i) => (
+                            {inv.deliveryAddress.split('\n').map((line, i) => (
                                 <div key={i}>{line}</div>
                             ))}
                         </div>
@@ -172,19 +170,20 @@ const QuotationTemplate = React.forwardRef(({ quotation, business }, ref) => {
                 )}
             </div>
 
-            {/* ── ITEMS TABLE ── */}
+            {/* ITEMS TABLE */}
             <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '20px' }}>
                 <thead>
                     <tr style={{ background: DARK, color: '#fff' }}>
                         <th style={{ fontFamily: FONT, padding: '9px 10px', textAlign: 'left', fontWeight: '700', fontSize: '11.5px', width: '5%' }}>No</th>
-                        <th style={{ fontFamily: FONT, padding: '9px 10px', textAlign: 'left', fontWeight: '700', fontSize: '11.5px', width: '47%' }}>Description</th>
-                        <th style={{ fontFamily: FONT, padding: '9px 10px', textAlign: 'center', fontWeight: '700', fontSize: '11.5px', width: '10%' }}>Qty</th>
-                        <th style={{ fontFamily: FONT, padding: '9px 10px', textAlign: 'right', fontWeight: '700', fontSize: '11.5px', width: '19%' }}>Unit Price ({currencySymbol})</th>
-                        <th style={{ fontFamily: FONT, padding: '9px 10px', textAlign: 'right', fontWeight: '700', fontSize: '11.5px', width: '19%' }}>Amount ({currencySymbol})</th>
+                        <th style={{ fontFamily: FONT, padding: '9px 10px', textAlign: 'left', fontWeight: '700', fontSize: '11.5px', width: '40%' }}>Description</th>
+                        <th style={{ fontFamily: FONT, padding: '9px 10px', textAlign: 'center', fontWeight: '700', fontSize: '11.5px', width: '8%' }}>Qty</th>
+                        <th style={{ fontFamily: FONT, padding: '9px 10px', textAlign: 'right', fontWeight: '700', fontSize: '11.5px', width: '17%' }}>Unit Price ({currencySymbol})</th>
+                        <th style={{ fontFamily: FONT, padding: '9px 10px', textAlign: 'right', fontWeight: '700', fontSize: '11.5px', width: '15%' }}>Amount ({currencySymbol})</th>
+                        <th style={{ fontFamily: FONT, padding: '9px 10px', textAlign: 'left', fontWeight: '700', fontSize: '11.5px', width: '15%' }}>Serial No(s)</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {q.items.map((item, i) => (
+                    {inv.items.map((item, i) => (
                         <tr key={i} style={{ background: i % 2 === 0 ? '#f8fafc' : '#fff', borderBottom: `1px solid ${BORDER}` }}>
                             <td style={{ fontFamily: FONT, padding: '8px 10px', color: LIGHT, fontSize: '12px' }}>{i + 1}</td>
                             <td style={{ fontFamily: FONT, padding: '8px 10px', color: DARK, fontSize: '12px', fontWeight: '600' }}>
@@ -193,20 +192,23 @@ const QuotationTemplate = React.forwardRef(({ quotation, business }, ref) => {
                             <td style={{ fontFamily: FONT, padding: '8px 10px', color: MID, fontSize: '12px', textAlign: 'center' }}>{item.quantity}</td>
                             <td style={{ fontFamily: FONT, padding: '8px 10px', color: MID, fontSize: '12px', textAlign: 'right' }}>{money(item.unitPrice)}</td>
                             <td style={{ fontFamily: FONT, padding: '8px 10px', color: DARK, fontSize: '12px', fontWeight: '700', textAlign: 'right' }}>{money(item.lineTotal)}</td>
+                            <td style={{ fontFamily: FONT, padding: '8px 10px', color: MID, fontSize: '10px' }}>
+                                {item.serialNumbers?.length > 0 ? item.serialNumbers.join(', ') : '—'}
+                            </td>
                         </tr>
                     ))}
                 </tbody>
             </table>
 
-            {/* ── TOTALS ── */}
+            {/* TOTALS */}
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '24px' }}>
                 <table style={{ width: '360px', borderCollapse: 'collapse', border: `1px solid ${BORDER}` }}>
                     <tbody>
                         <tr>
                             <td style={{ fontFamily: FONT, color: MID, fontWeight: '600', fontSize: '12.5px', padding: '8px 14px', background: '#f8fafc', borderBottom: `1px solid ${BORDER}` }}>Subtotal</td>
-                            <td style={{ fontFamily: FONT, color: DARK, fontWeight: '700', fontSize: '12.5px', padding: '8px 14px', background: '#f8fafc', borderBottom: `1px solid ${BORDER}`, textAlign: 'right' }}>{currencySymbol} {money(q.subTotal)}</td>
+                            <td style={{ fontFamily: FONT, color: DARK, fontWeight: '700', fontSize: '12.5px', padding: '8px 14px', background: '#f8fafc', borderBottom: `1px solid ${BORDER}`, textAlign: 'right' }}>{currencySymbol} {money(inv.subTotal)}</td>
                         </tr>
-                        {q.appliedDiscounts?.map((disc, i) => (
+                        {inv.appliedDiscounts?.map((disc, i) => (
                             <tr key={`d-${i}`}>
                                 <td style={{ fontFamily: FONT, color: DARK, fontWeight: '600', fontSize: '12.5px', padding: '8px 14px', background: '#f8fafc', borderBottom: `1px solid ${BORDER}` }}>
                                     Discount ({disc.name} {disc.type === 'percentage' ? disc.value + '%' : ''})
@@ -214,7 +216,7 @@ const QuotationTemplate = React.forwardRef(({ quotation, business }, ref) => {
                                 <td style={{ fontFamily: FONT, color: DARK, fontWeight: '700', fontSize: '12.5px', padding: '8px 14px', background: '#f8fafc', borderBottom: `1px solid ${BORDER}`, textAlign: 'right' }}>− {currencySymbol} {money(disc.amount)}</td>
                             </tr>
                         ))}
-                        {q.hasTax && q.appliedTaxes?.length > 0 && q.appliedTaxes.map((tax, i) => (
+                        {inv.hasTax && inv.appliedTaxes?.length > 0 && inv.appliedTaxes.map((tax, i) => (
                             <tr key={`t-${i}`}>
                                 <td style={{ fontFamily: FONT, color: DARK, fontWeight: '600', fontSize: '12.5px', padding: '8px 14px', background: '#f8fafc', borderBottom: `1px solid ${BORDER}` }}>
                                     {tax.name} {tax.type === 'percentage' ? `(${tax.value}%)` : ''}
@@ -222,44 +224,38 @@ const QuotationTemplate = React.forwardRef(({ quotation, business }, ref) => {
                                 <td style={{ fontFamily: FONT, color: DARK, fontWeight: '700', fontSize: '12.5px', padding: '8px 14px', background: '#f8fafc', borderBottom: `1px solid ${BORDER}`, textAlign: 'right' }}>+ {currencySymbol} {money(tax.amount)}</td>
                             </tr>
                         ))}
-                        {q.hasTax && (!q.appliedTaxes || q.appliedTaxes.length === 0) && q.taxPercentage > 0 && (
-                            <tr>
-                                <td style={{ fontFamily: FONT, color: DARK, fontWeight: '600', fontSize: '12.5px', padding: '8px 14px', background: '#f8fafc', borderBottom: `1px solid ${BORDER}` }}>{q.taxName || 'VAT'} ({q.taxPercentage}%)</td>
-                                <td style={{ fontFamily: FONT, color: DARK, fontWeight: '700', fontSize: '12.5px', padding: '8px 14px', background: '#f8fafc', borderBottom: `1px solid ${BORDER}`, textAlign: 'right' }}>+ {currencySymbol} {money(((q.subTotal - (q.discountTotal || 0)) * q.taxPercentage) / 100)}</td>
-                            </tr>
-                        )}
                         <tr>
                             <td style={{ fontFamily: FONT, color: '#fff', fontWeight: '900', fontSize: '13.5px', padding: '12px 14px', background: DARK }}>Total Amount</td>
-                            <td style={{ fontFamily: FONT, color: '#fff', fontWeight: '900', fontSize: '14.5px', padding: '12px 14px', background: DARK, textAlign: 'right' }}>{currencySymbol} {money(q.finalTotal)}</td>
+                            <td style={{ fontFamily: FONT, color: '#fff', fontWeight: '900', fontSize: '14.5px', padding: '12px 14px', background: DARK, textAlign: 'right' }}>{currencySymbol} {money(inv.finalTotal)}</td>
                         </tr>
                     </tbody>
                 </table>
             </div>
 
-            {/* ── DIVIDER ── */}
+            {/* DIVIDER */}
             <div style={{ height: '4px', background: DARK, margin: '14px 0 16px' }} />
 
-            {/* ── GENERAL TERMS & CONDITIONS ── */}
+            {/* TERMS */}
             {showTerms && (
                 <div style={{ marginBottom: '14px', paddingBottom: '14px' }}>
-                    <div style={{ ...sectionTitle, fontFamily: FONT }}>General Terms &amp; Conditions</div>
+                    <div style={{ ...sectionTitle, fontFamily: FONT }}>Terms & Conditions</div>
                     <div style={{ fontFamily: FONT, fontSize: '11.5px', color: MID, lineHeight: '1.75', whiteSpace: 'pre-wrap' }}>
-                        {b.quotationTerms}
+                        {b.invoiceTerms}
                     </div>
                 </div>
             )}
 
-            {/* ── NOTE ── */}
+            {/* NOTES */}
             {showNotes && (
-                <div style={{ marginBottom: '14px', paddingBottom: '14px', }}>
-                    <div style={{ ...sectionTitle, fontFamily: FONT }}>Note</div>
+                <div style={{ marginBottom: '14px', paddingBottom: '14px' }}>
+                    <div style={{ ...sectionTitle, fontFamily: FONT }}>Notes</div>
                     <div style={{ fontFamily: FONT, fontSize: '11.5px', color: MID, lineHeight: '1.75', whiteSpace: 'pre-wrap' }}>
-                        {b.quotationNotes}
+                        {b.invoiceNotes}
                     </div>
                 </div>
             )}
 
-            {/* ── BANK DETAILS ── */}
+            {/* BANK DETAILS */}
             {showBank && (
                 <div style={{ marginBottom: '18px' }}>
                     <div style={{ ...sectionTitle, fontFamily: FONT }}>Bank Details for Transfer</div>
@@ -277,27 +273,34 @@ const QuotationTemplate = React.forwardRef(({ quotation, business }, ref) => {
                             <div><span style={{ color: MID, fontWeight: '600', display: 'inline-block', width: '120px' }}>Branch:</span> <strong>{b.branchName}</strong></div>
                         )}
                     </div>
-                    <br />
-                    <div><p style={{ color: MID, fontWeight: '600', display: 'inline-block', fontStyle: 'italic', fontFamily: FONT, fontWeight: 'bold', color: '#000000ff' }}>This is a computer generated document and does not require a signature.</p></div>
                 </div>
-
-
             )}
 
-            {/* ── FOOTER ── */}
-            <div className="quotation-print-footer" style={{ borderTop: `1px solid ${BORDER}`, paddingTop: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '40px', background: '#fff' }}>
+            {/* AUTHORIZED SIGNATURES */}
+            <div style={{ marginTop: '40px', display: 'flex', justifyContent: 'space-between', paddingTop: '20px' }}>
+                <div style={{ textAlign: 'center', width: '200px' }}>
+                    <div style={{ borderBottom: `1px solid ${BORDER}`, marginBottom: '8px', height: '50px' }}></div>
+                    <div style={{ fontFamily: FONT, fontSize: '10px', fontWeight: '700', color: MID, textTransform: 'uppercase' }}>Authorized Signature</div>
+                </div>
+                <div style={{ textAlign: 'center', width: '200px' }}>
+                    <div style={{ borderBottom: `1px solid ${BORDER}`, marginBottom: '8px', height: '50px' }}></div>
+                    <div style={{ fontFamily: FONT, fontSize: '10px', fontWeight: '700', color: MID, textTransform: 'uppercase' }}>Received By</div>
+                </div>
+            </div>
+
+            {/* FOOTER */}
+            <div className="invoice-print-footer" style={{ borderTop: `1px solid ${BORDER}`, paddingTop: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '40px', background: '#fff' }}>
                 <div style={{ fontFamily: FONT, fontSize: '10px', color: LIGHT, fontStyle: 'italic' }}>
                     <span className="page-number-target"></span>
                 </div>
                 <div style={{ fontFamily: FONT, fontSize: '10px', color: LIGHT, textAlign: 'right' }}>
-                    {b.businessName} &nbsp;|&nbsp; {fmt(q.createdAt || new Date())}
+                    {b.businessName} &nbsp;|&nbsp; {fmt(inv.createdAt || new Date())}
                 </div>
             </div>
 
-            {/* ── PRINT CSS ── */}
+            {/* PRINT CSS */}
             <style>{`
-                /* Container styling block for UI preview scale */
-                .quotation-print-footer { marginTop: auto !important; }
+                .invoice-print-footer { marginTop: auto !important; }
 
                 @media print {
                     @page {
@@ -311,7 +314,7 @@ const QuotationTemplate = React.forwardRef(({ quotation, business }, ref) => {
                         print-color-adjust: exact;
                         color-adjust: exact;
                     }
-                    div[data-qtemplate] {
+                    div[data-invoicetemplate] {
                         padding: 0 !important;
                         width: 100% !important;
                         margin: 0 !important;
@@ -319,9 +322,8 @@ const QuotationTemplate = React.forwardRef(({ quotation, business }, ref) => {
                     }
                     * { box-shadow: none !important; }
                     tr { page-break-inside: avoid; }
-                    
-                    /* ABSOLUTE BOTTOM FOOTER TRICK */
-                    .quotation-print-footer {
+
+                    .invoice-print-footer {
                         position: fixed !important;
                         bottom: 0 !important;
                         left: 0 !important;
@@ -331,7 +333,6 @@ const QuotationTemplate = React.forwardRef(({ quotation, business }, ref) => {
                         z-index: 10;
                     }
 
-                    /* PAGE NUMBER COUNTER */
                     .page-number-target::before {
                         counter-increment: page;
                         content: "Page " counter(page);
@@ -342,6 +343,6 @@ const QuotationTemplate = React.forwardRef(({ quotation, business }, ref) => {
     );
 });
 
-QuotationTemplate.displayName = 'QuotationTemplate';
+InvoiceTemplate.displayName = 'InvoiceTemplate';
 
-export default QuotationTemplate;
+export default InvoiceTemplate;

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Briefcase, Plus, X, Edit2, Trash2, Search, RefreshCw, AlertTriangle, UserCircle2, FileText, MapPin, Calendar, Landmark, Info, DollarSign } from 'lucide-react';
+import { Briefcase, Plus, X, Edit2, Trash2, Search, RefreshCw, AlertTriangle, UserCircle2, FileText, MapPin, Calendar, Landmark, Info, DollarSign, TrendingUp, CheckCircle2, Clock, FolderKanban, Building2 } from 'lucide-react';
 import api from '../../api';
 
 const ProjectManagement = ({ currentUser, showToast }) => {
@@ -25,7 +25,7 @@ const ProjectManagement = ({ currentUser, showToast }) => {
             const [projRes, cliRes] = await Promise.all([api.get('/projects'), api.get('/clients')]);
             setProjects(projRes.data.data);
             setClients(cliRes.data.data);
-        } catch (error) { showToast?.('Failed to load project database', 'error'); } 
+        } catch (error) { showToast?.('Failed to load project database', 'error'); }
         finally { setLoading(false); }
     };
 
@@ -74,171 +74,379 @@ const ProjectManagement = ({ currentUser, showToast }) => {
 
     const filtered = projects.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()) || p.projectId.toLowerCase().includes(searchTerm.toLowerCase()));
 
-    const cardStyle = { background: '#fff', border: '1px solid #e2e8f0', borderRadius: '24px', padding: '2.5rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' };
-    const labelStyle = { display: 'block', fontSize: '0.75rem', fontWeight: 900, color: '#64748b', marginBottom: '0.6rem', textTransform: 'uppercase' };
-    const inputStyle = { width: '100%', background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: '12px', padding: '0.9rem 1.25rem', color: '#0f172a', outline: 'none', fontWeight: 600, boxSizing: 'border-box' };
+    const activeProjects = projects.filter(p => p.startDate && new Date(p.startDate) <= new Date()).length;
+    const totalValue = projects.reduce((sum, p) => sum + (p.value || 0), 0);
 
     return (
-        <div style={{ maxWidth: 1400, margin: '0 auto' }}>
-            {loading ? ( <div style={{ display: 'flex', justifyContent: 'center', padding: '4rem' }}><RefreshCw className="animate-spin" color="#64748b" /></div> ) : (
-                <div style={cardStyle}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                            <div style={{ background: '#f59e0b15', color: '#f59e0b', padding: '10px', borderRadius: '12px' }}><Briefcase size={24} /></div> 
-                            <div>
-                                <h3 style={{ margin: 0, fontWeight: 900 }}>Project Portfolio</h3>
-                                <p style={{ margin: '0.2rem 0 0', fontSize: '0.85rem', color: '#64748b' }}>Manage structural organizational project tracking.</p>
-                            </div>
-                        </div>
-                        <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-                            <div style={{ position: 'relative' }}>
-                                <Search size={16} title="Locate blueprint" style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
-                                <input type="text" title="Enter search parameters" placeholder="Locate by Name/ID..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} style={{ padding: '0.8rem 1rem 0.8rem 2.5rem', borderRadius: '12px', border: '1px solid #e2e8f0', width: 240, outline: 'none' }} />
-                            </div>
-                            <motion.button whileTap={{ scale: 0.95 }} title="Initialize a new Project Blueprint" onClick={() => openModal()} style={{ background: '#0f172a', color: '#fff', border: 'none', borderRadius: '12px', padding: '0.8rem 1.5rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Plus size={18} /> New Project</motion.button>
-                        </div>
+        <div style={{ maxWidth: 1400, margin: '0 auto', padding: '1.5rem' }}>
+            {/* Header Section */}
+            <div style={{ marginBottom: '2rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem', flexWrap: 'wrap', gap: '1.5rem' }}>
+                    <div>
+                        <h1 style={{ margin: 0, fontSize: '1.875rem', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.025em' }}>Project Portfolio</h1>
+                        <p style={{ margin: '0.5rem 0 0', fontSize: '0.9rem', color: '#64748b', fontWeight: 500 }}>Manage and monitor organizational project tracking</p>
                     </div>
+                    <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => openModal()}
+                        style={{
+                            background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+                            color: '#fff',
+                            border: 'none',
+                            borderRadius: '16px',
+                            padding: '0.875rem 1.75rem',
+                            fontWeight: 700,
+                            fontSize: '0.875rem',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.625rem',
+                            boxShadow: '0 4px 12px rgba(15, 23, 42, 0.35)',
+                            transition: 'all 0.2s ease'
+                        }}>
+                        <Plus size={18} /> New Project
+                    </motion.button>
+                </div>
 
-                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                        <thead>
-                            <tr style={{ borderBottom: '2px solid #f1f5f9' }}>
-                                <th style={{ padding: '1.25rem 1rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.75rem' }}>Blueprint & ID</th>
-                                <th style={{ padding: '1.25rem 1rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.75rem' }}>Assigned Identity</th>
-                                <th style={{ padding: '1.25rem 1rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.75rem' }}>Operational Timeline</th>
-                                <th style={{ padding: '1.25rem 1rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.75rem' }}>Location</th>
-                                <th style={{ padding: '1.25rem 1rem', textAlign: 'right' }}>Management</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {filtered.map(p => (
-                                <tr key={p._id} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.2s' }}>
-                                    <td style={{ padding: '1.25rem 1rem' }}>
-                                        <div style={{ fontWeight: 800, color: '#0f172a' }}>{p.name}</div>
-                                        <div style={{ fontSize: '0.75rem', color: '#f59e0b', fontWeight: 700 }}>{p.projectId}</div>
-                                    </td>
-                                    <td style={{ padding: '1.25rem 1rem' }}>
-                                        <div style={{ fontWeight: 700, color: '#475569', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}><UserCircle2 size={14} color="#94a3b8" /> {p.client?.firstName} {p.client?.lastName}</div>
-                                        <div style={{ fontSize: '0.7rem', color: '#94a3b8', paddingLeft: '1.2rem', fontWeight: 600 }}>{p.client?.telephoneNumber || 'N/A'}</div>
-                                    </td>
-                                    <td style={{ padding: '1.25rem 1rem', fontSize: '0.85rem', color: '#475569', fontWeight: 700 }}>
-                                        {p.startDate ? new Date(p.startDate).toLocaleDateString() : 'TBD'} <span style={{color: '#cbd5e1'}}>→</span> {p.endDate ? new Date(p.endDate).toLocaleDateString() : 'TBD'}
-                                    </td>
-                                    <td style={{ padding: '1.25rem 1rem', fontWeight: 700, color: '#64748b', fontSize: '0.85rem' }}>{p.location || '-- SITE UNKNOWN --'}</td>
-                                    <td style={{ padding: '1.25rem 1rem', textAlign: 'right' }}>
-                                        <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'flex-end' }}>
-                                            <motion.button whileTap={{ scale: 0.9 }} title="Inspect Blueprint Specifications" onClick={() => setViewProject(p)} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '8px 12px', cursor: 'pointer', fontWeight: 800, color: '#0f172a', display: 'flex', gap: '0.4rem', fontSize: '0.7rem' }}><FileText size={12} /> View</motion.button>
-                                            <motion.button whileTap={{ scale: 0.9 }} title="Modify Blueprint Configuration" onClick={() => openModal(p)} style={{ background: '#eff6ff', border: '1px solid #dbeafe', borderRadius: '8px', padding: '8px 12px', cursor: 'pointer', fontWeight: 800, color: '#2563eb', display: 'flex', gap: '0.4rem', fontSize: '0.7rem' }}><Edit2 size={12} /> Edit</motion.button>
-                                            <motion.button whileTap={{ scale: 0.9 }} title="Initiate Elimination Sequence" onClick={() => deleteProject(p._id)} style={{ background: '#fff1f2', border: '1px solid #fee2e2', borderRadius: '8px', padding: '8px 12px', cursor: 'pointer', fontWeight: 800, color: '#ef4444', fontSize: '0.7rem' }}>Delete</motion.button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                {/* Stats Cards */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.25rem', marginBottom: '2rem' }}>
+                    {[
+                        { label: 'Total Projects', value: projects.length, icon: FolderKanban, color: '#3b82f6', bg: '#eff6ff' },
+                        { label: 'Active Projects', value: activeProjects, icon: CheckCircle2, color: '#10b981', bg: '#ecfdf5' },
+                        { label: 'Portfolio Value', value: `$${totalValue.toLocaleString()}`, icon: DollarSign, color: '#f59e0b', bg: '#fffbeb' },
+                        { label: 'Clients', value: clients.length, icon: Building2, color: '#8b5cf6', bg: '#f5f3ff' }
+                    ].map((stat, idx) => (
+                        <motion.div
+                            key={idx}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: idx * 0.1 }}
+                            style={{
+                                background: '#fff',
+                                borderRadius: '20px',
+                                padding: '1.5rem',
+                                border: '1px solid #e2e8f0',
+                                boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '1rem'
+                            }}>
+                            <div style={{ background: stat.bg, padding: '12px', borderRadius: '14px', display: 'flex' }}>
+                                <stat.icon size={22} color={stat.color} />
+                            </div>
+                            <div>
+                                <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{stat.label}</div>
+                                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#0f172a', marginTop: '0.25rem' }}>{stat.value}</div>
+                            </div>
+                        </motion.div>
+                    ))}
+                </div>
+
+                {/* Search Bar */}
+                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                    <div style={{ position: 'relative', flex: 1, maxWidth: 400 }}>
+                        <Search size={18} style={{ position: 'absolute', left: '1.25rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+                        <input
+                            type="text"
+                            placeholder="Search projects by name or ID..."
+                            value={searchTerm}
+                            onChange={e => setSearchTerm(e.target.value)}
+                            style={{
+                                width: '100%',
+                                background: '#fff',
+                                border: '1.5px solid #e2e8f0',
+                                borderRadius: '14px',
+                                padding: '0.875rem 1rem 0.875rem 3rem',
+                                fontSize: '0.875rem',
+                                color: '#0f172a',
+                                outline: 'none',
+                                fontWeight: 500,
+                                transition: 'all 0.2s',
+                                boxSizing: 'border-box'
+                            }}
+                        />
+                    </div>
+                    <motion.button
+                        whileTap={{ scale: 0.95 }}
+                        onClick={fetchData}
+                        style={{
+                            background: '#f8fafc',
+                            border: '1.5px solid #e2e8f0',
+                            borderRadius: '14px',
+                            padding: '0.875rem',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center'
+                        }}>
+                        <RefreshCw size={18} color="#64748b" />
+                    </motion.button>
+                </div>
+            </div>
+
+            {/* Content */}
+            {loading ? (
+                <div style={{ display: 'flex', justifyContent: 'center', padding: '4rem' }}>
+                    <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
+                        <RefreshCw size={32} color="#64748b" />
+                    </motion.div>
+                </div>
+            ) : filtered.length === 0 ? (
+                <div style={{ background: '#fff', borderRadius: '24px', padding: '4rem 2rem', textAlign: 'center', border: '1px solid #e2e8f0' }}>
+                    <FolderKanban size={64} color="#cbd5e1" style={{ marginBottom: '1.5rem' }} />
+                    <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700, color: '#475569' }}>No projects found</h3>
+                    <p style={{ margin: '0.5rem 0 0', color: '#94a3b8', fontSize: '0.875rem' }}>{searchTerm ? 'Try adjusting your search terms' : 'Create your first project to get started'}</p>
+                </div>
+            ) : (
+                <div style={{ display: 'grid', gap: '1rem' }}>
+                    {filtered.map((p, idx) => (
+                        <motion.div
+                            key={p._id}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: idx * 0.05 }}
+                            style={{
+                                background: '#fff',
+                                borderRadius: '20px',
+                                border: '1px solid #e2e8f0',
+                                padding: '1.5rem 2rem',
+                                display: 'grid',
+                                gridTemplateColumns: '1fr auto auto auto',
+                                alignItems: 'center',
+                                gap: '1.5rem',
+                                boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+                                transition: 'all 0.2s ease'
+                            }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.08)';
+                                e.currentTarget.style.borderColor = '#cbd5e1';
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.04)';
+                                e.currentTarget.style.borderColor = '#e2e8f0';
+                            }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+                                <div style={{ background: '#fffbeb', padding: '12px', borderRadius: '14px', display: 'flex' }}>
+                                    <Briefcase size={20} color="#f59e0b" />
+                                </div>
+                                <div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.375rem' }}>
+                                        <span style={{ fontWeight: 700, fontSize: '1rem', color: '#0f172a' }}>{p.name}</span>
+                                        <span style={{ fontSize: '0.7rem', fontWeight: 600, color: '#f59e0b', background: '#fffbeb', padding: '0.25rem 0.75rem', borderRadius: '8px' }}>{p.projectId}</span>
+                                    </div>
+                                    <div style={{ display: 'flex', gap: '1.5rem', fontSize: '0.8rem', color: '#64748b' }}>
+                                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}><UserCircle2 size={12} color="#94a3b8" /> {p.client?.firstName} {p.client?.lastName}</span>
+                                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}><MapPin size={12} color="#94a3b8" /> {p.location || 'N/A'}</span>
+                                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}><Calendar size={12} color="#94a3b8" /> {p.startDate ? new Date(p.startDate).toLocaleDateString() : 'TBD'}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div style={{ textAlign: 'right' }}>
+                                <div style={{ fontSize: '0.65rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Value</div>
+                                <div style={{ fontSize: '1.125rem', fontWeight: 800, color: '#059669', marginTop: '0.25rem' }}>${(p.value || 0).toLocaleString()}</div>
+                            </div>
+                            <div style={{ textAlign: 'right' }}>
+                                <div style={{ fontSize: '0.65rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Timeline</div>
+                                <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginTop: '0.25rem' }}>
+                                    {p.startDate ? new Date(p.startDate).toLocaleDateString() : 'TBD'} → {p.endDate ? new Date(p.endDate).toLocaleDateString() : 'TBD'}
+                                </div>
+                            </div>
+                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                <motion.button
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    onClick={() => setViewProject(p)}
+                                    style={{
+                                        background: '#f8fafc',
+                                        border: '1.5px solid #e2e8f0',
+                                        borderRadius: '12px',
+                                        padding: '0.625rem 1rem',
+                                        cursor: 'pointer',
+                                        fontWeight: 600,
+                                        fontSize: '0.75rem',
+                                        color: '#475569',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '0.375rem'
+                                    }}>
+                                    <FileText size={14} /> View
+                                </motion.button>
+                                <motion.button
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    onClick={() => openModal(p)}
+                                    style={{
+                                        background: '#eff6ff',
+                                        border: '1.5px solid #dbeafe',
+                                        borderRadius: '12px',
+                                        padding: '0.625rem 1rem',
+                                        cursor: 'pointer',
+                                        fontWeight: 600,
+                                        fontSize: '0.75rem',
+                                        color: '#2563eb',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '0.375rem'
+                                    }}>
+                                    <Edit2 size={14} /> Edit
+                                </motion.button>
+                                <motion.button
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    onClick={() => deleteProject(p._id)}
+                                    style={{
+                                        background: '#fef2f2',
+                                        border: '1.5px solid #fee2e2',
+                                        borderRadius: '12px',
+                                        padding: '0.625rem 1rem',
+                                        cursor: 'pointer',
+                                        fontWeight: 600,
+                                        fontSize: '0.75rem',
+                                        color: '#ef4444',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '0.375rem'
+                                    }}>
+                                    <Trash2 size={14} /> Delete
+                                </motion.button>
+                            </div>
+                        </motion.div>
+                    ))}
                 </div>
             )}
 
-            {/* VIEW MODAL */}
+            {/* View Modal */}
             <AnimatePresence>
                 {viewProject && (
-                    <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-                        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} style={{ background: '#fff', borderRadius: '32px', padding: '3rem', width: '100%', maxWidth: 500, boxShadow: '0 50px 100px -20px rgba(0,0,0,0.4)' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2.5rem' }}>
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(12px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}
+                        onClick={() => setViewProject(null)}>
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            onClick={(e) => e.stopPropagation()}
+                            style={{ background: '#fff', borderRadius: '28px', padding: '2.5rem', width: '100%', maxWidth: 520, boxShadow: '0 25px 50px -12px rgba(0,0,0,0.35)', maxHeight: '85vh', overflowY: 'auto' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                    <div style={{ background: '#f59e0b15', color: '#f59e0b', padding: '12px', borderRadius: '15px' }}><Briefcase size={24} /></div>
+                                    <div style={{ background: '#fffbeb', padding: '14px', borderRadius: '16px' }}><Briefcase size={24} color="#f59e0b" /></div>
                                     <div>
-                                        <h3 style={{ margin: 0, fontWeight: 900 }}>{viewProject.name}</h3>
-                                        <span style={{ fontSize: '0.8rem', color: '#f59e0b', fontWeight: 800 }}>{viewProject.projectId}</span>
+                                        <h3 style={{ margin: 0, fontWeight: 800, fontSize: '1.25rem', color: '#0f172a' }}>{viewProject.name}</h3>
+                                        <span style={{ fontSize: '0.75rem', color: '#f59e0b', fontWeight: 700, background: '#fffbeb', padding: '0.25rem 0.75rem', borderRadius: '8px', display: 'inline-block', marginTop: '0.5rem' }}>{viewProject.projectId}</span>
                                     </div>
                                 </div>
-                                <motion.button whileTap={{ scale: 0.9 }} onClick={() => setViewProject(null)} style={{ background: '#f1f5f9', border: 'none', borderRadius: '50%', width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><X size={20}/></motion.button>
+                                <motion.button whileTap={{ scale: 0.9 }} onClick={() => setViewProject(null)} style={{ background: '#f1f5f9', border: 'none', borderRadius: '50%', width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><X size={20} /></motion.button>
                             </div>
-                            <div style={{ display: 'grid', gap: '1.25rem' }}>
-                                <div style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '24px', border: '1px solid #e2e8f0' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.25rem' }}>
-                                        <Landmark size={18} color="#64748b"/>
+                            <div style={{ display: 'grid', gap: '1rem' }}>
+                                {[
+                                    { icon: Building2, label: 'ASSIGNED CLIENT', value: `${viewProject.client?.firstName} ${viewProject.client?.lastName}` },
+                                    { icon: MapPin, label: 'LOCATION', value: viewProject.location || 'Undetermined' },
+                                    { icon: Calendar, label: 'TIMELINE', value: `${viewProject.startDate ? new Date(viewProject.startDate).toLocaleDateString() : 'TBD'} → ${viewProject.endDate ? new Date(viewProject.endDate).toLocaleDateString() : 'TBD'}` },
+                                    { icon: DollarSign, label: 'VALUATION', value: `$${(viewProject.value || 0).toLocaleString()}`, color: '#059669' }
+                                ].map((item, idx) => (
+                                    <div key={idx} style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '16px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                        <div style={{ background: '#fff', padding: '10px', borderRadius: '12px', display: 'flex' }}><item.icon size={18} color="#64748b" /></div>
                                         <div>
-                                            <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#64748b' }}>ASSIGNED ACCOUNT</div>
-                                            <div style={{ fontSize: '1rem', fontWeight: 800, color: '#0f172a' }}>{viewProject.client?.firstName} {viewProject.client?.lastName}</div>
+                                            <div style={{ fontSize: '0.65rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{item.label}</div>
+                                            <div style={{ fontSize: '0.95rem', fontWeight: 700, color: item.color || '#0f172a', marginTop: '0.25rem' }}>{item.value}</div>
                                         </div>
                                     </div>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.25rem' }}>
-                                        <MapPin size={18} color="#64748b"/>
-                                        <div>
-                                            <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#64748b' }}>OPERATIONAL GEOGRAPHY</div>
-                                            <div style={{ fontSize: '1rem', fontWeight: 800, color: '#0f172a' }}>{viewProject.location || 'Undetermined'}</div>
-                                        </div>
-                                    </div>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.25rem' }}>
-                                        <Calendar size={18} color="#64748b"/>
-                                        <div>
-                                            <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#64748b' }}>OPERATIONAL TIMELINE</div>
-                                            <div style={{ fontSize: '1rem', fontWeight: 800, color: '#0f172a' }}>{viewProject.startDate ? new Date(viewProject.startDate).toLocaleDateString() : 'TBD'} TO {viewProject.endDate ? new Date(viewProject.endDate).toLocaleDateString() : 'TBD'}</div>
-                                        </div>
-                                    </div>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                        <DollarSign size={18} color="#64748b"/>
-                                        <div>
-                                            <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#64748b' }}>PORTFOLIO VALUATION</div>
-                                            <div style={{ fontSize: '1.1rem', fontWeight: 900, color: '#059669' }}>{viewProject.value ? viewProject.value.toLocaleString(undefined, { minimumFractionDigits: 2 }) : '0.00'}</div>
-                                        </div>
-                                    </div>
-                                </div>
+                                ))}
                             </div>
-                            <motion.button whileTap={{ scale: 0.98 }} onClick={() => setViewProject(null)} style={{ background: '#0f172a', color: '#fff', border: 'none', borderRadius: '14px', width: '100%', padding: '1.1rem', fontWeight: 800, cursor: 'pointer', marginTop: '2.5rem' }}>Close Inspector</motion.button>
+                            <motion.button whileTap={{ scale: 0.98 }} onClick={() => setViewProject(null)} style={{ background: '#0f172a', color: '#fff', border: 'none', borderRadius: '14px', width: '100%', padding: '1rem', fontWeight: 700, fontSize: '0.875rem', cursor: 'pointer', marginTop: '2rem' }}>Close</motion.button>
                         </motion.div>
-                    </div>
+                    </motion.div>
                 )}
             </AnimatePresence>
 
-            {/* MODAL (Already updated) */}
+            {/* Create/Edit Modal */}
             <AnimatePresence>
                 {isModalOpen && (
-                    <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.4)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-                        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} style={{ background: '#fff', borderRadius: '32px', padding: '3rem', width: '100%', maxWidth: 600, boxShadow: '0 50px 100px -20px rgba(0,0,0,0.3)', maxHeight: '90vh', overflowY: 'auto' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2.5rem' }}>
-                                <h2 style={{ margin: 0, fontWeight: 900, fontSize: '1.5rem' }}>{editingProject ? 'Sync Blueprint' : 'Define Blueprint'}</h2>
-                                <motion.button whileTap={{ scale: 0.8 }} title="Close Modal" onClick={() => setIsModalOpen(false)} style={{ background: '#f1f5f9', border: 'none', borderRadius: '50%', width: 40, height: 40, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={24} /></motion.button>
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(12px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}
+                        onClick={() => setIsModalOpen(false)}>
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            onClick={(e) => e.stopPropagation()}
+                            style={{ background: '#fff', borderRadius: '28px', padding: '2.5rem', width: '100%', maxWidth: 600, boxShadow: '0 25px 50px -12px rgba(0,0,0,0.35)', maxHeight: '90vh', overflowY: 'auto' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                                <h2 style={{ margin: 0, fontWeight: 800, fontSize: '1.375rem', color: '#0f172a' }}>{editingProject ? 'Edit Project' : 'New Project'}</h2>
+                                <motion.button whileTap={{ scale: 0.9 }} onClick={() => setIsModalOpen(false)} style={{ background: '#f1f5f9', border: 'none', borderRadius: '50%', width: 40, height: 40, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={20} /></motion.button>
                             </div>
                             <form onSubmit={saveProject}>
-                                <div style={{ marginBottom: '1.5rem' }}><label style={labelStyle}>Designation Name</label><input title="Project nomenclature" value={form.name} onChange={e => setForm({...form, name: e.target.value})} required style={inputStyle} /></div>
-                                <div style={{ marginBottom: '1.5rem', background: '#f8fafc', padding: '2rem', borderRadius: '24px', border: '1px solid #e2e8f0' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                                        <label style={{...labelStyle, marginBottom: 0}}>Identity Assignment</label>
-                                        <button type="button" title="Establish new identity directly" onClick={() => setIsInlineClient(!isInlineClient)} style={{ background: 'none', border: 'none', color: '#2563eb', fontWeight: 800, fontSize: '0.7rem', cursor: 'pointer' }}>{isInlineClient ? 'CANCEL' : '+ DEFINE NEW'}</button>
+                                <div style={{ marginBottom: '1.25rem' }}>
+                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, color: '#64748b', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Project Name</label>
+                                    <input value={form.name} onChange={e => setForm({...form, name: e.target.value})} required style={{ width: '100%', background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: '12px', padding: '0.875rem 1rem', fontSize: '0.875rem', color: '#0f172a', outline: 'none', fontWeight: 500, boxSizing: 'border-box' }} />
+                                </div>
+                                <div style={{ marginBottom: '1.25rem', background: '#f8fafc', padding: '1.5rem', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                                        <label style={{ fontSize: '0.7rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Client Assignment</label>
+                                        <button type="button" onClick={() => setIsInlineClient(!isInlineClient)} style={{ background: 'none', border: 'none', color: '#2563eb', fontWeight: 700, fontSize: '0.75rem', cursor: 'pointer' }}>{isInlineClient ? 'Cancel' : '+ New Client'}</button>
                                     </div>
                                     {isInlineClient ? (
-                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.8rem' }}>
-                                            <input title="Identity first name" placeholder="First Name" value={inlineClientForm.firstName} onChange={e => setInlineClientForm({...inlineClientForm, firstName: e.target.value})} required style={{...inputStyle, background: '#fff'}} />
-                                            <input title="Identity last name" placeholder="Last Name" value={inlineClientForm.lastName} onChange={e => setInlineClientForm({...inlineClientForm, lastName: e.target.value})} style={{...inputStyle, background: '#fff'}} />
-                                            <div style={{ gridColumn: '1/-1' }}><input title="Identity contact details" placeholder="Phone Number" value={inlineClientForm.telephoneNumber} onChange={e => setInlineClientForm({...inlineClientForm, telephoneNumber: e.target.value})} required style={{...inputStyle, background: '#fff'}} /></div>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                                            <input placeholder="First Name" value={inlineClientForm.firstName} onChange={e => setInlineClientForm({...inlineClientForm, firstName: e.target.value})} required style={{ background: '#fff', border: '1.5px solid #e2e8f0', borderRadius: '10px', padding: '0.75rem', fontSize: '0.875rem', outline: 'none', boxSizing: 'border-box' }} />
+                                            <input placeholder="Last Name" value={inlineClientForm.lastName} onChange={e => setInlineClientForm({...inlineClientForm, lastName: e.target.value})} style={{ background: '#fff', border: '1.5px solid #e2e8f0', borderRadius: '10px', padding: '0.75rem', fontSize: '0.875rem', outline: 'none', boxSizing: 'border-box' }} />
+                                            <input placeholder="Phone Number" value={inlineClientForm.telephoneNumber} onChange={e => setInlineClientForm({...inlineClientForm, telephoneNumber: e.target.value})} required style={{ gridColumn: '1/-1', background: '#fff', border: '1.5px solid #e2e8f0', borderRadius: '10px', padding: '0.75rem', fontSize: '0.875rem', outline: 'none', boxSizing: 'border-box' }} />
                                         </div>
                                     ) : (
-                                        <select title="Map blueprint to existing identity" value={form.client} onChange={e => setForm({...form, client: e.target.value})} required style={{...inputStyle, background: '#fff'}}><option value="" disabled>Select identity index...</option>{clients.map(c => <option key={c._id} value={c._id}>{c.firstName} {c.lastName}</option>)}</select>
+                                        <select value={form.client} onChange={e => setForm({...form, client: e.target.value})} required style={{ width: '100%', background: '#fff', border: '1.5px solid #e2e8f0', borderRadius: '10px', padding: '0.75rem', fontSize: '0.875rem', outline: 'none', cursor: 'pointer' }}>
+                                            <option value="" disabled>Select client...</option>
+                                            {clients.map(c => <option key={c._id} value={c._id}>{c.firstName} {c.lastName}</option>)}
+                                        </select>
                                     )}
                                 </div>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '2.5rem' }}>
-                                    <div><label style={labelStyle}>Start Phase</label><input title="Define commencement date" type="date" value={form.startDate} onChange={e => setForm({...form, startDate: e.target.value})} style={inputStyle} /></div>
-                                    <div><label style={labelStyle}>Terminal Phase</label><input title="Define target completion date" type="date" value={form.endDate} onChange={e => setForm({...form, endDate: e.target.value})} style={inputStyle} /></div>
-                                    <div style={{ gridColumn: 'span 2' }}><label style={labelStyle}>Site Location</label><input title="Define operational geography" value={form.location} onChange={e => setForm({...form, location: e.target.value})} style={inputStyle} /></div>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, color: '#64748b', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Start Date</label>
+                                        <input type="date" value={form.startDate} onChange={e => setForm({...form, startDate: e.target.value})} style={{ width: '100%', background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: '10px', padding: '0.75rem', fontSize: '0.875rem', outline: 'none', boxSizing: 'border-box' }} />
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, color: '#64748b', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>End Date</label>
+                                        <input type="date" value={form.endDate} onChange={e => setForm({...form, endDate: e.target.value})} style={{ width: '100%', background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: '10px', padding: '0.75rem', fontSize: '0.875rem', outline: 'none', boxSizing: 'border-box' }} />
+                                    </div>
                                 </div>
-                                <motion.button whileTap={{ scale: 0.98 }} title="Commit blueprint to portfolio database" type="submit" style={{ ...inputStyle, background: '#10b981', color: '#fff', border: 'none', justifyContent: 'center', padding: '1.25rem', fontSize: '1rem' }}>EXECUTE SYNCHRONIZATION</motion.button>
+                                <div style={{ marginBottom: '2rem' }}>
+                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, color: '#64748b', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Location</label>
+                                    <input value={form.location} onChange={e => setForm({...form, location: e.target.value})} style={{ width: '100%', background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: '10px', padding: '0.75rem', fontSize: '0.875rem', outline: 'none', boxSizing: 'border-box' }} />
+                                </div>
+                                <div style={{ marginBottom: '2rem' }}>
+                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, color: '#64748b', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Value ($)</label>
+                                    <input type="number" value={form.value} onChange={e => setForm({...form, value: parseFloat(e.target.value) || 0})} style={{ width: '100%', background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: '10px', padding: '0.75rem', fontSize: '0.875rem', outline: 'none', boxSizing: 'border-box' }} />
+                                </div>
+                                <motion.button whileTap={{ scale: 0.98 }} type="submit" style={{ width: '100%', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: '#fff', border: 'none', borderRadius: '14px', padding: '1rem', fontWeight: 700, fontSize: '0.875rem', cursor: 'pointer', boxShadow: '0 4px 12px rgba(16, 185, 129, 0.35)' }}>{editingProject ? 'Update Project' : 'Create Project'}</motion.button>
                             </form>
                         </motion.div>
-                    </div>
+                    </motion.div>
                 )}
             </AnimatePresence>
 
-             <AnimatePresence>
+            {/* Delete Confirmation Modal */}
+            <AnimatePresence>
                 {confirmAction && (
-                    <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000}}>
-                        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} style={{ background: '#fff', borderRadius: '32px', padding: '3rem', width: '100%', maxWidth: 450, textAlign: 'center', boxShadow: '0 50px 100px -20px rgba(0,0,0,0.4)' }}>
-                            <AlertTriangle size={64} color="#ef4444" style={{ marginBottom: '1.5rem', margin: '0 auto' }} />
-                            <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.5rem', color: '#0f172a' }}>Authorize De-Authorization?</h3>
-                            <p style={{ color: '#64748b', marginTop: '1rem', marginBottom: '2.5rem', fontWeight: 600 }}>{confirmAction.message}</p>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}><motion.button whileTap={{ scale: 0.95 }} title="Abort Operation" onClick={() => setConfirmAction(null)} style={{ padding: '1rem', borderRadius: '16px', border: '1.5px solid #e2e8f0', background: '#fff', cursor: 'pointer', fontWeight: 800 }}>Abort</motion.button><motion.button whileTap={{ scale: 0.95 }} title="Execute Record Elimination" onClick={() => { confirmAction.onConfirm(); setConfirmAction(null); }} style={{ padding: '1rem', borderRadius: '16px', border: 'none', background: '#ef4444', color: '#fff', cursor: 'pointer', fontWeight: 800 }}>Confirm</motion.button></div>
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(12px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+                        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} style={{ background: '#fff', borderRadius: '28px', padding: '3rem', width: '100%', maxWidth: 440, textAlign: 'center', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.35)' }}>
+                            <div style={{ background: '#fef2f2', padding: '16px', borderRadius: '16px', display: 'inline-flex', marginBottom: '1.5rem' }}><AlertTriangle size={40} color="#ef4444" /></div>
+                            <h3 style={{ margin: 0, fontWeight: 800, fontSize: '1.25rem', color: '#0f172a' }}>Confirm Deletion</h3>
+                            <p style={{ color: '#64748b', marginTop: '0.75rem', marginBottom: '2rem', fontSize: '0.875rem', fontWeight: 500 }}>{confirmAction.message}</p>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                                <motion.button whileTap={{ scale: 0.98 }} onClick={() => setConfirmAction(null)} style={{ padding: '0.875rem', borderRadius: '14px', border: '1.5px solid #e2e8f0', background: '#fff', cursor: 'pointer', fontWeight: 700, fontSize: '0.875rem', color: '#475569' }}>Cancel</motion.button>
+                                <motion.button whileTap={{ scale: 0.98 }} onClick={() => { confirmAction.onConfirm(); setConfirmAction(null); }} style={{ padding: '0.875rem', borderRadius: '14px', border: 'none', background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', color: '#fff', cursor: 'pointer', fontWeight: 700, fontSize: '0.875rem', boxShadow: '0 4px 12px rgba(239, 68, 68, 0.35)' }}>Delete</motion.button>
+                            </div>
                         </motion.div>
-                    </div>
+                    </motion.div>
                 )}
             </AnimatePresence>
         </div>

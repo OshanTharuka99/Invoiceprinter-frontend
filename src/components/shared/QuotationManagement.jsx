@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { FileText, Plus, X, Search, RefreshCw, Printer, AlertTriangle, ShieldAlert, CheckCircle } from 'lucide-react';
 import api from '../../api';
 import QuotationTemplate from './QuotationTemplate';
+import './QuotationManagement.css';
 
 const QuotationManagement = ({ currentUser, showToast }) => {
     const [quotations, setQuotations] = useState([]);
@@ -238,32 +239,39 @@ const QuotationManagement = ({ currentUser, showToast }) => {
         (q.manualClientDetails?.name || '').toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    const cardStyle = { background: '#fff', border: '1px solid #e2e8f0', borderRadius: '24px', padding: '2.5rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' };
-    const labelStyle = { display: 'block', fontSize: '0.75rem', fontWeight: 900, color: '#64748b', marginBottom: '0.6rem', textTransform: 'uppercase' };
-    const inputStyle = { width: '100%', background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: '12px', padding: '0.8rem 1.25rem', color: '#0f172a', outline: 'none', fontWeight: 600, boxSizing: 'border-box' };
+    const isAdmin = currentUser.role === 'admin' || currentUser.role === 'root';
+
+    const labelStyle = { display: 'block', fontSize: '0.7rem', fontWeight: 800, color: 'var(--qm-t2)', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.06em' };
+    const inputStyle = { width: '100%', background: '#f9fafb', border: '1.5px solid var(--qm-border)', borderRadius: '10px', padding: '0.7rem 0.95rem', color: 'var(--qm-t1)', fontSize: '0.875rem', fontWeight: 600, outline: 'none', transition: 'all 0.2s', boxSizing: 'border-box' };
 
     return (
-        <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+        <div className="qm-root">
             {loading ? (
-                <div style={{ display: 'flex', justifyContent: 'center', padding: '4rem' }}><RefreshCw className="animate-spin" color="#64748b" /></div>
+                <div className="qm-loading"><RefreshCw className="animate-spin" color="var(--qm-t3)" /> Loading quotations...</div>
             ) : (
-                <div style={cardStyle}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
-                        <div>
-                            <h1 style={{ margin: 0, fontSize: '1.875rem', fontWeight: 800, color: '#0f172a' }}>Quotation Engine</h1>
-                            <p style={{ margin: '0.35rem 0 0', color: '#64748b', fontSize: '0.9rem' }}>Architect formatting and proposals securely.</p>
-                        </div>
-                        <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-                            <div style={{ position: 'relative' }}>
-                                <Search size={16} title="Locate Protocol" style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
-                                <input type="text" placeholder="Search QN00000 or Client..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} style={{ padding: '0.8rem 1rem 0.8rem 2.5rem', borderRadius: '12px', border: '1px solid #e2e8f0', width: 280, outline: 'none' }} />
+                <div className="qm-card">
+                    <div className="qm-card-header">
+                        <div className="qm-card-title">
+                            <div className="qm-card-icon amber"><FileText size={20} /></div>
+                            <div>
+                                <h3>Quotation Engine</h3>
+                                <div className="qm-card-subtitle">Architect formatting and proposals securely</div>
                             </div>
-                            <motion.button whileTap={{ scale: 0.95 }} onClick={() => openCreation('automatic')} style={{ background: '#0f172a', color: '#fff', border: 'none', borderRadius: '12px', padding: '0.8rem 1.5rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Plus size={18} /> Automatic Protocol</motion.button>
-                            <motion.button whileTap={{ scale: 0.95 }} onClick={() => openCreation('manual')} style={{ background: '#f8fafc', color: '#0f172a', border: '2px dashed #cbd5e1', borderRadius: '12px', padding: '0.8rem 1.5rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Plus size={18} /> Manual</motion.button>
+                        </div>
+                        <div className="qm-card-actions">
+                            <div className="qm-search-wrap">
+                                <Search size={16} className="qm-search-icon" />
+                                <input type="text" placeholder="Search QN00000 or Client..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="qm-search-input" />
+                            </div>
+                            <motion.button whileTap={{ scale: 0.95 }} onClick={() => openCreation('automatic')} className="qm-btn qm-btn-primary"><Plus size={16} /> Automatic Protocol</motion.button>
+                            {isAdmin && (
+                                <motion.button whileTap={{ scale: 0.95 }} onClick={() => openCreation('manual')} className="qm-btn qm-btn-outline" style={{ border: '2px dashed var(--qm-border)' }}><Plus size={16} /> Manual</motion.button>
+                            )}
                         </div>
                     </div>
 
-                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                    <div className="qm-table-wrap">
+                        <table className="qm-table">
                         <thead>
                             <tr style={{ borderBottom: '2px solid #f1f5f9' }}>
                                 <th style={{ padding: '1rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.8rem' }}>Identifier</th>
@@ -275,53 +283,56 @@ const QuotationManagement = ({ currentUser, showToast }) => {
                         </thead>
                         <tbody>
                             {filtered.map(q => (
-                                <tr key={q._id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                                    <td style={{ padding: '1rem' }}>
-                                        <div style={{ fontWeight: 800, color: '#f59e0b', fontSize: '0.9rem' }}>{q.quotationId}</div>
-                                        <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#94a3b8' }}>{new Date(q.createdAt).toLocaleDateString()}</div>
+                                <tr key={q._id}>
+                                    <td>
+                                        <span className="qm-badge qm-badge-id">{q.quotationId}</span>
+                                        <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--qm-t3)', marginTop: '3px' }}>{new Date(q.createdAt).toLocaleDateString()}</div>
                                     </td>
-                                    <td style={{ padding: '1rem', fontWeight: 700, color: '#0f172a' }}>
+                                    <td style={{ fontWeight: 700, color: 'var(--qm-t1)' }}>
                                         {q.clientRef ? `${q.clientRef.firstName} ${q.clientRef.lastName}` : q.manualClientDetails?.name || 'Unknown'}
                                     </td>
-                                    <td style={{ padding: '1rem', fontWeight: 800, color: '#0f172a' }}>
+                                    <td style={{ fontWeight: 800, color: 'var(--qm-t1)' }}>
                                         {q.currency === 'primary' ? businessData.primaryCurrency?.symbol || 'Rs.' : businessData.secondaryCurrency?.symbol || '$'} {parseFloat(q.finalTotal).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                                     </td>
-                                    <td style={{ padding: '1rem', fontSize: '0.8rem', color: '#475569', fontWeight: 600 }}>
+                                    <td style={{ fontSize: '0.8rem', color: 'var(--qm-t2)', fontWeight: 600 }}>
                                         {q.createdBy?.firstName} {q.createdBy?.lastName}
                                     </td>
-                                    <td style={{ padding: '1rem', textAlign: 'right' }}>
-                                        <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-                                            <motion.button whileTap={{ scale: 0.9 }} onClick={() => setViewQuotation(q)} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '6px 12px', cursor: 'pointer', fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem' }}><Printer size={14} /> Open Form</motion.button>
-                                            <motion.button whileTap={{ scale: 0.9 }} onClick={() => openDeleteModal(q)} style={{ background: '#fdf2f8', border: '1px solid #fce7f3', borderRadius: '8px', padding: '6px 12px', cursor: 'pointer', fontWeight: 700, color: '#db2777', fontSize: '0.8rem' }}>
+                                    <td style={{ textAlign: 'right' }}>
+                                        <div className="qm-table-actions">
+                                            <motion.button whileTap={{ scale: 0.9 }} onClick={() => setViewQuotation(q)} className="qm-btn qm-btn-view"><Printer size={14} /> Open Form</motion.button>
+                                            <motion.button whileTap={{ scale: 0.9 }} onClick={() => openDeleteModal(q)} className="qm-btn qm-btn-danger">
                                                 {(currentUser.role === 'admin' || currentUser.role === 'root') ? 'Delete' : 'Delete Request'}
                                             </motion.button>
                                         </div>
                                     </td>
                                 </tr>
                             ))}
-                            {filtered.length === 0 && <tr><td colSpan="5" style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8' }}>No templates in active registry.</td></tr>}
+                            {filtered.length === 0 && <tr><td colSpan="5"><div className="qm-empty">No templates in active registry</div></td></tr>}
                         </tbody>
                     </table>
                 </div>
-            )}
+            </div>
+        )}
 
             {/* CREATE MODAL */}
             <AnimatePresence>
                 {isCreateModalOpen && (
-                    <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.4)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: '1rem' }}>
-                        <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} style={{ background: '#fff', borderRadius: '24px', padding: '2.5rem', width: '100%', maxWidth: 850, boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', maxHeight: '90vh', overflowY: 'auto' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2rem' }}>
-                                <div>
-                                    <h2 style={{ margin: 0, fontWeight: 900 }}>Create Quotation [{creationMode.toUpperCase()}]</h2>
-                                    <p style={{ margin: '0.35rem 0 0', color: '#64748b', fontSize: '0.85rem' }}>Create a new quotation for a client.</p>
+                    <div className="qm-overlay">
+                        <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="qm-modal qm-modal-lg">
+                            <div className="qm-modal-header">
+                                <div className="qm-modal-title-row">
+                                    <div>
+                                        <h2>Create Quotation [{creationMode.toUpperCase()}]</h2>
+                                        <div className="qm-modal-subtitle">Create a new quotation for a client</div>
+                                    </div>
                                 </div>
-                                <motion.button whileTap={{ scale: 0.9 }} onClick={() => setIsCreateModalOpen(false)} style={{ background: '#f1f5f9', border: 'none', borderRadius: '50%', width: 32, height: 32, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={18} /></motion.button>
+                                <motion.button whileTap={{ scale: 0.9 }} onClick={() => setIsCreateModalOpen(false)} className="qm-modal-close"><X size={18} /></motion.button>
                             </div>
 
                             <form onSubmit={submitQuotation}>
                                 {/* CLIENT INFO */}
-                                <div style={{ marginBottom: '1.5rem', padding: '1.5rem', borderRadius: '16px', background: '#f8fafc', border: '1px solid #e2e8f0' }}>
-                                    <h4 style={{ margin: '0 0 1rem 0', color: '#0f172a' }}>1. Client Details</h4>
+                                <div className="qm-section">
+                                    <h4>1. Client Details</h4>
 
                                     {/* Toggle between Client Directory and Manual Entry */}
                                     <div style={{ marginBottom: '1rem', display: 'flex', gap: '0.5rem' }}>
@@ -399,8 +410,8 @@ const QuotationManagement = ({ currentUser, showToast }) => {
                                     )}
 
                                     <div style={{ marginTop: '1rem' }}>
-                                        <label style={labelStyle}>Delivery Address</label>
-                                        <input value={form.deliveryAddress} onChange={e => setForm({ ...form, deliveryAddress: e.target.value })} placeholder="Auto-filled from client or enter manually" style={{ ...inputStyle, background: '#fff' }} />
+                                        <label className="qm-label">Delivery Address</label>
+                                        <input value={form.deliveryAddress} onChange={e => setForm({ ...form, deliveryAddress: e.target.value })} placeholder="Auto-filled from client or enter manually" className="qm-input" />
                                     </div>
                                 </div>
 
@@ -708,54 +719,54 @@ const QuotationManagement = ({ currentUser, showToast }) => {
                                     </div>
                                 </div>
 
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.5rem', background: '#0f172a', borderRadius: '16px', color: '#fff', marginBottom: '2rem' }}>
-                                    <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '2px', fontWeight: 900, color: '#94a3b8' }}>Final Total</div>
-                                    <div style={{ fontSize: '2rem', fontWeight: 900, letterSpacing: '-1px' }}>{form.finalTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
+                                <div className="qm-total-bar">
+                                    <div className="qm-total-label">Final Total</div>
+                                    <div className="qm-total-value">{form.finalTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
                                 </div>
 
-                                <motion.button whileTap={{ scale: 0.98 }} type="submit" style={{ background: '#10b981', color: '#fff', border: 'none', borderRadius: '12px', padding: '1rem', width: '100%', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', fontSize: '1rem' }}><CheckCircle size={20} /> Create Quotation</motion.button>
+                                <motion.button whileTap={{ scale: 0.98 }} type="submit" className="qm-btn qm-btn-success qm-btn-full"><CheckCircle size={20} /> Create Quotation</motion.button>
                             </form>
                         </motion.div>
                     </div>
                 )}
             </AnimatePresence>
 
-            {/* DELETE MODAL (Distinguishes Admin vs User) */}
-            < AnimatePresence >
+            {/* DELETE MODAL */}
+            <AnimatePresence>
                 {deleteModalOpen && (
-                    <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.4)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-                        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} style={{ background: '#fff', borderRadius: '24px', padding: '2.5rem', width: '100%', maxWidth: 450, textAlign: 'center', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }}>
+                    <div className="qm-overlay">
+                        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="qm-modal qm-modal-sm" style={{ textAlign: 'center' }}>
                             {(currentUser.role === 'admin' || currentUser.role === 'root') ? (
                                 <>
-                                    <ShieldAlert size={48} color="#ef4444" style={{ marginBottom: '1rem', margin: '0 auto' }} />
-                                    <h3 style={{ margin: 0, fontWeight: 800, fontSize: '1.25rem', color: '#0f172a' }}>Authorize Direct Nullification?</h3>
-                                    <p style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '2rem' }}>As a high-level authority, executing this will permanently destroy this quotation.</p>
+                                    <div className="qm-confirm-icon"><ShieldAlert size={48} color="var(--qm-red)" /></div>
+                                    <h3 className="qm-confirm-title">Authorize Direct Nullification?</h3>
+                                    <p className="qm-confirm-msg">As a high-level authority, executing this will permanently destroy this quotation.</p>
                                 </>
                             ) : (
                                 <>
-                                    <AlertTriangle size={48} color="#f59e0b" style={{ marginBottom: '1rem', margin: '0 auto' }} />
-                                    <h3 style={{ margin: 0, fontWeight: 800, fontSize: '1.25rem', color: '#0f172a' }}>Propose Deletion Request</h3>
-                                    <p style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '1.5rem' }}>Provide diagnostic reason for Security Approval dashboard.</p>
-                                    <textarea placeholder="State explicit reason..." value={deleteReason} onChange={e => setDeleteReason(e.target.value)} required style={{ ...inputStyle, height: 100, resize: 'none', marginBottom: '2rem', textAlign: 'left' }} />
+                                    <div className="qm-confirm-icon"><AlertTriangle size={48} color="var(--qm-amber)" /></div>
+                                    <h3 className="qm-confirm-title">Propose Deletion Request</h3>
+                                    <p className="qm-confirm-msg">Provide diagnostic reason for Security Approval dashboard.</p>
+                                    <textarea placeholder="State explicit reason..." value={deleteReason} onChange={e => setDeleteReason(e.target.value)} required className="qm-input qm-textarea" style={{ height: 100, resize: 'none', marginBottom: '2rem' }} />
                                 </>
                             )}
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                                <motion.button whileTap={{ scale: 0.95 }} onClick={() => setDeleteModalOpen(false)} style={{ background: '#f8fafc', color: '#64748b', border: 'none', borderRadius: '12px', padding: '0.8rem', fontWeight: 800, cursor: 'pointer' }}>Abort Action</motion.button>
-                                <motion.button whileTap={{ scale: 0.95 }} onClick={confirmDelete} style={{ background: (currentUser.role === 'admin' || currentUser.role === 'root') ? '#ef4444' : '#f59e0b', color: '#fff', border: 'none', borderRadius: '12px', padding: '0.8rem', fontWeight: 800, cursor: 'pointer' }}>Proceed with Command</motion.button>
+                            <div className="qm-confirm-actions">
+                                <motion.button whileTap={{ scale: 0.95 }} onClick={() => setDeleteModalOpen(false)} className="qm-abort-btn">Abort Action</motion.button>
+                                <motion.button whileTap={{ scale: 0.95 }} onClick={confirmDelete} className="qm-confirm-danger-btn" style={{ background: (currentUser.role === 'admin' || currentUser.role === 'root') ? 'var(--qm-red)' : 'var(--qm-amber)' }}>Proceed with Command</motion.button>
                             </div>
                         </motion.div>
                     </div>
                 )}
-            </AnimatePresence >
+            </AnimatePresence>
 
-            {/* PRINT/VIEW INVISIBLE TEMPLATE LAYER */}
-            < AnimatePresence >
+            {/* PRINT/VIEW MODAL */}
+            <AnimatePresence>
                 {viewQuotation && (
-                    <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.8)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 1000, overflowY: 'auto', padding: '2rem' }}>
+                    <div className="qm-overlay" style={{ background: 'rgba(15,23,42,0.8)', backdropFilter: 'blur(8px)', alignItems: 'flex-start', padding: '2rem' }}>
                         <div style={{ width: '100%', maxWidth: '210mm', position: 'relative' }}>
                             <div style={{ position: 'sticky', top: 0, display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginBottom: '1rem', zIndex: 10 }}>
-                                <motion.button whileTap={{ scale: 0.95 }} onClick={handlePrint} style={{ background: '#10b981', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: '12px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', boxShadow: '0 10px 15px -3px rgba(16, 185, 129, 0.4)' }}><Printer size={18} /> A4 Print / PDF</motion.button>
-                                <motion.button whileTap={{ scale: 0.95 }} onClick={() => setViewQuotation(null)} style={{ background: '#fff', color: '#0f172a', border: 'none', width: 42, height: 42, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}><X size={20} /></motion.button>
+                                <motion.button whileTap={{ scale: 0.95 }} onClick={handlePrint} className="qm-btn qm-btn-success" style={{ boxShadow: '0 10px 15px -3px rgba(16, 185, 129, 0.4)' }}><Printer size={18} /> A4 Print / PDF</motion.button>
+                                <motion.button whileTap={{ scale: 0.95 }} onClick={() => setViewQuotation(null)} className="qm-modal-close" style={{ width: 42, height: 42, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}><X size={20} /></motion.button>
                             </div>
                             <div style={{ boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)', borderRadius: '4px', overflow: 'hidden' }}>
                                 <QuotationTemplate ref={printRef} quotation={viewQuotation} business={businessData} />
@@ -763,7 +774,7 @@ const QuotationManagement = ({ currentUser, showToast }) => {
                         </div>
                     </div>
                 )}
-            </AnimatePresence >
+            </AnimatePresence>
         </div >
     );
 };

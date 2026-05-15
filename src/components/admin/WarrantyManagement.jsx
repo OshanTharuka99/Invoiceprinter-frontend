@@ -57,9 +57,10 @@ const WarrantyManagement = ({ currentUser, showToast }) => {
     const filtered = warranties.filter(w => {
         const search = searchTerm.toLowerCase();
         const serialMatch = w.serialNumber?.toLowerCase().includes(search);
-        const invoiceMatch = w.invoiceRef?.invoiceId?.toLowerCase().includes(search);
+        const invoiceMatch = w.invoiceRef?.invoiceNumber?.toLowerCase().includes(search);
         const productMatch = w.productRef?.name?.toLowerCase().includes(search);
-        const clientMatch = `${w.clientRef?.firstName || ''} ${w.clientRef?.lastName || ''}`.toLowerCase().includes(search);
+        const clientName = w.clientRef ? `${w.clientRef.firstName} ${w.clientRef.lastName}` : w.invoiceRef?.manualClientDetails?.name || 'Walk-in Customer';
+        const clientMatch = clientName.toLowerCase().includes(search);
         return serialMatch || invoiceMatch || productMatch || clientMatch;
     });
 
@@ -147,6 +148,7 @@ const WarrantyManagement = ({ currentUser, showToast }) => {
                                 <tbody>
                                     {filtered.map(w => {
                                         const remaining = daysRemaining(w.expiryDate);
+                                        const clientName = w.clientRef ? `${w.clientRef.firstName} ${w.clientRef.lastName}` : w.invoiceRef?.manualClientDetails?.name || 'Walk-in Customer';
                                         return (
                                             <tr key={w._id}>
                                                 <td><span className="wm-badge wm-badge-serial">{w.serialNumber}</span></td>
@@ -154,8 +156,8 @@ const WarrantyManagement = ({ currentUser, showToast }) => {
                                                     <div style={{ fontWeight: 700, color: 'var(--wm-t1)', fontSize: '0.88rem' }}>{w.productRef?.name || 'Unknown'}</div>
                                                     <div style={{ fontSize: '0.72rem', color: 'var(--wm-t3)' }}>{w.productRef?.productId || ''}</div>
                                                 </td>
-                                                <td style={{ fontWeight: 700, color: 'var(--wm-t1)' }}>{w.clientRef ? `${w.clientRef.firstName} ${w.clientRef.lastName}` : 'Unknown'}</td>
-                                                <td><span className="wm-badge wm-badge-id">{w.invoiceRef?.invoiceId || '—'}</span></td>
+                                                <td style={{ fontWeight: 700, color: 'var(--wm-t1)' }}>{clientName}</td>
+                                                <td><span className="wm-badge wm-badge-id">{w.invoiceRef?.invoiceNumber || '—'}</span></td>
                                                 <td style={{ fontSize: '0.85rem', color: 'var(--wm-t2)' }}>{w.warrantyPeriod || '—'}</td>
                                                 <td style={{ fontSize: '0.85rem', color: 'var(--wm-t2)' }}>{fmt(w.startDate)}</td>
                                                 <td>

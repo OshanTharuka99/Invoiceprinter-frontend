@@ -314,10 +314,10 @@ const QuotationManagement = ({ currentUser, showToast }) => {
                 </div>
             )}
 
-                    {/* CREATE MODAL */}
-                    <AnimatePresence>
-                        {isCreateModalOpen && (
-                            <div className="qm-overlay">
+            {/* CREATE MODAL */}
+            <AnimatePresence>
+                {isCreateModalOpen && (
+                    <div className="qm-overlay">
                                 <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="qm-modal qm-modal-lg">
                                     <div className="qm-modal-header">
                                         <div className="qm-modal-title-row">
@@ -757,10 +757,10 @@ const QuotationManagement = ({ currentUser, showToast }) => {
                                 </motion.div>
                             </div>
                         )}
-                    </AnimatePresence >
+                    </AnimatePresence>
 
                     {/* PRINT/VIEW INVISIBLE TEMPLATE LAYER */}
-                    < AnimatePresence >
+                    <AnimatePresence>
                         {viewQuotation && (
                             <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.8)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 1000, overflowY: 'auto', padding: '2rem' }}>
                                 <div style={{ width: '100%', maxWidth: '210mm', position: 'relative' }}>

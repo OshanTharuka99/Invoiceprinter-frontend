@@ -16,6 +16,8 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
 
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [creationMode, setCreationMode] = useState('automatic');
+    const [isSerialModalOpen, setIsSerialModalOpen] = useState(false);
+    const [activeItemIndex, setActiveItemIndex] = useState(null);
 
     const [viewInvoice, setViewInvoice] = useState(null);
     const printRef = useRef();
@@ -44,7 +46,8 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
         hasTax: false, appliedTaxes: [], taxTotal: 0,
         finalTotal: 0,
         currency: 'primary',
-        status: 'Unpaid'
+        status: 'Unpaid',
+        invoiceDate: new Date().toISOString().split('T')[0]
     };
     const [form, setForm] = useState(initialForm);
     const [applyDiscountMode, setApplyDiscountMode] = useState(false);
@@ -90,7 +93,7 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
 
     const handlePrint = () => {
         if (!viewInvoice) return;
-        const invId = viewInvoice.invoiceId || 'INV';
+        const invId = viewInvoice.invoiceNumber || 'INV';
         const clientName = viewInvoice.clientRef
             ? (viewInvoice.clientRef.firstName + (viewInvoice.clientRef.lastName ? '_' + viewInvoice.clientRef.lastName : ''))
             : (viewInvoice.manualClientDetails?.organization || viewInvoice.manualClientDetails?.name || 'Client');
@@ -217,18 +220,21 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
     };
 
     const toggleSerialForItem = (itemIndex, serial) => {
-        setForm(prev => {
-            const newItems = [...prev.items];
-            const item = { ...newItems[itemIndex] };
-            const serials = item.serialNumbers || [];
-            if (serials.includes(serial)) {
-                item.serialNumbers = serials.filter(s => s !== serial);
-            } else {
-                item.serialNumbers = [...serials, serial];
+        const item = form.items[itemIndex];
+        const qty = item.quantity;
+        const currentSerials = item.serialNumbers || [];
+
+        if (currentSerials.includes(serial)) {
+            const updated = currentSerials.filter(s => s !== serial);
+            updateItem(itemIndex, 'serialNumbers', updated);
+        } else {
+            if (currentSerials.length >= qty) {
+                showToast?.(`You can only select ${qty} serial(s) for this item.`, 'warning');
+                return;
             }
-            newItems[itemIndex] = item;
-            return { ...prev, items: newItems };
-        });
+            const updated = [...currentSerials, serial];
+            updateItem(itemIndex, 'serialNumbers', updated);
+        }
     };
 
     const recalculateFinal = () => {
@@ -325,7 +331,7 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
     };
 
     const filtered = invoices.filter(inv =>
-        inv.invoiceId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        inv.invoiceNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (inv.clientRef?.firstName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
         (inv.manualClientDetails?.name || '').toLowerCase().includes(searchTerm.toLowerCase())
     );
@@ -372,8 +378,8 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
                             {filtered.map(inv => (
                                 <tr key={inv._id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                                     <td style={{ padding: '1rem' }}>
-                                        <div style={{ fontWeight: 800, color: '#10b981', fontSize: '0.9rem' }}>{inv.invoiceId}</div>
-                                        <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#94a3b8' }}>{new Date(inv.createdAt).toLocaleDateString()}</div>
+                                        <div style={{ fontWeight: 800, color: '#10b981', fontSize: '0.9rem' }}>{inv.invoiceNumber}</div>
+                                        <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#94a3b8' }}>{new Date(inv.invoiceDate || inv.createdAt).toLocaleDateString()}</div>
                                     </td>
                                     <td style={{ padding: '1rem', fontWeight: 700, color: '#0f172a' }}>
                                         {inv.clientRef ? `${inv.clientRef.firstName} ${inv.clientRef.lastName}` : inv.manualClientDetails?.name || 'Unknown'}
@@ -442,7 +448,7 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
                                             <div style={{ display: 'flex', gap: '0.5rem' }}>
                                                 <select value={form.projectId} onChange={e => setForm({ ...form, projectId: e.target.value })} style={{ ...inputStyle, background: '#fff', flex: 1 }}>
                                                     <option value="">No project</option>
-                                                    {projects.map(p => <option key={p._id} value={p._id}>{p.name} ({p.projectId})</option>)}
+                                                    {projects.filter(p => !form.clientRef || p.client === form.clientRef || (p.client?._id === form.clientRef)).map(p => <option key={p._id} value={p._id}>{p.name} ({p.projectId})</option>)}
                                                 </select>
                                                 <motion.button type="button" whileTap={{ scale: 0.95 }} onClick={() => setIsNewProjectModalOpen(true)} style={{ background: '#10b981', color: '#fff', border: 'none', borderRadius: '12px', padding: '0 1rem', cursor: 'pointer', display: 'flex', alignItems: 'center' }} title="Add New Project"><Briefcase size={18} /></motion.button>
                                             </div>
@@ -463,13 +469,17 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
                                                 <option value="credit">Credit</option>
                                             </select>
                                         </div>
-                                        {form.paymentMethod === 'credit' && (
-                                            <>
-                                                <div>
+                                        <div>
+                                            <label style={labelStyle}>Invoice Date</label>
+                                            <input type="date" value={form.invoiceDate} onChange={e => setForm({ ...form, invoiceDate: e.target.value })} style={{ ...inputStyle, background: '#fff' }} />
+                                        </div>
+                                        {form.paymentMethod === 'credit' ? (
+                                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                                <div style={{ flex: 1 }}>
                                                     <label style={labelStyle}>Credit Duration</label>
                                                     <input type="number" min="1" value={form.creditPeriod.duration} onChange={e => setForm({ ...form, creditPeriod: { ...form.creditPeriod, duration: parseInt(e.target.value) || 0 } })} style={{ ...inputStyle, background: '#fff' }} />
                                                 </div>
-                                                <div>
+                                                <div style={{ flex: 1 }}>
                                                     <label style={labelStyle}>Unit</label>
                                                     <select value={form.creditPeriod.unit} onChange={e => setForm({ ...form, creditPeriod: { ...form.creditPeriod, unit: e.target.value } })} style={{ ...inputStyle, background: '#fff' }}>
                                                         <option value="days">Days</option>
@@ -477,7 +487,12 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
                                                         <option value="months">Months</option>
                                                     </select>
                                                 </div>
-                                            </>
+                                            </div>
+                                        ) : (
+                                            <div style={{ opacity: 0.5, pointerEvents: 'none' }}>
+                                                <label style={labelStyle}>Credit Terms</label>
+                                                <div style={{ ...inputStyle, background: '#f1f5f9' }}>N/A</div>
+                                            </div>
                                         )}
                                     </div>
                                     <div style={{ marginTop: '1rem' }}>
@@ -494,80 +509,87 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
                                     </div>
                                     <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                                         <thead>
-                                            <tr>
-                                                <th style={{ padding: '0.5rem', textAlign: 'left', fontSize: '0.75rem', color: '#64748b' }}>Product</th>
-                                                <th style={{ padding: '0.5rem', textAlign: 'center', fontSize: '0.75rem', color: '#64748b', width: '8%' }}>Qty</th>
-                                                <th style={{ padding: '0.5rem', textAlign: 'right', fontSize: '0.75rem', color: '#64748b', width: '12%' }}>Price</th>
-                                                <th style={{ padding: '0.5rem', textAlign: 'right', fontSize: '0.75rem', color: '#64748b', width: '12%' }}>Total</th>
-                                                <th style={{ padding: '0.5rem', textAlign: 'left', fontSize: '0.75rem', color: '#64748b', width: '20%' }}>Serial Numbers</th>
-                                                <th></th>
+                                            <tr style={{ borderBottom: '1.5px solid #e2e8f0' }}>
+                                                <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left', fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Item/Module</th>
+                                                <th style={{ padding: '0.75rem 0.5rem', textAlign: 'center', fontSize: '0.75rem', color: '#64748b', width: '8%', textTransform: 'uppercase' }}>QTY</th>
+                                                <th style={{ padding: '0.75rem 0.5rem', textAlign: 'right', fontSize: '0.75rem', color: '#64748b', width: '15%', textTransform: 'uppercase' }}>Unit Price</th>
+                                                <th style={{ padding: '0.75rem 0.5rem', textAlign: 'right', fontSize: '0.75rem', color: '#64748b', width: '15%', textTransform: 'uppercase' }}>Line Total</th>
+                                                <th style={{ padding: '0.75rem 0.5rem', textAlign: 'center', fontSize: '0.75rem', color: '#64748b', width: '18%', textTransform: 'uppercase' }}>Serials</th>
+                                                <th style={{ width: '50px' }}></th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {form.items.map((it, idx) => (
-                                                <tr key={idx}>
-                                                    <td style={{ padding: '0.5rem' }}>
-                                                        {creationMode === 'automatic' ? (
-                                                            <select required value={it.productRef} onChange={e => updateItem(idx, 'productRef', e.target.value)} style={{ ...inputStyle, background: '#fff', padding: '0.5rem' }}>
-                                                                <option value="" disabled>Select Product...</option>
-                                                                {products.map(p => <option key={p._id} value={p._id}>{p.name} [{p.productId}] - Stock: {p.quantity || 0}</option>)}
-                                                            </select>
-                                                        ) : (
-                                                            <input required placeholder="Manual Entry..." value={it.manualName} onChange={e => updateItem(idx, 'manualName', e.target.value)} style={{ ...inputStyle, background: '#fff', padding: '0.5rem' }} />
-                                                        )}
+                                                <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                                    <td style={{ padding: '0.75rem 0.5rem' }}>
+                                                        <select required value={it.productRef} onChange={e => updateItem(idx, 'productRef', e.target.value)} style={{ ...inputStyle, background: '#fff', padding: '0.6rem 1rem', fontSize: '0.85rem' }}>
+                                                            <option value="" disabled>Select Product...</option>
+                                                            {products.map(p => <option key={p._id} value={p._id}>{p.name} [{p.productId}]</option>)}
+                                                        </select>
                                                     </td>
-                                                    <td style={{ padding: '0.5rem' }}>
-                                                        <input required type="number" min="1" value={it.quantity} onChange={e => updateItem(idx, 'quantity', parseInt(e.target.value) || 0)} style={{ ...inputStyle, background: '#fff', padding: '0.5rem', textAlign: 'center' }} />
+                                                    <td style={{ padding: '0.75rem 0.5rem' }}>
+                                                        <input required type="number" min="1" value={it.quantity} onChange={e => {
+                                                            const newQty = parseInt(e.target.value) || 1;
+                                                            updateItem(idx, 'quantity', newQty);
+                                                            // Clear extra serials if qty reduced
+                                                            if (it.serialNumbers?.length > newQty) {
+                                                                updateItem(idx, 'serialNumbers', it.serialNumbers.slice(0, newQty));
+                                                            }
+                                                        }} style={{ ...inputStyle, background: '#fff', padding: '0.6rem 0.5rem', textAlign: 'center', fontSize: '0.85rem' }} />
                                                     </td>
-                                                    <td style={{ padding: '0.5rem' }}>
-                                                        <input required type="number" step="0.01" value={it.unitPrice} onChange={e => updateItem(idx, 'unitPrice', parseFloat(e.target.value) || 0)} disabled={creationMode === 'automatic'} style={{ ...inputStyle, background: creationMode === 'automatic' ? '#f1f5f9' : '#fff', padding: '0.5rem', textAlign: 'right' }} />
+                                                    <td style={{ padding: '0.75rem 0.5rem' }}>
+                                                        <div style={{ position: 'relative' }}>
+                                                            <span style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', fontSize: '0.75rem' }}>{businessData?.primaryCurrency?.symbol || 'Rs.'}</span>
+                                                            <input required type="number" step="0.01" value={it.unitPrice} onChange={e => updateItem(idx, 'unitPrice', parseFloat(e.target.value) || 0)} disabled={creationMode === 'automatic'} style={{ ...inputStyle, background: creationMode === 'automatic' ? '#f8fafc' : '#fff', padding: '0.6rem 0.75rem 0.6rem 1.5rem', textAlign: 'right', fontSize: '0.85rem' }} />
+                                                        </div>
                                                     </td>
-                                                    <td style={{ padding: '0.5rem', textAlign: 'right', fontWeight: 800, color: '#0f172a' }}>
+                                                    <td style={{ padding: '0.75rem 0.5rem', textAlign: 'right', fontWeight: 800, color: '#0f172a', fontSize: '0.9rem' }}>
                                                         {it.lineTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                                                     </td>
-                                                    <td style={{ padding: '0.5rem' }}>
+                                                    <td style={{ padding: '0.75rem 0.5rem', textAlign: 'center' }}>
                                                         {creationMode === 'automatic' && it.productRef && (
-                                                            <div>
-                                                                <div style={{ display: 'flex', gap: '0.25rem', marginBottom: '0.25rem' }}>
-                                                                    <input type="text" placeholder="Search serial..." value={serialSearchTerm} onChange={e => setSerialSearchTerm(e.target.value)} style={{ ...inputStyle, padding: '0.35rem 0.5rem', fontSize: '0.75rem', flex: 1 }} />
-                                                                    <button type="button" onClick={async () => {
-                                                                        const matches = await handleSerialSearch(idx);
-                                                                        if (matches && matches.length === 0) showToast?.('No matching serials found', 'error');
-                                                                    }} style={{ background: '#0f172a', color: '#fff', border: 'none', borderRadius: '6px', padding: '0.35rem 0.5rem', cursor: 'pointer' }}><Search size={12} /></button>
-                                                                </div>
-                                                                <div style={{ maxHeight: '60px', overflowY: 'auto', fontSize: '0.7rem' }}>
-                                                                    {stockEntries.filter(e => e.product === it.productRef && e.serialNumbers.length > 0).flatMap(e =>
-                                                                        e.serialNumbers.filter(sn => !it.serialNumbers?.includes(sn)).map(sn => (
-                                                                            <label key={sn} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '2px 0' }}>
-                                                                                <input type="checkbox" checked={it.serialNumbers?.includes(sn) || false} onChange={() => toggleSerialForItem(idx, sn)} style={{ width: '12px', height: '12px' }} />
-                                                                                {sn}
-                                                                            </label>
-                                                                        ))
-                                                                    )}
-                                                                </div>
-                                                                {it.serialNumbers?.length > 0 && (
-                                                                    <div style={{ fontSize: '0.65rem', color: '#10b981', marginTop: '0.25rem' }}>Selected: {it.serialNumbers.length}</div>
-                                                                )}
-                                                            </div>
+                                                            <motion.button
+                                                                type="button"
+                                                                whileHover={{ scale: 1.05 }}
+                                                                whileTap={{ scale: 0.95 }}
+                                                                onClick={() => { setActiveItemIndex(idx); setIsSerialModalOpen(true); }}
+                                                                style={{
+                                                                    background: (it.serialNumbers?.length === it.quantity) ? '#10b981' : (it.serialNumbers?.length > 0 ? '#f59e0b' : '#0f172a'),
+                                                                    color: '#fff',
+                                                                    border: 'none',
+                                                                    borderRadius: '8px',
+                                                                    padding: '6px 12px',
+                                                                    fontSize: '0.7rem',
+                                                                    fontWeight: 800,
+                                                                    cursor: 'pointer',
+                                                                    display: 'inline-flex',
+                                                                    alignItems: 'center',
+                                                                    gap: '0.4rem'
+                                                                }}
+                                                            >
+                                                                <Barcode size={14} />
+                                                                {it.serialNumbers?.length || 0} / {it.quantity}
+                                                            </motion.button>
                                                         )}
+                                                        {creationMode === 'manual' && <div style={{ color: '#94a3b8', fontSize: '0.7rem', fontStyle: 'italic' }}>Manual Entry</div>}
                                                     </td>
-                                                    <td style={{ padding: '0.5rem', textAlign: 'right' }}>
-                                                        <button type="button" onClick={() => {
+                                                    <td style={{ padding: '0.75rem 0.5rem', textAlign: 'right' }}>
+                                                        <motion.button whileTap={{ scale: 0.9 }} type="button" onClick={() => {
                                                             setForm(prev => {
                                                                 const n = prev.items.filter((_, i) => i !== idx);
                                                                 const sub = n.reduce((acc, c) => acc + c.lineTotal, 0);
                                                                 return calculateTotals({ ...prev, items: n, subTotal: sub });
                                                             });
-                                                        }} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}><X size={16} /></button>
+                                                        }} style={{ background: '#fee2e2', border: 'none', color: '#ef4444', cursor: 'pointer', width: 32, height: 32, borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={16} /></motion.button>
                                                     </td>
                                                 </tr>
                                             ))}
-                                            {form.items.length === 0 && <tr><td colSpan="6" style={{ padding: '1rem', textAlign: 'center', color: '#94a3b8', fontSize: '0.8rem' }}>No items added.</td></tr>}
+                                            {form.items.length === 0 && <tr><td colSpan="6" style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8', fontSize: '0.85rem' }}>No modules connected to array. Use 'Add Item' to start.</td></tr>}
                                         </tbody>
                                         <tfoot>
                                             <tr>
-                                                <td colSpan="3" style={{ padding: '1rem', textAlign: 'right', fontWeight: 800 }}>Subtotal:</td>
-                                                <td style={{ padding: '1rem', textAlign: 'right', fontWeight: 900, fontSize: '1.1rem', color: '#0f172a', borderTop: '2px solid #e2e8f0' }}>{form.subTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+                                                <td colSpan="3" style={{ padding: '1rem', textAlign: 'right', fontWeight: 800, color: '#64748b', fontSize: '0.8rem' }}>NET SUB TOTAL:</td>
+                                                <td style={{ padding: '1rem', textAlign: 'right', fontWeight: 900, fontSize: '1.1rem', color: '#0f172a', borderTop: '2.5px solid #0f172a' }}>{form.subTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
                                                 <td colSpan="2"></td>
                                             </tr>
                                         </tfoot>
@@ -703,6 +725,66 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
 
                                 <motion.button whileTap={{ scale: 0.98 }} type="submit" style={{ background: '#10b981', color: '#fff', border: 'none', borderRadius: '12px', padding: '1rem', width: '100%', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', fontSize: '1rem' }}><CheckCircle size={20} /> Create Invoice</motion.button>
                             </form>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+            <AnimatePresence>
+                {isSerialModalOpen && activeItemIndex !== null && (
+                    <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem' }}>
+                        <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} style={{ background: '#fff', borderRadius: '24px', width: '100%', maxWidth: 600, boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', overflow: 'hidden' }}>
+                            <div style={{ background: '#0f172a', padding: '1.5rem 2rem', color: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <div>
+                                    <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900 }}>Serial Number Assignment</h3>
+                                    <p style={{ margin: '0.25rem 0 0', opacity: 0.7, fontSize: '0.8rem' }}>Assign {form.items[activeItemIndex].quantity} serials for {form.items[activeItemIndex].manualName}</p>
+                                </div>
+                                <button onClick={() => setIsSerialModalOpen(false)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '50%', width: 32, height: 32, color: '#fff', cursor: 'pointer' }}><X size={18} /></button>
+                            </div>
+                            <div style={{ padding: '2rem' }}>
+                                <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem' }}>
+                                    <div style={{ position: 'relative', flex: 1 }}>
+                                        <Search size={16} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+                                        <input type="text" placeholder="Scan or search serial..." value={serialSearchTerm} onChange={e => setSerialSearchTerm(e.target.value)} style={{ ...inputStyle, padding: '0.8rem 1rem 0.8rem 2.5rem', background: '#f8fafc' }} />
+                                    </div>
+                                    <motion.button whileTap={{ scale: 0.95 }} type="button" onClick={() => handleSerialSearch(activeItemIndex)} style={{ background: '#0f172a', color: '#fff', border: 'none', borderRadius: '12px', padding: '0 1.5rem', fontWeight: 800, cursor: 'pointer' }}>Find</motion.button>
+                                </div>
+
+                                <div style={{ marginBottom: '1.5rem' }}>
+                                    <div style={{ fontSize: '0.75rem', fontWeight: 900, color: '#64748b', textTransform: 'uppercase', marginBottom: '0.75rem', display: 'flex', justifyContent: 'space-between' }}>
+                                        <span>Available Stock</span>
+                                        <span style={{ color: form.items[activeItemIndex].serialNumbers?.length === form.items[activeItemIndex].quantity ? '#10b981' : '#f59e0b' }}>
+                                            {form.items[activeItemIndex].serialNumbers?.length || 0} / {form.items[activeItemIndex].quantity} Selected
+                                        </span>
+                                    </div>
+                                    <div style={{ maxHeight: '250px', overflowY: 'auto', border: '1.5px solid #f1f5f9', borderRadius: '16px', background: '#f8fafc' }}>
+                                        {stockEntries.filter(e => e.product === form.items[activeItemIndex].productRef && e.serialNumbers.length > 0).length > 0 ? (
+                                            stockEntries.filter(e => e.product === form.items[activeItemIndex].productRef).flatMap(e =>
+                                                e.serialNumbers
+                                                    .filter(sn => sn.toUpperCase().includes(serialSearchTerm.toUpperCase()))
+                                                    .map(sn => {
+                                                        const isSelected = form.items[activeItemIndex].serialNumbers?.includes(sn);
+                                                        return (
+                                                            <div key={sn} onClick={() => toggleSerialForItem(activeItemIndex, sn)} style={{
+                                                                display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 1.25rem', borderBottom: '1px solid #f1f5f9', cursor: 'pointer',
+                                                                background: isSelected ? '#d1fae5' : 'transparent', transition: 'all 0.2s'
+                                                            }}>
+                                                                <div>
+                                                                    <div style={{ fontWeight: 700, color: isSelected ? '#059669' : '#0f172a', fontSize: '0.9rem' }}>{sn}</div>
+                                                                    <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>Batch: {e.batchRef}</div>
+                                                                </div>
+                                                                {isSelected ? <CheckCircle size={18} color="#059669" /> : <div style={{ width: 18, height: 18, border: '2px solid #cbd5e1', borderRadius: '50%' }} />}
+                                                            </div>
+                                                        );
+                                                    })
+                                            )
+                                        ) : (
+                                            <div style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8', fontSize: '0.85rem' }}>No serial numbers found for this product.</div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <motion.button whileTap={{ scale: 0.98 }} onClick={() => setIsSerialModalOpen(false)} style={{ background: '#10b981', color: '#fff', border: 'none', borderRadius: '12px', padding: '1rem', width: '100%', fontWeight: 800, cursor: 'pointer', fontSize: '1rem' }}>Confirm Assignment</motion.button>
+                            </div>
                         </motion.div>
                     </div>
                 )}

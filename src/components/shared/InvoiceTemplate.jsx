@@ -110,8 +110,8 @@ const InvoiceTemplate = React.forwardRef(({ invoice, business }, ref) => {
                     <table style={{ marginLeft: 'auto', borderCollapse: 'collapse' }}>
                         <tbody>
                             {[
-                                { label: 'Invoice No', value: inv.invoiceId, mono: true, large: true },
-                                { label: 'Date', value: fmt(inv.createdAt || new Date()) },
+                                { label: 'Invoice No', value: inv.invoiceNumber, mono: true, large: true },
+                                { label: 'Date', value: fmt(inv.invoiceDate || inv.createdAt || new Date()) },
                                 { label: 'Payment', value: paymentLabels[inv.paymentMethod] || inv.paymentMethod },
                                 inv.paymentMethod === 'credit' && inv.creditPeriod?.duration > 0
                                     ? { label: 'Credit Terms', value: `${inv.creditPeriod.duration} ${inv.creditPeriod.unit}` }

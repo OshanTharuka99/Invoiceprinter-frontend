@@ -1,0 +1,571 @@
+/* ═══════════════════════════════════════════════════════
+   BusinessSettings.css  —  Premium Enterprise UI
+   ═══════════════════════════════════════════════════════ */
+
+.bs-root {
+  --bs-bg:        #f0f2f5;
+  --bs-card:      #ffffff;
+  --bs-border:    #e2e8f0;
+  --bs-focus:     #4f46e5;
+  --bs-t1:        #0f172a;
+  --bs-t2:        #475569;
+  --bs-t3:        #94a3b8;
+  --bs-green:     #059669;
+  --bs-green-s:   #ecfdf5;
+  --bs-red:       #ef4444;
+  --bs-red-s:     #fef2f2;
+  --bs-blue:      #2563eb;
+  --bs-blue-s:    #eff6ff;
+  --bs-amber:     #d97706;
+  --bs-amber-s:   #fffbeb;
+  --bs-indigo:    #6366f1;
+  --bs-indigo-s:  #eef2ff;
+  --bs-purple:    #8b5cf6;
+  --bs-sky:       #0ea5e9;
+  --bs-shadow-s:  0 1px 3px rgba(0,0,0,0.04);
+  --bs-shadow-m:  0 4px 16px rgba(0,0,0,0.08);
+  --bs-shadow-l:  0 16px 48px rgba(0,0,0,0.14);
+  --bs-shadow-xl: 0 25px 50px -12px rgba(0,0,0,0.35);
+  font-family: 'Inter','Segoe UI',system-ui,sans-serif;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+/* ── Sub Tab Bar ─────────────────────────────────────── */
+.bs-subtab-bar {
+  display: flex;
+  gap: 0.5rem;
+  background: #f1f5f9;
+  padding: 6px;
+  border-radius: 16px;
+  margin-bottom: 3rem;
+  width: fit-content;
+}
+
+.bs-subtab-btn {
+  padding: 0.8rem 1.5rem;
+  border: none;
+  background: transparent;
+  color: var(--bs-t2);
+  border-radius: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-size: 0.9rem;
+}
+
+.bs-subtab-btn:hover {
+  background: rgba(255,255,255,0.5);
+}
+
+.bs-subtab-btn--active {
+  background: var(--bs-t1);
+  color: #fff;
+}
+
+/* ── Header ──────────────────────────────────────────── */
+.bs-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 3.5rem;
+  gap: 2rem;
+}
+
+.bs-header-accent {
+  border-left: 4px solid var(--bs-t1);
+  padding-left: 1.5rem;
+}
+
+.bs-header-desc {
+  color: var(--bs-t2);
+  font-size: 1rem;
+  font-weight: 500;
+  margin: 0;
+  line-height: 1.6;
+  max-width: 600px;
+}
+
+.bs-header-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.9rem 1.5rem;
+  border: none;
+  border-radius: 16px;
+  font-weight: 900;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.2s;
+}
+
+.bs-header-btn--edit {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  color: #fff;
+  box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+}
+
+.bs-header-btn--edit:hover {
+  box-shadow: 0 14px 28px rgba(0,0,0,0.15);
+  transform: translateY(-1px);
+}
+
+.bs-header-btn--save {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #fff;
+  box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+}
+
+.bs-header-btn--save:hover {
+  box-shadow: 0 14px 28px rgba(16,185,129,0.25);
+  transform: translateY(-1px);
+}
+
+.bs-header-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* ── Card ────────────────────────────────────────────── */
+.bs-card {
+  background: var(--bs-card);
+  border: 1px solid var(--bs-border);
+  border-radius: 24px;
+  padding: 2.5rem;
+  margin-bottom: 2.5rem;
+  box-shadow: var(--bs-shadow-s);
+}
+
+.bs-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 2.5rem;
+}
+
+.bs-card-icon {
+  padding: 10px;
+  border-radius: 12px;
+  display: flex;
+}
+
+.bs-card-title {
+  margin: 0;
+  font-weight: 900;
+}
+
+.bs-card-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2.5rem;
+}
+
+.bs-card-header-row .bs-card-header {
+  margin-bottom: 0;
+}
+
+/* ── Logo Section ────────────────────────────────────── */
+.bs-logo-row {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.bs-logo-box {
+  width: 140px;
+  height: 140px;
+  background: #f8fafc;
+  border: 2px dashed #cbd5e1;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.bs-logo-box img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.bs-logo-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: var(--bs-t3);
+}
+
+.bs-logo-empty-text {
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-top: 8px;
+}
+
+.bs-logo-input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.bs-logo-info {
+  flex: 1;
+}
+
+.bs-logo-info p {
+  font-size: 0.85rem;
+  color: var(--bs-t2);
+  margin-bottom: 1rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+/* ── Form Grids ──────────────────────────────────────── */
+.bs-form-row-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 1.5rem;
+}
+
+.bs-form-row-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+}
+
+.bs-form-row-mixed {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: 1.5rem;
+}
+
+.bs-form-row-span3 {
+  grid-column: span 3;
+}
+
+.bs-form-row-span2 {
+  grid-column: span 2;
+}
+
+.bs-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* ── Form Labels & Inputs ────────────────────────────── */
+.bs-label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 900;
+  color: var(--bs-t2);
+  margin-bottom: 0.6rem;
+  text-transform: uppercase;
+}
+
+.bs-label-light {
+  color: var(--bs-t3);
+}
+
+.bs-input {
+  width: 100%;
+  border-radius: 12px;
+  padding: 0.9rem 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  outline: none;
+  transition: all 0.2s;
+  box-sizing: border-box;
+  font-family: inherit;
+}
+
+.bs-input--view {
+  background: #f8fafc;
+  border: 1.5px solid var(--bs-border);
+  color: var(--bs-t2);
+  cursor: default;
+}
+
+.bs-input--edit {
+  background: #fff;
+  border: 2px solid var(--bs-t1);
+  color: var(--bs-t1);
+}
+
+.bs-input--edit:focus {
+  border-color: var(--bs-focus);
+  box-shadow: 0 0 0 3px rgba(79,70,229,0.1);
+}
+
+.bs-input--dark {
+  background: transparent;
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.2);
+}
+
+.bs-input--dark:focus {
+  border-color: rgba(255,255,255,0.4);
+}
+
+select.bs-input {
+  cursor: pointer;
+}
+
+select.bs-input--view {
+  cursor: default;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+textarea.bs-input {
+  font-family: inherit;
+  resize: vertical;
+}
+
+.bs-textarea {
+  height: 80px;
+}
+
+.bs-textarea-lg {
+  height: 120px;
+}
+
+/* ── VAT Section ─────────────────────────────────────── */
+.bs-vat-card {
+  padding: 2.5rem;
+  border-radius: 24px;
+  transition: all 0.3s;
+  margin-bottom: 2.5rem;
+}
+
+.bs-vat-card--active {
+  background: var(--bs-t1);
+  color: #fff;
+}
+
+.bs-vat-card--inactive {
+  background: #f8fafc;
+  color: var(--bs-t1);
+}
+
+.bs-vat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.bs-vat-title {
+  font-weight: 950;
+  font-size: 1.25rem;
+}
+
+.bs-vat-status {
+  opacity: 0.6;
+  font-size: 0.85rem;
+  margin-top: 0.25rem;
+}
+
+.bs-vat-toggle {
+  width: 64px;
+  height: 32px;
+  border-radius: 32px;
+  border: none;
+  position: relative;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.2s;
+}
+
+.bs-vat-toggle--on {
+  background: var(--bs-green);
+}
+
+.bs-vat-toggle--off {
+  background: var(--bs-t3);
+  cursor: not-allowed;
+}
+
+.bs-vat-toggle--off.bs-vat-toggle--editable {
+  cursor: pointer;
+}
+
+.bs-vat-toggle-knob {
+  width: 24px;
+  height: 24px;
+  background: #fff;
+  border-radius: 50%;
+  position: absolute;
+  top: 4px;
+  transition: left 0.2s;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.bs-vat-toggle-knob--on {
+  left: 36px;
+}
+
+.bs-vat-toggle-knob--off {
+  left: 4px;
+}
+
+.bs-vat-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  border-top: 1px solid rgba(255,255,255,0.1);
+  padding-top: 1.5rem;
+  margin-top: 2rem;
+}
+
+/* ── Tax / Discount Dynamic Rows ─────────────────────── */
+.bs-dynamic-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2.5rem;
+}
+
+.bs-dynamic-header .bs-card-header {
+  margin-bottom: 0;
+}
+
+.bs-add-btn {
+  background: var(--bs-t1);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  padding: 0.7rem 1.25rem;
+  font-weight: 800;
+  cursor: pointer;
+  font-size: 0.85rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.bs-add-btn:hover {
+  background: #1e293b;
+}
+
+.bs-dynamic-row {
+  display: grid;
+  gap: 1rem;
+  background: #f8fafc;
+  padding: 1.25rem;
+  border-radius: 20px;
+  border: 1px solid #f1f5f9;
+  align-items: end;
+  margin-bottom: 1.5rem;
+}
+
+.bs-dynamic-row:last-child {
+  margin-bottom: 0;
+}
+
+.bs-dynamic-row--tax {
+  grid-template-columns: 2fr 1fr 1fr 50px;
+}
+
+.bs-dynamic-row--discount {
+  grid-template-columns: 2fr 1fr 1fr 1.5fr 50px;
+}
+
+.bs-remove-btn {
+  color: var(--bs-red);
+  background: none;
+  border: none;
+  cursor: pointer;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+/* ── Quotation / Invoice Section ─────────────────────── */
+.bs-doc-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 2.5rem;
+}
+
+.bs-doc-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.bs-doc-form {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+}
+
+/* ── Responsive ──────────────────────────────────────── */
+@media (max-width: 1024px) {
+  .bs-form-row-3,
+  .bs-form-row-mixed {
+    grid-template-columns: 1fr 1fr;
+  }
+  .bs-form-row-span3 {
+    grid-column: span 2;
+  }
+}
+
+@media (max-width: 768px) {
+  .bs-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .bs-header-btn {
+    width: 100%;
+    justify-content: center;
+  }
+  .bs-card {
+    padding: 1.5rem;
+  }
+  .bs-form-row-3,
+  .bs-form-row-2,
+  .bs-form-row-mixed {
+    grid-template-columns: 1fr;
+  }
+  .bs-form-row-span3,
+  .bs-form-row-span2 {
+    grid-column: span 1;
+  }
+  .bs-logo-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .bs-vat-fields {
+    grid-template-columns: 1fr;
+  }
+  .bs-dynamic-row--tax,
+  .bs-dynamic-row--discount {
+    grid-template-columns: 1fr;
+  }
+  .bs-remove-btn {
+    margin-bottom: 0;
+  }
+  .bs-subtab-bar {
+    width: 100%;
+  }
+  .bs-subtab-btn {
+    flex: 1;
+    text-align: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .bs-dynamic-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+}

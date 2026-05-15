@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Truck, Plus, X, Edit2, Trash2, Search, RefreshCw, AlertTriangle, FileText, Phone, Mail, MapPin, Landmark, CreditCard, User } from 'lucide-react';
+import { Truck, Plus, X, Edit2, Trash2, Search, RefreshCw, AlertTriangle, FileText, Phone, Mail, MapPin, Landmark, Building2, Users, CheckCircle2, DollarSign, CreditCard } from 'lucide-react';
 import api from '../../api';
+import './SupplierManagement.css';
 
 const SupplierManagement = ({ currentUser, showToast }) => {
     const [vendors, setVendors] = useState([]);
@@ -76,159 +77,283 @@ const SupplierManagement = ({ currentUser, showToast }) => {
         (v.supplierId || '').toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    const cardStyle = { background: '#fff', border: '1px solid #e2e8f0', borderRadius: '24px', padding: '2.5rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' };
-    const labelStyle = { display: 'block', fontSize: '0.75rem', fontWeight: 900, color: '#64748b', marginBottom: '0.6rem', textTransform: 'uppercase' };
-    const inputStyle = { width: '100%', background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: '12px', padding: '0.9rem 1.25rem', color: '#0f172a', outline: 'none', fontWeight: 600, boxSizing: 'border-box' };
+    const withBank = vendors.filter(v => v.bankDetails?.bankName).length;
 
     return (
-        <div style={{ maxWidth: 1400, margin: '0 auto' }}>
-            {loading ? ( <div style={{ display: 'flex', justifyContent: 'center', padding: '4rem' }}><RefreshCw className="animate-spin" color="#64748b" /></div> ) : (
-                <div style={cardStyle}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                            <div style={{ background: '#0f172a10', color: '#0f172a', padding: '10px', borderRadius: '12px' }}><Truck size={24} /></div> 
-                            <div>
-                                <h3 style={{ margin: 0, fontWeight: 900 }}>Vendor Management</h3>
-                                <p style={{ margin: '0.2rem 0 0', fontSize: '0.85rem', color: '#64748b' }}>Centrally manage supply chain entities and archival.</p>
-                            </div>
-                        </div>
-                        <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-                            <div style={{ position: 'relative' }}>
-                                <Search size={16} title="Locate entity" style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
-                                <input type="text" title="Enter search parameters" placeholder="Search vendors..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} style={{ padding: '0.8rem 1rem 0.8rem 2.5rem', borderRadius: '12px', border: '1px solid #e2e8f0', width: 240, outline: 'none' }} />
-                            </div>
-                            <motion.button whileTap={{ scale: 0.95 }} title="Establish new supply entity" onClick={() => openModal()} style={{ background: '#0f172a', color: '#fff', border: 'none', borderRadius: '12px', padding: '0.8rem 1.5rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Plus size={18} /> Add Vendor</motion.button>
-                        </div>
-                    </div>
+        <div className="sm-root">
+            {/* Header Section */}
+            <div className="sm-header-top">
+                <div>
+                    <h1 className="sm-header-title">Vendor Management</h1>
+                    <p className="sm-header-sub">Centrally manage supply chain entities and archival.</p>
+                </div>
+                <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => openModal()}
+                    className="sm-btn-gradient">
+                    <Plus size={18} /> New Vendor
+                </motion.button>
+            </div>
 
-                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+            {/* Stats Cards */}
+            <div className="sm-stats">
+                {[
+                    { label: 'Total Vendors', value: vendors.length, icon: Building2, color: '#3b82f6', bg: '#eff6ff' },
+                    { label: 'With Bank Details', value: withBank, icon: CheckCircle2, color: '#10b981', bg: '#ecfdf5' },
+                    { label: 'Pending Archival', value: vendors.length - withBank, icon: CreditCard, color: '#f59e0b', bg: '#fffbeb' },
+                    { label: 'Contacted Vendors', value: vendors.filter(v => v.telephoneNumber || v.emailAddress).length, icon: Users, color: '#8b5cf6', bg: '#f5f3ff' }
+                ].map((stat, idx) => (
+                    <motion.div
+                        key={idx}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: idx * 0.1 }}
+                        className="sm-stat-card">
+                        <div className="sm-stat-icon-wrap" style={{ background: stat.bg }}>
+                            <stat.icon size={22} color={stat.color} />
+                        </div>
+                        <div>
+                            <div className="sm-stat-label">{stat.label}</div>
+                            <div className="sm-stat-value">{stat.value}</div>
+                        </div>
+                    </motion.div>
+                ))}
+            </div>
+
+            {/* Search Bar */}
+            <div className="sm-search-bar">
+                <div className="sm-search-wrap">
+                    <Search size={18} className="sm-search-icon" />
+                    <input
+                        type="text"
+                        placeholder="Search vendors by name or ID..."
+                        value={searchTerm}
+                        onChange={e => setSearchTerm(e.target.value)}
+                        className="sm-search-input"
+                    />
+                </div>
+                <motion.button
+                    whileTap={{ scale: 0.95 }}
+                    onClick={fetchData}
+                    className="sm-btn-refresh">
+                    <RefreshCw size={18} color="#64748b" />
+                </motion.button>
+            </div>
+
+            {/* Content */}
+            {loading ? (
+                <div className="sm-loading">
+                    <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
+                        <RefreshCw size={32} color="#64748b" />
+                    </motion.div>
+                </div>
+            ) : filtered.length === 0 ? (
+                <div className="sm-empty">
+                    <Truck size={64} color="#cbd5e1" className="sm-empty-icon" />
+                    <h3 className="sm-empty-title">No vendors found</h3>
+                    <p className="sm-empty-sub">{searchTerm ? 'Try adjusting your search terms' : 'Create your first vendor to get started'}</p>
+                </div>
+            ) : (
+                <div className="sm-table-wrap">
+                    <table className="sm-table">
                         <thead>
-                            <tr style={{ borderBottom: '2px solid #f1f5f9' }}>
-                                <th style={{ padding: '1.25rem 1rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.75rem' }}>Identity & ID</th>
-                                <th style={{ padding: '1.25rem 1rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.75rem' }}>Contact Matrix</th>
-                                <th style={{ padding: '1.25rem 1rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.75rem' }}>Bank Archival</th>
-                                <th style={{ padding: '1.25rem 1rem', textAlign: 'right' }}>Management</th>
+                            <tr>
+                                <th>Vendor</th>
+                                <th>Contact</th>
+                                <th>Bank Status</th>
+                                <th style={{ textAlign: 'right' }}>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {filtered.map(v => (
-                                <tr key={v._id} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.2s' }}>
-                                    <td style={{ padding: '1.25rem 1rem' }}>
-                                        <div style={{ fontWeight: 800, color: '#0f172a' }}>{v.name}</div>
-                                        <div style={{ fontSize: '0.75rem', color: '#2563eb', fontWeight: 700 }}>{v.supplierId}</div>
-                                    </td>
-                                    <td style={{ padding: '1.25rem 1rem', fontSize: '0.85rem', color: '#475569', fontWeight: 600 }}>
-                                        {v.telephoneNumber && <div>📞 {v.telephoneNumber}</div>}
-                                        {v.emailAddress && <div>📧 {v.emailAddress}</div>}
-                                    </td>
-                                    <td style={{ padding: '1.25rem 1rem' }}>
-                                        {v.bankDetails?.bankName ? (
-                                            <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#059669', background: '#ecfdf5', padding: '4px 10px', borderRadius: '8px', border: '1px solid #d1fae5', width: 'fit-content' }}>
-                                               ACTIVE: {v.bankDetails.bankName}
+                            {filtered.map((v, idx) => (
+                                <motion.tr
+                                    key={v._id}
+                                    initial={{ opacity: 0, x: -10 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    transition={{ delay: idx * 0.03 }}
+                                    onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'}
+                                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                                    <td>
+                                        <div className="sm-table-name">
+                                            <div className="sm-table-name-icon" style={{ background: '#fffbeb' }}><Truck size={16} color="#f59e0b" /></div>
+                                            <div>
+                                                <div className="sm-table-name-text">{v.name}</div>
+                                                <div className="sm-table-id">{v.supplierId}</div>
                                             </div>
-                                        ) : (
-                                            <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8' }}>INCOMPLETE ARCHIVAL</div>
-                                        )}
-                                    </td>
-                                    <td style={{ padding: '1.25rem 1rem', textAlign: 'right' }}>
-                                        <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'flex-end' }}>
-                                            <motion.button whileTap={{ scale: 0.9 }} title="Inspect Entity Specifications" onClick={() => setViewVendor(v)} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '8px 12px', cursor: 'pointer', fontWeight: 800, color: '#0f172a', display: 'flex', gap: '0.4rem', fontSize: '0.7rem' }}><FileText size={12} /> View</motion.button>
-                                            <motion.button whileTap={{ scale: 0.9 }} title="Modify Archival Configuration" onClick={() => openModal(v)} style={{ background: '#eff6ff', border: '1px solid #dbeafe', borderRadius: '8px', padding: '8px 12px', cursor: 'pointer', fontWeight: 800, color: '#2563eb', display: 'flex', gap: '0.4rem', fontSize: '0.7rem' }}><Edit2 size={12} /> Edit</motion.button>
-                                            <motion.button whileTap={{ scale: 0.9 }} title="Initiate Elimination Sequence" onClick={() => deleteVendor(v._id)} style={{ background: '#fff1f2', border: '1px solid #fee2e2', borderRadius: '8px', padding: '8px 12px', cursor: 'pointer', fontWeight: 800, color: '#ef4444', fontSize: '0.7rem' }}>Delete</motion.button>
                                         </div>
                                     </td>
-                                </tr>
+                                    <td className="sm-table-contact">
+                                        {v.telephoneNumber && <div><Phone size={12} color="#94a3b8" /> {v.telephoneNumber}</div>}
+                                        {v.emailAddress && <div><Mail size={12} color="#94a3b8" /> {v.emailAddress}</div>}
+                                        {!v.telephoneNumber && !v.emailAddress && <span style={{ color: '#94a3b8' }}>—</span>}
+                                    </td>
+                                    <td>
+                                        {v.bankDetails?.bankName ? (
+                                            <span className="sm-table-badge sm-table-badge-active">{v.bankDetails.bankName}</span>
+                                        ) : (
+                                            <span className="sm-table-badge sm-table-badge-inactive">Not Set</span>
+                                        )}
+                                    </td>
+                                    <td>
+                                        <div className="sm-table-actions">
+                                            <motion.button whileTap={{ scale: 0.9 }} onClick={() => setViewVendor(v)} className="sm-table-btn sm-table-btn-view"><FileText size={11} /> View</motion.button>
+                                            <motion.button whileTap={{ scale: 0.9 }} onClick={() => openModal(v)} className="sm-table-btn sm-table-btn-edit"><Edit2 size={11} /> Edit</motion.button>
+                                            <motion.button whileTap={{ scale: 0.9 }} onClick={() => deleteVendor(v._id)} className="sm-table-btn sm-table-btn-delete"><Trash2 size={11} /> Delete</motion.button>
+                                        </div>
+                                    </td>
+                                </motion.tr>
                             ))}
                         </tbody>
                     </table>
                 </div>
             )}
 
-            {/* VIEW MODAL */}
+            {/* View Modal */}
             <AnimatePresence>
                 {viewVendor && (
-                    <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-                        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} style={{ background: '#fff', borderRadius: '32px', padding: '3rem', width: '100%', maxWidth: 550, boxShadow: '0 50px 100px -20px rgba(0,0,0,0.4)', maxHeight: '90vh', overflowY: 'auto' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2.5rem' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                    <div style={{ background: '#0f172a10', color: '#0f172a', padding: '12px', borderRadius: '15px' }}><Truck size={24} /></div>
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="sm-overlay"
+                        onClick={() => setViewVendor(null)}>
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            onClick={(e) => e.stopPropagation()}
+                            className="sm-modal sm-modal-md">
+                            <div className="sm-modal-header">
+                                <div className="sm-modal-title-row">
+                                    <div className="sm-modal-icon-wrap" style={{ background: '#fffbeb' }}><Truck size={24} color="#f59e0b" /></div>
                                     <div>
-                                        <h3 style={{ margin: 0, fontWeight: 900 }}>{viewVendor.name}</h3>
-                                        <span style={{ fontSize: '0.8rem', color: '#2563eb', fontWeight: 800 }}>{viewVendor.supplierId}</span>
+                                        <h3 className="sm-modal-title">{viewVendor.name}</h3>
+                                        <span className="sm-modal-badge">{viewVendor.supplierId}</span>
                                     </div>
                                 </div>
-                                <motion.button whileTap={{ scale: 0.9 }} onClick={() => setViewVendor(null)} style={{ background: '#f1f5f9', border: 'none', borderRadius: '50%', width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><X size={20}/></motion.button>
+                                <motion.button whileTap={{ scale: 0.9 }} onClick={() => setViewVendor(null)} className="sm-modal-close"><X size={20} /></motion.button>
                             </div>
-                            <div style={{ display: 'grid', gap: '1.5rem' }}>
-                                <div style={{ background: '#f8fafc', padding: '2rem', borderRadius: '24px', border: '1px solid #e2e8f0' }}>
-                                    <h4 style={{ margin: '0 0 1.25rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 900, color: '#64748b', fontSize: '0.75rem', textTransform: 'uppercase' }}><User size={16}/> Identity Matrix</h4>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}><Phone size={16} color="#94a3b8"/> <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#0f172a' }}>{viewVendor.telephoneNumber || '--'}</div></div>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}><Mail size={16} color="#94a3b8"/> <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#0f172a' }}>{viewVendor.emailAddress || '--'}</div></div>
-                                    <div style={{ display: 'flex', alignItems: 'start', gap: '1rem' }}><MapPin size={16} color="#94a3b8" style={{marginTop: '4px'}}/> <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#0f172a', lineHeight: '1.4' }}>{viewVendor.address || '--'}</div></div>
-                                </div>
-                                <div style={{ background: '#0f172a', color: '#fff', padding: '2rem', borderRadius: '24px' }}>
-                                    <h4 style={{ margin: '0 0 1.5rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 900, color: '#94a3b8', fontSize: '0.75rem', textTransform: 'uppercase' }}><Landmark size={16}/> Financial Settlement Arclight</h4>
-                                    {viewVendor.bankDetails?.bankName ? (
-                                        <div style={{ display: 'grid', gap: '1rem' }}>
-                                            <div><div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#64748b' }}>SETTLEMENT INSTITUTION</div><div style={{ fontSize: '1rem', fontWeight: 800 }}>{viewVendor.bankDetails.bankName} ({viewVendor.bankDetails.branch})</div></div>
-                                            <div><div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#64748b' }}>ACCOUNT DESIGNATION</div><div style={{ fontSize: '1rem', fontWeight: 800 }}>{viewVendor.bankDetails.accountName}</div></div>
-                                            <div><div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#64748b' }}>ROUTING NUMBER / ACC</div><div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#10b981', letterSpacing: '2px' }}>{viewVendor.bankDetails.accountNumber}</div></div>
+                            <div className="sm-detail-grid">
+                                {[
+                                    { icon: Phone, label: 'CONTACT NUMBER', value: viewVendor.telephoneNumber || '--' },
+                                    { icon: Mail, label: 'EMAIL ADDRESS', value: viewVendor.emailAddress || '--' },
+                                    { icon: MapPin, label: 'ADDRESS', value: viewVendor.address || '--' }
+                                ].map((item, idx) => (
+                                    <div key={idx} className="sm-detail-item">
+                                        <div className="sm-detail-icon-box"><item.icon size={18} color="#64748b" /></div>
+                                        <div>
+                                            <div className="sm-detail-label">{item.label}</div>
+                                            <div className="sm-detail-value">{item.value}</div>
                                         </div>
-                                    ) : ( <div style={{ textAlign: 'center', padding: '1rem', color: '#94a3b8' }}>NO SETTLEMENT DATA LOGGED</div> )}
-                                </div>
+                                    </div>
+                                ))}
+                                {viewVendor.bankDetails?.bankName && (
+                                    <div className="sm-detail-item">
+                                        <div className="sm-detail-icon-box"><Landmark size={18} color="#64748b" /></div>
+                                        <div>
+                                            <div className="sm-detail-label">BANK DETAILS</div>
+                                            <div className="sm-detail-value">{viewVendor.bankDetails.bankName} ({viewVendor.bankDetails.branch})</div>
+                                            <div className="sm-detail-value sm-detail-value-green">{viewVendor.bankDetails.accountName} — {viewVendor.bankDetails.accountNumber}</div>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
-                            <motion.button whileTap={{ scale: 0.98 }} onClick={() => setViewVendor(null)} style={{ background: '#0f172a', color: '#fff', border: 'none', borderRadius: '14px', width: '100%', padding: '1.1rem', fontWeight: 800, cursor: 'pointer', marginTop: '2rem' }}>Close Inspector</motion.button>
+                            <motion.button whileTap={{ scale: 0.98 }} onClick={() => setViewVendor(null)} className="sm-btn-close">Close</motion.button>
                         </motion.div>
-                    </div>
+                    </motion.div>
                 )}
             </AnimatePresence>
 
-            {/* ADD/EDIT MODAL */}
+            {/* Create/Edit Modal */}
             <AnimatePresence>
                 {isModalOpen && (
-                    <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.4)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-                        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} style={{ background: '#fff', borderRadius: '32px', padding: '3rem', width: '100%', maxWidth: 700, boxShadow: '0 50px 100px -20px rgba(0,0,0,0.3)', maxHeight: '90vh', overflowY: 'auto' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2.5rem' }}>
-                                <h2 style={{ margin: 0, fontWeight: 900, fontSize: '1.5rem' }}>{editingVendor ? 'Sync Supplier' : 'Establish Supplier'}</h2>
-                                <motion.button whileTap={{ scale: 0.8 }} title="Close Modal" onClick={() => setIsModalOpen(false)} style={{ background: '#f1f5f9', border: 'none', borderRadius: '50%', width: 40, height: 40, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={24} /></motion.button>
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="sm-overlay"
+                        onClick={() => setIsModalOpen(false)}>
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            onClick={(e) => e.stopPropagation()}
+                            className="sm-modal sm-modal-lg">
+                            <div className="sm-modal-header">
+                                <h2 className="sm-form-title">{editingVendor ? 'Edit Vendor' : 'New Vendor'}</h2>
+                                <motion.button whileTap={{ scale: 0.9 }} onClick={() => setIsModalOpen(false)} className="sm-modal-close"><X size={20} /></motion.button>
                             </div>
                             <form onSubmit={saveVendor}>
-                                <div style={{ background: '#f8fafc', padding: '2rem', borderRadius: '24px', border: '1px solid #e2e8f0', marginBottom: '2rem' }}>
-                                    <h4 style={{ margin: '0 0 1.5rem 0', fontWeight: 800 }}>Profile Designation</h4>
-                                    <div style={{ gridColumn: 'span 2', marginBottom: '1.5rem' }}><label style={labelStyle}>Entity Name</label><input title="Full business/entity nomenclature" value={form.name} onChange={e => setForm({...form, name: e.target.value})} required style={{...inputStyle, background: '#fff'}} /></div>
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                                        <div><label style={labelStyle}>Primary Telephone</label><input title="Contact number" value={form.telephoneNumber} onChange={e => setForm({...form, telephoneNumber: e.target.value})} style={{...inputStyle, background: '#fff'}} /></div>
-                                        <div><label style={labelStyle}>Mail Exchange</label><input title="Email address" type="email" value={form.emailAddress} onChange={e => setForm({...form, emailAddress: e.target.value})} style={{...inputStyle, background: '#fff'}} /></div>
-                                        <div style={{ gridColumn: 'span 2' }}><label style={labelStyle}>Physical Domicile</label><input title="Geographic location" value={form.address} onChange={e => setForm({...form, address: e.target.value})} style={{...inputStyle, background: '#fff'}} /></div>
+                                <div className="sm-form-group">
+                                    <label className="sm-label">Vendor Name</label>
+                                    <input value={form.name} onChange={e => setForm({...form, name: e.target.value})} required className="sm-input" />
+                                </div>
+                                <div className="sm-form-section">
+                                    <h4 className="sm-form-section-title">Contact Information</h4>
+                                    <div className="sm-form-row-2">
+                                        <div>
+                                            <label className="sm-label">Telephone</label>
+                                            <input value={form.telephoneNumber} onChange={e => setForm({...form, telephoneNumber: e.target.value})} className="sm-input" />
+                                        </div>
+                                        <div>
+                                            <label className="sm-label">Email</label>
+                                            <input type="email" value={form.emailAddress} onChange={e => setForm({...form, emailAddress: e.target.value})} className="sm-input" />
+                                        </div>
+                                        <div className="sm-form-row-full">
+                                            <label className="sm-label">Address</label>
+                                            <input value={form.address} onChange={e => setForm({...form, address: e.target.value})} className="sm-input" />
+                                        </div>
                                     </div>
                                 </div>
-                                <div style={{ background: '#0f172a', color: '#fff', padding: '2rem', borderRadius: '24px' }}>
-                                    <h4 style={{ margin: '0 0 1.5rem 0', fontWeight: 800 }}>Financial Settlement Arclight</h4>
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
-                                        <div><label style={{...labelStyle, color: '#94a3b8'}}>Bank Institution</label><input title="Full name of financial institution" value={form.bankDetails.bankName} onChange={e => setForm({...form, bankDetails: {...form.bankDetails, bankName: e.target.value}})} style={{...inputStyle, background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid rgba(255,255,255,0.1)'}} /></div>
-                                        <div><label style={{...labelStyle, color: '#94a3b8'}}>Branch Node</label><input title="Geographic branch location" value={form.bankDetails.branch} onChange={e => setForm({...form, bankDetails: {...form.bankDetails, branch: e.target.value}})} style={{...inputStyle, background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid rgba(255,255,255,0.1)'}} /></div>
-                                        <div><label style={{...labelStyle, color: '#94a3b8'}}>Account Designation</label><input title="Exact name on financial account" value={form.bankDetails.accountName} onChange={e => setForm({...form, bankDetails: {...form.bankDetails, accountName: e.target.value}})} style={{...inputStyle, background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid rgba(255,255,255,0.1)'}} /></div>
-                                        <div><label style={{...labelStyle, color: '#94a3b8'}}>Account Registry Number</label><input title="Unique account identifier" value={form.bankDetails.accountNumber} onChange={e => setForm({...form, bankDetails: {...form.bankDetails, accountNumber: e.target.value}})} style={{...inputStyle, background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid rgba(255,255,255,0.1)'}} /></div>
+                                <div className="sm-form-section">
+                                    <h4 className="sm-form-section-title">Bank Details</h4>
+                                    <div className="sm-form-row-2">
+                                        <div>
+                                            <label className="sm-label">Bank Name</label>
+                                            <input value={form.bankDetails.bankName} onChange={e => setForm({...form, bankDetails: {...form.bankDetails, bankName: e.target.value}})} className="sm-input" />
+                                        </div>
+                                        <div>
+                                            <label className="sm-label">Branch</label>
+                                            <input value={form.bankDetails.branch} onChange={e => setForm({...form, bankDetails: {...form.bankDetails, branch: e.target.value}})} className="sm-input" />
+                                        </div>
+                                        <div>
+                                            <label className="sm-label">Account Name</label>
+                                            <input value={form.bankDetails.accountName} onChange={e => setForm({...form, bankDetails: {...form.bankDetails, accountName: e.target.value}})} className="sm-input" />
+                                        </div>
+                                        <div>
+                                            <label className="sm-label">Account Number</label>
+                                            <input value={form.bankDetails.accountNumber} onChange={e => setForm({...form, bankDetails: {...form.bankDetails, accountNumber: e.target.value}})} className="sm-input" />
+                                        </div>
                                     </div>
                                 </div>
-                                <motion.button whileTap={{ scale: 0.98 }} title="Commit entity to supply matrix" type="submit" style={{ ...inputStyle, background: '#10b981', color: '#fff', border: 'none', justifyContent: 'center', padding: '1.25rem', fontSize: '1.1rem', marginTop: '2.5rem' }}>EXECUTE SYNCHRONIZATION</motion.button>
+                                <motion.button whileTap={{ scale: 0.98 }} type="submit" className="sm-btn-submit">
+                                    {editingVendor ? 'Update Vendor' : 'Create Vendor'}
+                                </motion.button>
                             </form>
                         </motion.div>
-                    </div>
+                    </motion.div>
                 )}
             </AnimatePresence>
 
-             {/* CONFIRMATION MODAL */}
-             <AnimatePresence>
+            {/* Delete Confirmation Modal */}
+            <AnimatePresence>
                 {confirmAction && (
-                    <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000}}>
-                        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} style={{ background: '#fff', borderRadius: '32px', padding: '3rem', width: '100%', maxWidth: 450, textAlign: 'center', boxShadow: '0 50px 100px -20px rgba(0,0,0,0.4)' }}>
-                            <AlertTriangle size={64} color="#ef4444" style={{ marginBottom: '1.5rem', margin: '0 auto' }} />
-                            <h3 style={{ margin: 0, fontWeight: 900, fontSize: '1.5rem', color: '#0f172a' }}>Authorize De-Authorization?</h3>
-                            <p style={{ color: '#64748b', marginTop: '1rem', marginBottom: '2.5rem', fontWeight: 600 }}>{confirmAction.message}</p>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}><motion.button whileTap={{ scale: 0.95 }} title="Abort Operation" onClick={() => setConfirmAction(null)} style={{ padding: '1rem', borderRadius: '16px', border: '1.5px solid #e2e8f0', background: '#fff', cursor: 'pointer', fontWeight: 800 }}>Abort</motion.button><motion.button whileTap={{ scale: 0.95 }} title="Execute Record Elimination" onClick={() => { confirmAction.onConfirm(); setConfirmAction(null); }} style={{ padding: '1rem', borderRadius: '16px', border: 'none', background: '#ef4444', color: '#fff', cursor: 'pointer', fontWeight: 800 }}>Confirm</motion.button></div>
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="sm-overlay">
+                        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="sm-modal sm-modal-sm" style={{ textAlign: 'center' }}>
+                            <div className="sm-confirm-icon-box"><AlertTriangle size={40} color="#ef4444" /></div>
+                            <h3 className="sm-confirm-title">Confirm Deletion</h3>
+                            <p className="sm-confirm-msg">{confirmAction.message}</p>
+                            <div className="sm-confirm-actions">
+                                <motion.button whileTap={{ scale: 0.98 }} onClick={() => setConfirmAction(null)} className="sm-btn-cancel">Cancel</motion.button>
+                                <motion.button whileTap={{ scale: 0.98 }} onClick={() => { confirmAction.onConfirm(); setConfirmAction(null); }} className="sm-btn-danger">Delete</motion.button>
+                            </div>
                         </motion.div>
-                    </div>
+                    </motion.div>
                 )}
             </AnimatePresence>
         </div>

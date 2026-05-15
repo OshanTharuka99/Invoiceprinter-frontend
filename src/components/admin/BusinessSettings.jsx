@@ -26,7 +26,8 @@ const BusinessSettings = ({ currentUser, showToast }) => {
             { name: 'Summer Sale', type: 'percentage', value: 10, minBillAmount: 10000 },
             { name: 'Test Profile', type: 'fixed', value: 500, minBillAmount: 0 }
         ],
-        quotationTerms: 'Standard terms and conditions apply.', quotationNotes: ''
+        quotationTerms: 'Standard terms and conditions apply.', quotationNotes: '',
+        invoiceTerms: 'Standard invoice terms and conditions apply.', invoiceNotes: ''
     });
 
     const [isEditMode, setIsEditMode] = useState(false);
@@ -35,7 +36,14 @@ const BusinessSettings = ({ currentUser, showToast }) => {
     const fetchDetails = async () => {
         try {
             const res = await api.get('/business');
-            if (res.data.data.details) setBusinessData(res.data.data.details);
+            if (res.data.data.details) {
+                const details = res.data.data.details;
+                setBusinessData({
+                    ...details,
+                    invoiceTerms: details.invoiceTerms || 'Standard invoice terms and conditions apply.',
+                    invoiceNotes: details.invoiceNotes || ''
+                });
+            }
         } catch (err) { showToast('Sync failed', 'error'); }
     };
 

@@ -20,6 +20,8 @@
   --im-indigo-s:  #e0e7ff;
   --im-amber:     #d97706;
   --im-amber-s:   #fef3c7;
+  --im-yellow:    #f59e0b;
+  --im-yellow-s:  #fef3c7;
   --im-shadow-s:  0 1px 4px rgba(0,0,0,0.06);
   --im-shadow-m:  0 4px 16px rgba(0,0,0,0.08);
   --im-shadow-l:  0 16px 48px rgba(0,0,0,0.14);
@@ -95,6 +97,7 @@
 .im-btn-success:hover { background:#047857; box-shadow:0 4px 14px rgba(5,150,105,0.35); }
 .im-btn-outline { background:#fff; color:var(--im-t2); border:1.5px solid var(--im-border); }
 .im-btn-outline:hover { border-color:#9ca3af; background:#f9fafb; }
+.im-btn-outline:hover { border-color:#9ca3af; background:#f9fafb; }
 .im-btn-full { width:100%; justify-content:center; padding:0.9rem; font-size:0.95rem; border-radius:12px; }
 
 .im-btn-view  { background:#f8fafc; color:var(--im-t2); border:1px solid var(--im-border); padding:5px 11px; font-size:0.73rem; border-radius:8px; }
@@ -104,7 +107,7 @@
 
 .im-search-wrap { position:relative; }
 .im-search-icon { position:absolute; left:0.85rem; top:50%; transform:translateY(-50%); color:var(--im-t3); pointer-events:none; }
-.im-search-input { padding:0.6rem 0.9rem 0.6rem 2.3rem; border-radius:10px; border:1.5px solid var(--im-border); font-size:0.85rem; outline:none; transition:all 0.2s; width:210px; background:#f9fafb; }
+.im-search-input { padding:0.6rem 0.9rem 0.6rem 2.3rem; border-radius:10px; border:1.5px solid var(--im-border); font-size:0.85rem; outline:none; transition:all 0.2s; width:280px; background:#f9fafb; }
 .im-search-input:focus { border-color:var(--im-focus); background:#fff; box-shadow:0 0 0 3px rgba(79,70,229,0.1); }
 .im-select { padding:0.6rem 1rem; border-radius:10px; border:1.5px solid var(--im-border); font-size:0.85rem; font-weight:700; color:var(--im-t2); background:#f9fafb; outline:none; cursor:pointer; transition:all 0.2s; }
 .im-select:focus { border-color:var(--im-focus); background:#fff; }
@@ -120,11 +123,14 @@
 .im-table-actions { display:flex; gap:5px; justify-content:flex-end; flex-wrap:wrap; }
 
 .im-badge { display:inline-flex; align-items:center; gap:4px; padding:3px 10px; border-radius:20px; font-weight:700; font-size:0.7rem; white-space:nowrap; }
-.im-badge-code   { background:#f1f5f9; color:var(--im-t2); border:1px solid var(--im-border); font-family:monospace; }
+.im-badge-id     { background:var(--im-yellow-s); color:var(--im-yellow); border:1px solid #fde68a; font-family:monospace; letter-spacing:0.04em; }
+.im-badge-draft  { background:var(--im-blue-s); color:var(--im-blue); border:1px solid #bfdbfe; }
+.im-badge-sent   { background:var(--im-amber-s); color:var(--im-amber); border:1px solid #fde68a; }
+.im-badge-approved { background:var(--im-green-s); color:var(--im-green); border:1px solid #a7f3d0; }
+.im-badge-rejected { background:var(--im-red-s); color:var(--im-red); border:1px solid #fecaca; }
 .im-badge-paid   { background:var(--im-green-s); color:var(--im-green); border:1px solid #a7f3d0; }
 .im-badge-unpaid { background:var(--im-red-s); color:var(--im-red); border:1px solid #fecaca; }
 .im-badge-pending { background:var(--im-amber-s); color:var(--im-amber); border:1px solid #fde68a; }
-.im-badge-id     { background:var(--im-green-s); color:var(--im-green); border:1px solid #a7f3d0; font-family:monospace; letter-spacing:0.04em; }
 
 .im-loading { display:flex; justify-content:center; align-items:center; padding:4rem; color:var(--im-t3); gap:0.75rem; font-weight:600; }
 .im-empty { text-align:center; padding:3.5rem 2rem; color:var(--im-t3); font-size:0.9rem; font-weight:600; }
@@ -134,7 +140,7 @@
 .im-modal { background:#fff; border-radius:28px; padding:2.25rem 2.5rem; width:100%; box-shadow:var(--im-shadow-xl); max-height:90vh; overflow-y:auto; }
 .im-modal-sm { max-width:440px; }
 .im-modal-md { max-width:560px; }
-.im-modal-lg { max-width:900px; }
+.im-modal-lg { max-width:850px; }
 .im-modal-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1.75rem; }
 .im-modal-title-row { display:flex; align-items:center; gap:0.85rem; }
 .im-modal-title-row h2 { margin:0; font-size:1.3rem; font-weight:900; color:var(--im-t1); }
@@ -149,6 +155,9 @@
 .im-label { display:block; font-size:0.7rem; font-weight:800; color:var(--im-t2); margin-bottom:0.4rem; text-transform:uppercase; letter-spacing:0.06em; }
 .im-input,.im-select-input { width:100%; background:#f9fafb; border:1.5px solid var(--im-border); border-radius:10px; padding:0.7rem 0.95rem; color:var(--im-t1); font-size:0.875rem; font-weight:600; outline:none; transition:all 0.2s; box-sizing:border-box; }
 .im-input:focus,.im-select-input:focus { border-color:var(--im-focus); background:#fff; box-shadow:0 0 0 3px rgba(79,70,229,0.1); }
+
+.im-section { background:#f9fafb; border:1px solid var(--im-border); border-radius:16px; padding:1.5rem; margin-bottom:1.5rem; }
+.im-section h4 { margin:0 0 1rem 0; font-size:0.95rem; font-weight:800; color:var(--im-t1); }
 
 .im-section-label { font-size:0.7rem; font-weight:800; color:var(--im-t3); text-transform:uppercase; letter-spacing:0.08em; margin:1.25rem 0 0.75rem; display:flex; align-items:center; gap:0.5rem; }
 .im-section-label::after { content:''; flex:1; height:1px; background:var(--im-border); }
@@ -173,6 +182,10 @@
 .im-total-bar { display:flex; justify-content:space-between; align-items:center; padding:1.5rem; background:#111827; border-radius:16px; color:#fff; margin-bottom:2rem; }
 .im-total-label { font-size:0.75rem; text-transform:uppercase; letter-spacing:2px; font-weight:900; color:#94a3b8; }
 .im-total-value { font-size:2rem; font-weight:900; letter-spacing:-1px; }
+
+.im-discount-row { display:flex; align-items:center; gap:0.5rem; padding:0.5rem; background:#fff; border-radius:8px; border:1px solid var(--im-border); margin-bottom:0.5rem; }
+.im-discount-row.applied { background:var(--im-green-s); border-color:#a7f3d0; }
+.im-discount-row.disabled { opacity:0.5; }
 
 .im-serial-chip { display:inline-flex; align-items:center; gap:4px; background:var(--im-indigo-s); color:var(--im-indigo); border:1px solid #c7d2fe; border-radius:20px; padding:3px 10px; font-size:0.7rem; font-weight:800; font-family:monospace; }
 

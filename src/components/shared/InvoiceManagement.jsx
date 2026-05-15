@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { FileText, Plus, X, Search, RefreshCw, Printer, AlertTriangle, ShieldAlert, CheckCircle, Users, Briefcase, Barcode } from 'lucide-react';
 import api from '../../api';
 import InvoiceTemplate from './InvoiceTemplate';
+import './InvoiceManagement.css';
 
 const InvoiceManagement = ({ currentUser, showToast }) => {
     const [invoices, setInvoices] = useState([]);
@@ -336,80 +337,79 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
         (inv.manualClientDetails?.name || '').toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    const cardStyle = { background: '#fff', border: '1px solid #e2e8f0', borderRadius: '24px', padding: '2.5rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' };
     const labelStyle = { display: 'block', fontSize: '0.75rem', fontWeight: 900, color: '#64748b', marginBottom: '0.6rem', textTransform: 'uppercase' };
     const inputStyle = { width: '100%', background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: '12px', padding: '0.8rem 1.25rem', color: '#0f172a', outline: 'none', fontWeight: 600, boxSizing: 'border-box' };
 
     return (
-        <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+        <div className="im-root">
             {loading ? (
-                <div style={{ display: 'flex', justifyContent: 'center', padding: '4rem' }}><RefreshCw className="animate-spin" color="#64748b" /></div>
+                <div className="im-loading"><RefreshCw className="animate-spin" color="#64748b" /></div>
             ) : (
-                <div style={cardStyle}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
-                        <div>
-                            <h1 style={{ margin: 0, fontSize: '1.875rem', fontWeight: 800, color: '#0f172a' }}>Invoice Engine</h1>
-                            <p style={{ margin: '0.35rem 0 0', color: '#64748b', fontSize: '0.9rem' }}>Generate invoices with stock integration and warranty tracking.</p>
-                        </div>
-                        <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-                            <div style={{ position: 'relative' }}>
-                                <Search size={16} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
-                                <input type="text" placeholder="Search INV00000 or Client..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} style={{ padding: '0.8rem 1rem 0.8rem 2.5rem', borderRadius: '12px', border: '1px solid #e2e8f0', width: 280, outline: 'none' }} />
+                <div className="im-card">
+                    <div className="im-card-header">
+                        <div className="im-card-title">
+                            <div className="im-card-icon" style={{ background: 'var(--im-green-s)', color: 'var(--im-green)' }}><FileText size={22} /></div>
+                            <div>
+                                <h3>Invoice Engine</h3>
+                                <div className="im-card-subtitle">Generate invoices with stock integration and warranty tracking.</div>
                             </div>
-                            <motion.button whileTap={{ scale: 0.95 }} onClick={() => openCreation('automatic')} style={{ background: '#0f172a', color: '#fff', border: 'none', borderRadius: '12px', padding: '0.8rem 1.5rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Plus size={18} /> Automatic</motion.button>
+                        </div>
+                        <div className="im-card-actions">
+                            <div className="im-search-wrap">
+                                <Search size={16} className="im-search-icon" />
+                                <input type="text" placeholder="Search INV00000 or Client..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="im-search-input" />
+                            </div>
+                            <motion.button whileTap={{ scale: 0.95 }} onClick={() => openCreation('automatic')} className="im-btn im-btn-primary"><Plus size={18} /> Automatic</motion.button>
                             {isAdmin && (
-                                <motion.button whileTap={{ scale: 0.95 }} onClick={() => openCreation('manual')} style={{ background: '#f8fafc', color: '#0f172a', border: '2px dashed #cbd5e1', borderRadius: '12px', padding: '0.8rem 1.5rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Plus size={18} /> Manual</motion.button>
+                                <motion.button whileTap={{ scale: 0.95 }} onClick={() => openCreation('manual')} className="im-btn im-btn-outline"><Plus size={18} /> Manual</motion.button>
                             )}
                         </div>
                     </div>
-
-                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                        <thead>
-                            <tr style={{ borderBottom: '2px solid #f1f5f9' }}>
-                                <th style={{ padding: '1rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.8rem' }}>Invoice ID</th>
-                                <th style={{ padding: '1rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.8rem' }}>Client</th>
-                                <th style={{ padding: '1rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.8rem' }}>Payment</th>
-                                <th style={{ padding: '1rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.8rem' }}>Total</th>
-                                <th style={{ padding: '1rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.8rem' }}>Status</th>
-                                <th style={{ padding: '1rem', textAlign: 'right' }}>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {filtered.map(inv => (
-                                <tr key={inv._id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                                    <td style={{ padding: '1rem' }}>
-                                        <div style={{ fontWeight: 800, color: '#10b981', fontSize: '0.9rem' }}>{inv.invoiceNumber}</div>
-                                        <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#94a3b8' }}>{new Date(inv.invoiceDate || inv.createdAt).toLocaleDateString()}</div>
-                                    </td>
-                                    <td style={{ padding: '1rem', fontWeight: 700, color: '#0f172a' }}>
-                                        {inv.clientRef ? `${inv.clientRef.firstName} ${inv.clientRef.lastName}` : inv.manualClientDetails?.name || 'Unknown'}
-                                    </td>
-                                    <td style={{ padding: '1rem', fontSize: '0.85rem', color: '#475569', fontWeight: 600, textTransform: 'capitalize' }}>
-                                        {inv.paymentMethod?.replace('_', ' ')}
-                                    </td>
-                                    <td style={{ padding: '1rem', fontWeight: 800, color: '#0f172a' }}>
-                                        {businessData?.primaryCurrency?.symbol || 'Rs.'} {parseFloat(inv.finalTotal).toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                                    </td>
-                                    <td style={{ padding: '1rem' }}>
-                                        <span style={{
-                                            padding: '4px 12px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 700,
-                                            background: inv.status === 'Paid' ? '#d1fae5' : inv.status === 'Pending' ? '#fef3c7' : '#fee2e2',
-                                            color: inv.status === 'Paid' ? '#059669' : inv.status === 'Pending' ? '#d97706' : '#dc2626'
-                                        }}>{inv.status}</span>
-                                    </td>
-                                    <td style={{ padding: '1rem', textAlign: 'right' }}>
-                                        <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-                                            <motion.button whileTap={{ scale: 0.9 }} onClick={() => setViewInvoice(inv)} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '6px 12px', cursor: 'pointer', fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem' }}><Printer size={14} /> View</motion.button>
-                                            <motion.button whileTap={{ scale: 0.9 }} onClick={() => openDeleteModal(inv)} style={{ background: '#fdf2f8', border: '1px solid #fce7f3', borderRadius: '8px', padding: '6px 12px', cursor: 'pointer', fontWeight: 700, color: '#db2777', fontSize: '0.8rem' }}>
-                                                {isAdmin ? 'Delete' : 'Delete Request'}
-                                            </motion.button>
-                                        </div>
-                                    </td>
+                    <div className="im-table-wrap">
+                        <table className="im-table">
+                            <thead>
+                                <tr>
+                                    <th>Invoice ID</th>
+                                    <th>Client</th>
+                                    <th>Payment</th>
+                                    <th>Total</th>
+                                    <th>Status</th>
+                                    <th style={{ textAlign: 'right' }}>Actions</th>
                                 </tr>
-                            ))}
-                            {filtered.length === 0 && <tr><td colSpan="6" style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8' }}>No invoices in registry.</td></tr>}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                {filtered.map(inv => (
+                                    <tr key={inv._id}>
+                                        <td>
+                                            <div style={{ fontWeight: 800, color: '#10b981', fontSize: '0.9rem' }}>{inv.invoiceNumber}</div>
+                                            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--im-t3)' }}>{new Date(inv.invoiceDate || inv.createdAt).toLocaleDateString()}</div>
+                                        </td>
+                                        <td style={{ fontWeight: 700, color: 'var(--im-t1)' }}>
+                                            {inv.clientRef ? `${inv.clientRef.firstName} ${inv.clientRef.lastName}` : inv.manualClientDetails?.name || 'Unknown'}
+                                        </td>
+                                        <td style={{ fontSize: '0.85rem', color: 'var(--im-t2)', fontWeight: 600, textTransform: 'capitalize' }}>
+                                            {inv.paymentMethod?.replace('_', ' ')}
+                                        </td>
+                                        <td style={{ fontWeight: 800, color: 'var(--im-t1)' }}>
+                                            {businessData?.primaryCurrency?.symbol || 'Rs.'} {parseFloat(inv.finalTotal).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                                        </td>
+                                        <td>
+                                            <span className={`im-badge${inv.status === 'Paid' ? ' im-badge-paid' : inv.status === 'Pending' ? ' im-badge-pending' : ' im-badge-unpaid'}`}>{inv.status}</span>
+                                        </td>
+                                        <td style={{ textAlign: 'right' }}>
+                                            <div className="im-table-actions">
+                                                <motion.button whileTap={{ scale: 0.9 }} onClick={() => setViewInvoice(inv)} className="im-btn-view"><Printer size={14} /> View</motion.button>
+                                                <motion.button whileTap={{ scale: 0.9 }} onClick={() => openDeleteModal(inv)} className="im-btn-danger">
+                                                    {isAdmin ? 'Delete' : 'Delete Request'}
+                                                </motion.button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                                {filtered.length === 0 && <tr><td colSpan="6"><div className="im-empty">No invoices in registry.</div></td></tr>}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             )}
 

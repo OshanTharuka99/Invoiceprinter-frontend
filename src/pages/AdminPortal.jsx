@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import {
     Users, ShieldCheck, LayoutDashboard, FileText, Settings,
-    TrendingUp, LogOut, Bell, Package, Briefcase, Truck, ShieldAlert, ScrollText, Printer, Shield
+    TrendingUp, LogOut, Bell, Package, Briefcase, Truck, ShieldAlert, ScrollText, Printer, Shield, X
 } from 'lucide-react';
 import api from '../api';
 import { toast, Toaster } from 'react-hot-toast';
@@ -27,6 +27,7 @@ const AdminPortal = () => {
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const [notifications, setNotifications] = useState([]);
     const [showNotifications, setShowNotifications] = useState(false);
+    const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
     const fetchNotifications = async () => {
         try {
@@ -72,8 +73,17 @@ const AdminPortal = () => {
     };
 
     const handleLogout = () => {
+        setShowLogoutConfirm(true);
+    };
+
+    const confirmLogout = () => {
+        setShowLogoutConfirm(false);
         showToast(`Security session closed. Goodbye, ${user?.firstName}!`, 'success');
         setTimeout(() => logout(), 1500);
+    };
+
+    const cancelLogout = () => {
+        setShowLogoutConfirm(false);
     };
 
     const renderContent = () => {
@@ -163,7 +173,7 @@ const AdminPortal = () => {
                         </div>
                     </div>
 
-                    {/* Right: User → Notification → Sign Out */}
+                    {/* Right: User Profile → Notification → Sign Out */}
                     <div className="admin-header-right">
                         <div className="admin-user-section">
                             <div className="admin-user-avatar">
@@ -175,21 +185,26 @@ const AdminPortal = () => {
                             </div>
                         </div>
 
-                        <div className="admin-header-divider" />
-
                         <div className="admin-notification-wrapper">
                             <button
                                 onClick={() => { setShowNotifications(!showNotifications); fetchNotifications(); }}
-                                className="admin-notification-btn"
+                                className="admin-header-btn"
+                                title="Notifications"
                             >
-                                <Bell size={18} />
-                                <span>Notifications</span>
+                                <Bell size={16} />
                                 {unreadCount > 0 && (
                                     <span className="admin-notification-badge">{unreadCount}</span>
                                 )}
                             </button>
                             {showNotifications && (
                                 <div className="admin-notification-dropdown">
+                                    <button
+                                        onClick={() => setShowNotifications(false)}
+                                        className="admin-notification-close"
+                                        title="Close"
+                                    >
+                                        <X size={14} />
+                                    </button>
                                     <div className="admin-notification-header">
                                         <span>Notifications</span>
                                         {unreadCount > 0 && (
@@ -231,12 +246,26 @@ const AdminPortal = () => {
                             )}
                         </div>
 
-                        <div className="admin-header-divider" />
-
-                        <button onClick={handleLogout} className="admin-signout-btn">
-                            <LogOut size={16} />
-                            <span>Sign Out</span>
-                        </button>
+                        <div className="admin-signout-wrapper">
+                            <button onClick={handleLogout} className="admin-signout-btn" title="Sign Out">
+                                <LogOut size={16} />
+                            </button>
+                            {showLogoutConfirm && (
+                                <div className="admin-logout-confirm">
+                                    <div className="admin-logout-confirm-icon">
+                                        <LogOut size={20} />
+                                    </div>
+                                    <div className="admin-logout-confirm-title">Confirm Sign Out</div>
+                                    <div className="admin-logout-confirm-msg">
+                                        Are you sure you want to end your current session?
+                                    </div>
+                                    <div className="admin-logout-confirm-actions">
+                                        <button onClick={cancelLogout} className="admin-logout-cancel">Cancel</button>
+                                        <button onClick={confirmLogout} className="admin-logout-proceed">Sign Out</button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </header>
 

@@ -276,171 +276,379 @@
     letter-spacing: 0.5px;
 }
 
-/* Header Right: User → Notification → Sign Out */
+/* ═══════════════════════════════════════════════════════
+   Admin Header Right  —  Modern Glass Enterprise UI
+   ═══════════════════════════════════════════════════════ */
+
+:root {
+  --ahr-bg:       rgba(255,255,255,0.85);
+  --ahr-border:   rgba(226,232,240,0.8);
+  --ahr-shadow:   0 8px 32px rgba(0,0,0,0.06);
+  --ahr-radius:   14px;
+  --ahr-accent:   #4f46e5;
+}
+
 .admin-header-right {
     display: flex;
     align-items: center;
-    gap: 1.5rem;
+    gap: 0.6rem;
+    height: 48px;
 }
 
-/* User Section */
+/* ── User Profile ────────────────────────────────────── */
 .admin-user-section {
     display: flex;
     align-items: center;
-    gap: 1rem;
-    padding: 0.5rem 1.25rem;
-    background: #ffffff;
-    border-radius: 20px;
-    border: 2px solid #e2e8f0;
-    box-shadow: 0 4px 16px -8px rgba(0, 0, 0, 0.04);
+    gap: 0.65rem;
+    padding: 0.3rem 0.75rem 0.3rem 0.3rem;
+    background: var(--ahr-bg);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+    border-radius: var(--ahr-radius);
+    border: 1px solid var(--ahr-border);
+    box-shadow: var(--ahr-shadow);
+    transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
+    cursor: pointer;
+    position: relative;
+    isolation: isolate;
+}
+
+.admin-user-section::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: var(--ahr-radius);
+    background: linear-gradient(135deg, rgba(79,70,229,0.06), transparent 50%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+    z-index: -1;
+}
+
+.admin-user-section:hover {
+    border-color: #cbd5e1;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.08), 0 2px 6px rgba(0,0,0,0.03);
+    transform: translateY(-1px);
+    background: rgba(255,255,255,0.95);
+}
+
+.admin-user-section:hover::before {
+    opacity: 1;
+}
+
+.admin-user-section:active {
+    transform: scale(0.98);
 }
 
 .admin-user-avatar {
-    width: 42px;
-    height: 42px;
-    background: linear-gradient(135deg, #000000 0%, #1a0000 100%);
-    color: #ffffff;
-    border-radius: 14px;
+    width: 32px;
+    height: 32px;
+    background: linear-gradient(135deg, #0f172a 60%, #1e293b);
+    color: #fff;
+    border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-weight: 900;
-    font-size: 1rem;
-    letter-spacing: 1px;
+    font-weight: 700;
+    font-size: 0.75rem;
+    letter-spacing: 0.3px;
     flex-shrink: 0;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
-    border: 2px solid rgba(220, 38, 38, 0.1);
-}
-
-.admin-user-details {
-    text-align: right;
-}
-
-.admin-user-name {
-    font-weight: 800;
-    font-size: 0.95rem;
-    color: #0f172a;
-    white-space: nowrap;
-}
-
-.admin-user-role {
-    font-size: 0.7rem;
-    color: #dc2626;
-    font-weight: 900;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    white-space: nowrap;
-}
-
-.admin-header-divider {
-    width: 1px;
-    height: 32px;
-    background: linear-gradient(180deg, transparent 0%, #e2e8f0 50%, transparent 100%);
-}
-
-/* Notification */
-.admin-notification-wrapper {
+    box-shadow: 0 2px 8px rgba(15,23,42,0.12);
     position: relative;
 }
 
-.admin-notification-btn {
-    background: #ffffff;
-    border: 2px solid #e2e8f0;
-    border-radius: 16px;
-    padding: 10px 16px;
+.admin-user-avatar::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.1);
+    pointer-events: none;
+}
+
+.admin-user-details {
+    text-align: left;
+    line-height: 1.25;
+}
+
+.admin-user-name {
+    font-weight: 600;
+    font-size: 0.8rem;
+    color: #0f172a;
+    white-space: nowrap;
+    letter-spacing: -0.01em;
+}
+
+.admin-user-role {
+    font-size: 0.55rem;
+    color: #64748b;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.admin-user-role--root { color: #7c3aed; }
+.admin-user-role--admin { color: #2563eb; }
+
+/* ── Icon Buttons ────────────────────────────────────── */
+.admin-header-btn {
+    width: 36px;
+    height: 36px;
+    background: var(--ahr-bg);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--ahr-border);
+    border-radius: 10px;
     cursor: pointer;
     color: #64748b;
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    font-size: 0.82rem;
-    font-family: 'Outfit', sans-serif;
-    font-weight: 600;
-    transition: all 0.3s ease;
+    justify-content: center;
+    transition: all 0.25s cubic-bezier(0.4,0,0.2,1);
+    box-shadow: var(--ahr-shadow);
     position: relative;
+    flex-shrink: 0;
 }
 
-.admin-notification-btn:hover {
-    color: #dc2626;
-    border-color: rgba(220, 38, 38, 0.3);
-    background: rgba(220, 38, 38, 0.03);
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px -8px rgba(220, 38, 38, 0.15);
+.admin-header-btn:hover {
+    color: #0f172a;
+    border-color: #cbd5e1;
+    background: rgba(255,255,255,0.95);
+    transform: translateY(-1px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.07);
+}
+
+.admin-header-btn:active {
+    transform: scale(0.92);
+}
+
+/* ── Notification ────────────────────────────────────── */
+.admin-notification-wrapper {
+    position: relative;
 }
 
 .admin-notification-badge {
     position: absolute;
-    top: -6px;
-    right: -6px;
-    background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
-    color: #ffffff;
+    top: -3px;
+    right: -3px;
+    width: 16px;
+    height: 16px;
+    background: #ef4444;
+    color: #fff;
     border-radius: 50%;
-    width: 20px;
-    height: 20px;
-    font-size: 0.65rem;
-    font-weight: 700;
+    font-size: 0.5rem;
+    font-weight: 800;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.4);
-    border: 2px solid #ffffff;
+    box-shadow: 0 2px 6px rgba(239,68,68,0.4);
+    border: 2px solid #fff;
+    z-index: 1;
+    animation: admin-pulse 2s infinite;
 }
 
-/* Notification Dropdown */
+@keyframes admin-pulse {
+    0%, 100% { box-shadow: 0 2px 6px rgba(239,68,68,0.35); }
+    50% { box-shadow: 0 2px 14px rgba(239,68,68,0.6); }
+}
+
+/* ── Sign Out ────────────────────────────────────────── */
+.admin-signout-btn {
+    width: 36px;
+    height: 36px;
+    background: var(--ahr-bg);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--ahr-border);
+    border-radius: 10px;
+    cursor: pointer;
+    color: #64748b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.25s cubic-bezier(0.4,0,0.2,1);
+    box-shadow: var(--ahr-shadow);
+    flex-shrink: 0;
+}
+
+.admin-signout-btn:hover {
+    color: #dc2626;
+    border-color: #fecaca;
+    background: rgba(254,242,242,0.9);
+    transform: translateY(-1px);
+    box-shadow: 0 8px 24px rgba(220,38,38,0.08);
+}
+
+.admin-signout-btn:active {
+    transform: scale(0.92);
+}
+
+/* ── Sign Out Wrapper & Confirm ──────────────────────── */
+.admin-signout-wrapper {
+    position: relative;
+}
+
+.admin-logout-confirm {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    width: 280px;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.1), 0 4px 16px rgba(0,0,0,0.04);
+    z-index: 100;
+    padding: 1.5rem 1.25rem;
+    text-align: center;
+}
+
+.admin-logout-confirm-icon {
+    width: 44px;
+    height: 44px;
+    background: #fef2f2;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #dc2626;
+    margin: 0 auto 0.85rem;
+}
+
+.admin-logout-confirm-title {
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: #0f172a;
+    margin-bottom: 0.4rem;
+}
+
+.admin-logout-confirm-msg {
+    font-size: 0.78rem;
+    color: #64748b;
+    line-height: 1.5;
+    margin-bottom: 1.2rem;
+}
+
+.admin-logout-confirm-actions {
+    display: flex;
+    gap: 0.6rem;
+}
+
+.admin-logout-cancel,
+.admin-logout-proceed {
+    flex: 1;
+    padding: 0.6rem 0;
+    border-radius: 10px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    font-family: 'Outfit', sans-serif;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.admin-logout-cancel {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    color: #475569;
+}
+
+.admin-logout-cancel:hover {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+}
+
+.admin-logout-proceed {
+    background: #dc2626;
+    border: 1px solid #dc2626;
+    color: #fff;
+}
+
+.admin-logout-proceed:hover {
+    background: #b91c1c;
+    border-color: #b91c1c;
+}
+
+/* ── Notification Dropdown ───────────────────────────── */
 .admin-notification-dropdown {
     position: absolute;
-    top: 100%;
+    top: calc(100% + 10px);
     right: 0;
-    margin-top: 12px;
-    width: 400px;
-    background: #ffffff;
-    border: 2px solid #e2e8f0;
+    width: 380px;
+    background: #fff;
+    border: 1px solid #e2e8f0;
     border-radius: 16px;
-    box-shadow: 0 20px 60px -15px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.1), 0 4px 16px rgba(0,0,0,0.04);
     z-index: 100;
-    max-height: 400px;
+    max-height: 380px;
     overflow-y: auto;
 }
 
 .admin-notification-header {
-    padding: 1rem 1.25rem;
-    border-bottom: 2px solid #e2e8f0;
+    padding: 0.9rem 1.1rem;
+    border-bottom: 1px solid #f1f5f9;
     font-weight: 700;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     color: #0f172a;
     display: flex;
     justify-content: space-between;
     align-items: center;
 }
 
+.admin-notification-close {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 24px;
+    height: 24px;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 6px;
+    cursor: pointer;
+    color: #dc2626;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    z-index: 2;
+}
+
+.admin-notification-close:hover {
+    background: #fee2e2;
+    border-color: #fca5a5;
+    transform: scale(1.1);
+}
+
+.admin-notification-close:active {
+    transform: scale(0.95);
+}
+
 .admin-notification-markall {
     background: none;
     border: none;
-    color: #dc2626;
+    color: var(--ahr-accent);
     cursor: pointer;
-    font-size: 0.75rem;
+    font-size: 0.72rem;
     font-weight: 600;
     font-family: 'Outfit', sans-serif;
-    transition: color 0.2s ease;
+    transition: opacity 0.2s;
 }
 
 .admin-notification-markall:hover {
-    color: #ef4444;
+    opacity: 0.7;
 }
 
 .admin-notification-empty {
     padding: 2rem 1.5rem;
     text-align: center;
     color: #94a3b8;
-    font-size: 0.85rem;
+    font-size: 0.82rem;
+    font-weight: 500;
 }
 
 .admin-notification-item {
-    padding: 0.875rem 1.25rem;
-    border-bottom: 1px solid #f1f5f9;
-    background: #ffffff;
+    padding: 0.8rem 1.1rem;
+    border-bottom: 1px solid #f8fafc;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: background 0.2s;
 }
 
 .admin-notification-item:hover {
@@ -471,29 +679,35 @@
     margin-top: 6px;
 }
 
-/* Sign Out Button */
+/* ── Sign Out Button ─────────────────────────────────── */
 .admin-signout-btn {
     background: #ffffff;
-    border: 2px solid #e2e8f0;
-    border-radius: 16px;
-    padding: 10px 18px;
+    border: 1px solid #edf2f7;
+    border-radius: 12px;
+    padding: 7px 13px;
     cursor: pointer;
     color: #64748b;
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    font-size: 0.82rem;
+    gap: 0.45rem;
+    font-size: 0.78rem;
     font-family: 'Outfit', sans-serif;
-    font-weight: 700;
-    transition: all 0.3s ease;
+    font-weight: 500;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
 }
 
 .admin-signout-btn:hover {
     color: #dc2626;
-    border-color: rgba(220, 38, 38, 0.2);
-    background: rgba(220, 38, 38, 0.03);
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px -8px rgba(220, 38, 38, 0.2);
+    border-color: #fecaca;
+    background: #fef2f2;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.08), 0 1px 3px rgba(220, 38, 38, 0.04);
+}
+
+.admin-signout-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
 }
 
 /* Main Content - 7/8 height with 1/12 margins */

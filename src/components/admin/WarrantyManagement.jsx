@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Shield, RefreshCw, Search, Calendar, Package, Users, Briefcase } from 'lucide-react';
+import { Shield, RefreshCw, Search, Calendar, Package, Users, Briefcase, MapPin } from 'lucide-react';
 import api from '../../api';
 import './WarrantyManagement.css';
 
@@ -138,6 +138,7 @@ const WarrantyManagement = ({ currentUser, showToast }) => {
                                         <th>Serial No</th>
                                         <th>Product</th>
                                         <th>Client</th>
+                                        <th>Project</th>
                                         <th>Invoice</th>
                                         <th>Warranty Period</th>
                                         <th>Start Date</th>
@@ -157,6 +158,20 @@ const WarrantyManagement = ({ currentUser, showToast }) => {
                                                     <div style={{ fontSize: '0.72rem', color: 'var(--wm-t3)' }}>{w.productRef?.productId || ''}</div>
                                                 </td>
                                                 <td style={{ fontWeight: 700, color: 'var(--wm-t1)' }}>{clientName}</td>
+                                                <td>
+                                                    {w.projectRef ? (
+                                                        <div>
+                                                            <div style={{ fontWeight: 700, color: 'var(--wm-t1)', fontSize: '0.85rem' }}>{w.projectRef.name}</div>
+                                                            {(w.projectRef.location || w.projectLocation) && (
+                                                                <div style={{ fontSize: '0.72rem', color: 'var(--wm-t3)', display: 'flex', alignItems: 'center', gap: '0.2rem', marginTop: '0.15rem' }}>
+                                                                    <MapPin size={10} />{w.projectRef.location || w.projectLocation}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    ) : (
+                                                        <span style={{ color: 'var(--wm-t3)', fontSize: '0.8rem' }}>—</span>
+                                                    )}
+                                                </td>
                                                 <td><span className="wm-badge wm-badge-id">{w.invoiceRef?.invoiceNumber || '—'}</span></td>
                                                 <td style={{ fontSize: '0.85rem', color: 'var(--wm-t2)' }}>{w.warrantyPeriod || '—'}</td>
                                                 <td style={{ fontSize: '0.85rem', color: 'var(--wm-t2)' }}>{fmt(w.startDate)}</td>
@@ -174,7 +189,7 @@ const WarrantyManagement = ({ currentUser, showToast }) => {
                                             </tr>
                                         );
                                     })}
-                                    {filtered.length === 0 && <tr><td colSpan="8"><div className="wm-empty">No warranties found in registry</div></td></tr>}
+                                    {filtered.length === 0 && <tr><td colSpan="9"><div className="wm-empty">No warranties found in registry</div></td></tr>}
                                 </tbody>
                             </table>
                         </div>

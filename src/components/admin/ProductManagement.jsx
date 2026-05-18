@@ -39,6 +39,7 @@ const ProductManagement = ({ currentUser, showToast }) => {
   const [useSerials, setUseSerials] = useState(false);
   const [serials, setSerials] = useState([]);
   const [serialInput, setSerialInput] = useState('');
+  const [existingStockSerials, setExistingStockSerials] = useState([]);
   const excelRef = useRef(null);
   const isAdmin = ['root','admin'].includes(currentUser?.role);
 
@@ -133,15 +134,22 @@ const ProductManagement = ({ currentUser, showToast }) => {
   });
 
   // ── Stock Entry ───────────────────────────────────────────────────────────
-  const openStockModal = (p) => {
+  const openStockModal = async (p) => {
     setStockProd(p); setStockForm(EMPTY_STOCK);
-    setSerials([]); setSerialInput(''); setUseSerials(false);
+    setSerials([]); setSerialInput(''); setUseSerials(false); setExistingStockSerials([]);
+    // Pre-load existing serials for this product to enable duplicate detection
+    try {
+      const res = await api.get(`/products/${p._id}/stock`);
+      const allSerials = (res.data.data || []).flatMap(e => e.serialNumbers || []);
+      setExistingStockSerials(allSerials.map(s => s.toUpperCase()));
+    } catch { setExistingStockSerials([]); }
     setStockModal(true);
   };
   const addSerial = () => {
     const v = serialInput.trim().toUpperCase();
     if (!v) return;
-    if (serials.includes(v)) return showToast?.('Serial already in list','error');
+    if (serials.includes(v)) return showToast?.(`Serial "${v}" already in the current list`, 'error');
+    if (existingStockSerials.includes(v)) return showToast?.(`Serial "${v}" already exists in stock for this product`, 'error');
     setSerials(prev => [...prev, v]); setSerialInput('');
   };
   const removeSerial = (i) => setSerials(prev => prev.filter((_,idx) => idx !== i));
@@ -457,11 +465,15 @@ const ProductManagement = ({ currentUser, showToast }) => {
                     {serials.length>0&&(
                       <>
                         <div className="pm-chips">
-                          {serials.map((s,i)=>(
-                            <span key={i} className="pm-chip">{s}
-                              <button type="button" className="pm-chip-remove" onClick={()=>removeSerial(i)}>×</button>
-                            </span>
-                          ))}
+                          {serials.map((s,i)=>{
+                            const isDuplicate = existingStockSerials.includes(s.toUpperCase());
+                            return (
+                              <span key={i} className="pm-chip" style={isDuplicate ? { background: '#fee2e2', color: '#dc2626', border: '1px solid #fca5a5' } : {}}>
+                                {isDuplicate && <span title="Already in stock" style={{ marginRight: '0.2rem' }}>⚠</span>}{s}
+                                <button type="button" className="pm-chip-remove" onClick={()=>removeSerial(i)}>×</button>
+                              </span>
+                            );
+                          })}
                         </div>
                         <div className={`pm-serial-info ${stockForm.quantity&&serials.length!==parseInt(stockForm.quantity)?'pm-serial-warn':'pm-serial-ok'}`}>
                           {serials.length} serial{serials.length!==1?'s':''} entered

@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { FileText, Plus, X, Search, RefreshCw, Printer, AlertTriangle, ShieldAlert, CheckCircle, Users, Briefcase, Barcode } from 'lucide-react';
 import api from '../../api';
 import InvoiceTemplate from './InvoiceTemplate';
-import './PromainvoiceManagement.css';
+import './PromainvoiceManagemnt.css';
 
 const PromainvoiceManagemnt = ({ currentUser, showToast }) => {
     const [invoices, setInvoices] = useState([]);
@@ -56,6 +56,7 @@ const PromainvoiceManagemnt = ({ currentUser, showToast }) => {
 
     const [serialSearchTerm, setSerialSearchTerm] = useState('');
     const [selectedSerialsPerItem, setSelectedSerialsPerItem] = useState({});
+    const [manualSerialInput, setManualSerialInput] = useState('');
 
     const isAdmin = currentUser.role === 'admin' || currentUser.role === 'root';
 
@@ -169,6 +170,7 @@ const PromainvoiceManagemnt = ({ currentUser, showToast }) => {
             items: mode === 'automatic' ? form.items : []
         });
         setSelectedSerialsPerItem({});
+        setManualSerialInput('');
         setIsCreateModalOpen(true);
     };
 
@@ -268,6 +270,7 @@ const PromainvoiceManagemnt = ({ currentUser, showToast }) => {
         e.preventDefault();
         if (form.items.length === 0) return showToast?.('Insert at least 1 item', 'error');
         if (!form.paymentMethod) return showToast?.('Select payment method', 'error');
+        if (!form.projectId) return showToast?.('A project must be selected before generating an invoice', 'error');
 
         try {
             await api.post('/invoices', { ...form, creationMethod: creationMode });
@@ -444,14 +447,15 @@ const PromainvoiceManagemnt = ({ currentUser, showToast }) => {
                                             </div>
                                         </div>
                                         <div>
-                                            <label style={labelStyle}>Project (Optional)</label>
+                                            <label style={labelStyle}>Project <span style={{ color: '#ef4444' }}>*</span> <span style={{ color: '#94a3b8', fontWeight: 600, textTransform: 'none', fontSize: '0.7rem' }}>(Required)</span></label>
                                             <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                                <select value={form.projectId} onChange={e => setForm({ ...form, projectId: e.target.value })} style={{ ...inputStyle, background: '#fff', flex: 1 }}>
-                                                    <option value="">No project</option>
+                                                <select value={form.projectId} onChange={e => setForm({ ...form, projectId: e.target.value })} style={{ ...inputStyle, background: '#fff', flex: 1, borderColor: !form.projectId ? '#fca5a5' : '#e2e8f0' }}>
+                                                    <option value="" disabled>Select project...</option>
                                                     {projects.filter(p => !form.clientRef || p.client === form.clientRef || (p.client?._id === form.clientRef)).map(p => <option key={p._id} value={p._id}>{p.name} ({p.projectId})</option>)}
                                                 </select>
                                                 <motion.button type="button" whileTap={{ scale: 0.95 }} onClick={() => setIsNewProjectModalOpen(true)} style={{ background: '#10b981', color: '#fff', border: 'none', borderRadius: '12px', padding: '0 1rem', cursor: 'pointer', display: 'flex', alignItems: 'center' }} title="Add New Project"><Briefcase size={18} /></motion.button>
                                             </div>
+                                            {!form.projectId && <div style={{ fontSize: '0.7rem', color: '#ef4444', marginTop: '0.3rem', fontWeight: 700 }}>⚠ Select a project to enable invoice generation</div>}
                                         </div>
                                     </div>
                                 </div>
@@ -571,7 +575,33 @@ const PromainvoiceManagemnt = ({ currentUser, showToast }) => {
                                                                 {it.serialNumbers?.length || 0} / {it.quantity}
                                                             </motion.button>
                                                         )}
-                                                        {creationMode === 'manual' && <div style={{ color: '#94a3b8', fontSize: '0.7rem', fontStyle: 'italic' }}>Manual Entry</div>}
+                                                        {creationMode === 'manual' && it.productRef && (
+                                                            <motion.button
+                                                                type="button"
+                                                                whileHover={{ scale: 1.05 }}
+                                                                whileTap={{ scale: 0.95 }}
+                                                                onClick={() => { setActiveItemIndex(idx); setIsSerialModalOpen(true); }}
+                                                                style={{
+                                                                    background: it.serialNumbers?.length > 0 ? '#6366f1' : '#64748b',
+                                                                    color: '#fff',
+                                                                    border: 'none',
+                                                                    borderRadius: '8px',
+                                                                    padding: '6px 12px',
+                                                                    fontSize: '0.7rem',
+                                                                    fontWeight: 800,
+                                                                    cursor: 'pointer',
+                                                                    display: 'inline-flex',
+                                                                    alignItems: 'center',
+                                                                    gap: '0.4rem'
+                                                                }}
+                                                            >
+                                                                <Barcode size={14} />
+                                                                {it.serialNumbers?.length || 0} SN{it.serialNumbers?.length !== 1 ? 's' : ''}
+                                                            </motion.button>
+                                                        )}
+                                                        {creationMode === 'manual' && !it.productRef && (
+                                                            <div style={{ color: '#94a3b8', fontSize: '0.7rem', fontStyle: 'italic' }}>Select product</div>
+                                                        )}
                                                     </td>
                                                     <td style={{ padding: '0.75rem 0.5rem', textAlign: 'right' }}>
                                                         <motion.button whileTap={{ scale: 0.9 }} type="button" onClick={() => {
@@ -741,10 +771,61 @@ const PromainvoiceManagemnt = ({ currentUser, showToast }) => {
                                 <button onClick={() => setIsSerialModalOpen(false)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '50%', width: 32, height: 32, color: '#fff', cursor: 'pointer' }}><X size={18} /></button>
                             </div>
                             <div style={{ padding: '2rem' }}>
+                                {/* MANUAL TYPE-IN SECTION (manual mode only) */}
+                                {creationMode === 'manual' && (
+                                    <div style={{ marginBottom: '1.5rem', padding: '1rem', background: '#f0f4ff', borderRadius: '12px', border: '1.5px solid #c7d2fe' }}>
+                                        <div style={{ fontSize: '0.75rem', fontWeight: 900, color: '#4338ca', textTransform: 'uppercase', marginBottom: '0.75rem' }}>Type / Scan Serial Number</div>
+                                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                            <input
+                                                type="text"
+                                                placeholder="Type or scan serial number..."
+                                                value={manualSerialInput}
+                                                onChange={e => setManualSerialInput(e.target.value.toUpperCase())}
+                                                onKeyDown={e => {
+                                                    if (e.key === 'Enter') {
+                                                        e.preventDefault();
+                                                        const sn = manualSerialInput.trim();
+                                                        if (!sn) return;
+                                                        const current = form.items[activeItemIndex].serialNumbers || [];
+                                                        if (current.includes(sn)) { showToast?.('Serial already added', 'warning'); return; }
+                                                        toggleSerialForItem(activeItemIndex, sn);
+                                                        setManualSerialInput('');
+                                                    }
+                                                }}
+                                                style={{ ...inputStyle, background: '#fff', flex: 1 }}
+                                            />
+                                            <motion.button
+                                                type="button"
+                                                whileTap={{ scale: 0.95 }}
+                                                onClick={() => {
+                                                    const sn = manualSerialInput.trim();
+                                                    if (!sn) return;
+                                                    const current = form.items[activeItemIndex].serialNumbers || [];
+                                                    if (current.includes(sn)) { showToast?.('Serial already added', 'warning'); return; }
+                                                    toggleSerialForItem(activeItemIndex, sn);
+                                                    setManualSerialInput('');
+                                                }}
+                                                style={{ background: '#4f46e5', color: '#fff', border: 'none', borderRadius: '12px', padding: '0 1.25rem', fontWeight: 800, cursor: 'pointer', whiteSpace: 'nowrap' }}
+                                            >Add</motion.button>
+                                        </div>
+                                        {(form.items[activeItemIndex].serialNumbers?.length > 0) && (
+                                            <div style={{ marginTop: '0.75rem', display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                                                {form.items[activeItemIndex].serialNumbers.map(sn => (
+                                                    <span key={sn} style={{ background: '#e0e7ff', color: '#3730a3', fontWeight: 700, fontSize: '0.75rem', padding: '0.2rem 0.6rem', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+                                                        {sn}
+                                                        <button type="button" onClick={() => toggleSerialForItem(activeItemIndex, sn)} style={{ background: 'none', border: 'none', color: '#6366f1', cursor: 'pointer', padding: 0, fontSize: '0.9rem', lineHeight: 1 }}>×</button>
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* STOCK SEARCH & SELECT SECTION */}
                                 <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem' }}>
                                     <div style={{ position: 'relative', flex: 1 }}>
                                         <Search size={16} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
-                                        <input type="text" placeholder="Scan or search serial..." value={serialSearchTerm} onChange={e => setSerialSearchTerm(e.target.value)} style={{ ...inputStyle, padding: '0.8rem 1rem 0.8rem 2.5rem', background: '#f8fafc' }} />
+                                        <input type="text" placeholder={creationMode === 'manual' ? 'Search serial in stock...' : 'Scan or search serial...'} value={serialSearchTerm} onChange={e => setSerialSearchTerm(e.target.value)} style={{ ...inputStyle, padding: '0.8rem 1rem 0.8rem 2.5rem', background: '#f8fafc' }} />
                                     </div>
                                     <motion.button whileTap={{ scale: 0.95 }} type="button" onClick={() => handleSerialSearch(activeItemIndex)} style={{ background: '#0f172a', color: '#fff', border: 'none', borderRadius: '12px', padding: '0 1.5rem', fontWeight: 800, cursor: 'pointer' }}>Find</motion.button>
                                 </div>

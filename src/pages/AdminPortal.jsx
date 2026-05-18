@@ -16,6 +16,7 @@ import ClientManagement from '../components/admin/ClientManagement';
 import ProjectManagement from '../components/admin/ProjectManagement';
 import SupplierManagement from '../components/admin/SupplierManagement';
 import ApprovalsDashboard from '../components/admin/ApprovalsDashboard';
+import AdminDashboard from '../components/admin/AdminDashboard';
 import QuotationManagement from '../components/shared/QuotationManagement';
 import InvoiceManagement from '../components/shared/InvoiceManagement';
 import WarrantyManagement from '../components/admin/WarrantyManagement';
@@ -23,7 +24,7 @@ import WarrantyManagement from '../components/admin/WarrantyManagement';
 
 const AdminPortal = () => {
     const { user, logout } = useAuth();
-    const [activeNav, setActiveNav] = useState('users');
+    const [activeNav, setActiveNav] = useState('analytics');
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const [notifications, setNotifications] = useState([]);
     const [showNotifications, setShowNotifications] = useState(false);
@@ -41,6 +42,7 @@ const AdminPortal = () => {
     const unreadCount = notifications.filter(n => !n.isRead).length;
 
     const navItems = [
+        { id: 'analytics', label: 'Dashboard', icon: TrendingUp },
         { id: 'approvals', label: 'Security Approvals', icon: ShieldAlert },
         { id: 'quotations', label: 'Quotation Engine', icon: ScrollText },
         { id: 'clients', label: 'Client Directory', icon: Users },
@@ -51,7 +53,6 @@ const AdminPortal = () => {
         { id: 'business', label: 'General Settings', icon: Settings },
         { id: 'invoices', label: 'Invoice Engine', icon: FileText },
         { id: 'warranty', label: 'Warranty Management', icon: ShieldCheck },
-        { id: 'analytics', label: 'System Analytics', icon: TrendingUp },
     ];
 
     const showToast = (message, type = 'success') => {
@@ -98,6 +99,7 @@ const AdminPortal = () => {
             case 'quotations': return <QuotationManagement currentUser={user} showToast={showToast} />;
             case 'invoices': return <InvoiceManagement currentUser={user} showToast={showToast} />;
             case 'warranty': return <WarrantyManagement currentUser={user} showToast={showToast} />;
+            case 'analytics': return <AdminDashboard currentUser={user} />;
             default: return <div className="admin-empty-module">Module under development...</div>;
         }
     };

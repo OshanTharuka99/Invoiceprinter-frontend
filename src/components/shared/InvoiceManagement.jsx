@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FileText, Plus, X, Search, RefreshCw, Printer, AlertTriangle, ShieldAlert, CheckCircle, Users, Briefcase, Barcode } from 'lucide-react';
+import { FileText, Plus, X, Search, RefreshCw, Printer, AlertTriangle, ShieldAlert, CheckCircle, Users, Briefcase, Barcode, Edit3, AlertCircle } from 'lucide-react';
 import api from '../../api';
 import InvoiceTemplate from './InvoiceTemplate';
 import './InvoiceManagement.css';
@@ -26,6 +26,13 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
     const [invoiceToDelete, setInvoiceToDelete] = useState(null);
     const [deleteReason, setDeleteReason] = useState('');
+
+    const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
+    const [statusForm, setStatusForm] = useState({ status: 'Paid', note: '' });
+    const [selectedInvoiceForStatus, setSelectedInvoiceForStatus] = useState(null);
+
+    const [editingInvoice, setEditingInvoice] = useState(null); // original invoice being edited
+    const [editNote, setEditNote] = useState('');
 
     const [isNewClientModalOpen, setIsNewClientModalOpen] = useState(false);
     const [newClientForm, setNewClientForm] = useState({ firstName: '', lastName: '', clientType: 'Person', telephoneNumber: '', whatsappNumber: '', address: '', emailAddress: '' });
@@ -59,6 +66,12 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
     const [manualSerialInput, setManualSerialInput] = useState('');
 
     const isAdmin = currentUser.role === 'admin' || currentUser.role === 'root';
+    const isRoot = currentUser.role === 'root';
+
+    const isWithin30Days = (createdAt) => {
+        const diffMs = Date.now() - new Date(createdAt);
+        return diffMs / (1000 * 60 * 60 * 24) <= 30;
+    };
 
     const fetchData = async () => {
         setLoading(true);
@@ -272,13 +285,102 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
         if (!form.paymentMethod) return showToast?.('Select payment method', 'error');
         if (!form.projectId) return showToast?.('A project must be selected before generating an invoice', 'error');
 
+        // Validate mandatory serial numbers
+        for (const item of form.items) {
+            if (item.productRef) {
+                const prod = products.find(p => p._id === item.productRef);
+                if (prod?.hasSerialNumbers) {
+                    const assignedCount = item.serialNumbers?.length || 0;
+                    if (assignedCount < item.quantity) {
+                        return showToast?.(`Serial numbers required for "${prod.name}" (${assignedCount}/${item.quantity} assigned)`, 'error');
+                    }
+                }
+            }
+        }
+
+        // Enforce Paid status on frontend for cash payments before submit
+        const payload = { ...form, creationMethod: creationMode };
+        if (payload.paymentMethod === 'cash') {
+            payload.status = 'Paid';
+        }
+
         try {
-            await api.post('/invoices', { ...form, creationMethod: creationMode });
-            showToast?.('Invoice created successfully', 'success');
+            if (editingInvoice) {
+                // Edit mode: PUT to the edit endpoint
+                await api.put(`/invoices/${editingInvoice._id}/edit`, { ...payload, editNote });
+                showToast?.(`Invoice edited. Original ${editingInvoice.invoiceNumber} cancelled.`, 'success');
+            } else {
+                await api.post('/invoices', payload);
+                showToast?.('Invoice created successfully', 'success');
+            }
             setIsCreateModalOpen(false);
+            setEditingInvoice(null);
+            setEditNote('');
             fetchData();
         } catch (err) {
-            showToast?.(err.response?.data?.message || 'Failed to create invoice', 'error');
+            showToast?.(err.response?.data?.message || 'Failed to save invoice', 'error');
+        }
+    };
+
+    const openEditModal = (inv) => {
+        if (!isWithin30Days(inv.createdAt)) {
+            return showToast?.('This invoice is older than 30 days and cannot be edited.', 'error');
+        }
+        setEditingInvoice(inv);
+        setEditNote('');
+        setCreationMode(inv.creationMethod || 'automatic');
+        setForm({
+            clientRef: inv.clientRef?._id || '',
+            projectId: inv.projectId?._id || '',
+            paymentMethod: inv.paymentMethod || 'cash',
+            creditPeriod: inv.creditPeriod || { duration: 0, unit: 'days' },
+            deliveryAddress: inv.deliveryAddress || '',
+            manualClientDetails: inv.manualClientDetails || { title: 'Mr', organization: '', name: '', address: '', telephoneNumber: '', emailAddress: '' },
+            items: inv.items.map(it => ({
+                productRef: it.productRef?._id || it.productRef || '',
+                manualName: it.manualName || '',
+                quantity: it.quantity,
+                unitPrice: it.unitPrice,
+                lineTotal: it.lineTotal,
+                serialNumbers: it.serialNumbers || []
+            })),
+            subTotal: inv.subTotal,
+            appliedDiscounts: inv.appliedDiscounts || [],
+            discountTotal: inv.discountTotal || 0,
+            hasTax: inv.hasTax || false,
+            appliedTaxes: inv.appliedTaxes || [],
+            taxTotal: inv.taxTotal || 0,
+            finalTotal: inv.finalTotal,
+            currency: inv.currency || 'primary',
+            status: inv.status,
+            invoiceDate: new Date(inv.invoiceDate).toISOString().split('T')[0]
+        });
+        setIsCreateModalOpen(true);
+    };
+
+    const openStatusModal = (inv) => {
+        if (inv.paymentMethod === 'cash') {
+            return showToast?.('Cash invoices are permanently marked as Paid.', 'warning');
+        }
+        setSelectedInvoiceForStatus(inv);
+        setStatusForm({ status: inv.status, note: '' });
+        setIsStatusModalOpen(true);
+    };
+
+    const handleUpdateStatus = async (e) => {
+        e.preventDefault();
+        try {
+            await api.patch(`/invoices/${selectedInvoiceForStatus._id}/status`, statusForm);
+            showToast?.('Status updated successfully', 'success');
+            setIsStatusModalOpen(false);
+            fetchData();
+            // Update viewInvoice if it is currently open
+            if (viewInvoice && viewInvoice._id === selectedInvoiceForStatus._id) {
+                const res = await api.get(`/invoices/${selectedInvoiceForStatus._id}`);
+                setViewInvoice(res.data.data);
+            }
+        } catch (err) {
+            showToast?.(err.response?.data?.message || 'Failed to update status', 'error');
         }
     };
 
@@ -397,14 +499,26 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
                                             {businessData?.primaryCurrency?.symbol || 'Rs.'} {parseFloat(inv.finalTotal).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                                         </td>
                                         <td>
-                                            <span className={`im-badge${inv.status === 'Paid' ? ' im-badge-paid' : inv.status === 'Pending' ? ' im-badge-pending' : ' im-badge-unpaid'}`}>{inv.status}</span>
+                                            <span
+                                                onClick={() => inv.status !== 'Cancelled' ? openStatusModal(inv) : showToast?.('Cancelled invoices cannot be modified', 'warning')}
+                                                className={`im-badge${inv.status === 'Paid' ? ' im-badge-paid' : inv.status === 'Pending' ? ' im-badge-pending' : inv.status === 'Cancelled' ? ' im-badge-cancelled' : ' im-badge-unpaid'}`}
+                                                style={{ cursor: inv.paymentMethod === 'cash' || inv.status === 'Cancelled' ? 'default' : 'pointer', transition: 'all 0.2s' }}
+                                                title={inv.status === 'Cancelled' ? 'Invoice cancelled' : inv.paymentMethod === 'cash' ? 'Cash invoices cannot change status' : 'Click to update status'}
+                                            >{inv.status}</span>
                                         </td>
                                         <td style={{ textAlign: 'right' }}>
                                             <div className="im-table-actions">
                                                 <motion.button whileTap={{ scale: 0.9 }} onClick={() => setViewInvoice(inv)} className="im-btn-view"><Printer size={14} /> View</motion.button>
-                                                <motion.button whileTap={{ scale: 0.9 }} onClick={() => openDeleteModal(inv)} className="im-btn-danger">
-                                                    {isAdmin ? 'Delete' : 'Delete Request'}
-                                                </motion.button>
+                                                {isRoot && inv.status !== 'Cancelled' && isWithin30Days(inv.createdAt) && (
+                                                    <motion.button whileTap={{ scale: 0.9 }} onClick={() => openEditModal(inv)} style={{ background: '#f59e0b', color: '#fff', border: 'none', borderRadius: '8px', padding: '0.4rem 0.8rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.8rem' }}>
+                                                        <Edit3 size={13} /> Edit
+                                                    </motion.button>
+                                                )}
+                                                {inv.status !== 'Cancelled' && isWithin30Days(inv.createdAt) && (
+                                                    <motion.button whileTap={{ scale: 0.9 }} onClick={() => openDeleteModal(inv)} className="im-btn-danger">
+                                                        {isAdmin ? 'Delete' : 'Delete Request'}
+                                                    </motion.button>
+                                                )}
                                             </div>
                                         </td>
                                     </tr>
@@ -419,19 +533,42 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
             {/* CREATE MODAL */}
             <AnimatePresence>
                 {isCreateModalOpen && (
-                    <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.4)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: '1rem' }}>
-                        <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} style={{ background: '#fff', borderRadius: '24px', padding: '2.5rem', width: '100%', maxWidth: 900, boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', maxHeight: '90vh', overflowY: 'auto' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2rem' }}>
+                    <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.5)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 100, overflowY: 'auto', padding: '2rem 1rem' }}>
+                        <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} style={{ background: '#f8fafc', borderRadius: '24px', padding: '2rem', width: '100%', maxWidth: 800, boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', marginBottom: '2rem' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
                                 <div>
-                                    <h2 style={{ margin: 0, fontWeight: 900 }}>Create Invoice [{creationMode.toUpperCase()}]</h2>
-                                    <p style={{ margin: '0.35rem 0 0', color: '#64748b', fontSize: '0.85rem' }}>
-                                        {creationMode === 'automatic' ? 'Stock will be reduced automatically' : 'Manual pricing - admin only'}
-                                    </p>
+                                    <h2 style={{ margin: 0, fontWeight: 900, fontSize: '1.5rem' }}>{editingInvoice ? `Edit Invoice (${editingInvoice.invoiceNumber})` : `Create Invoice [${creationMode.toUpperCase()}]`}</h2>
+                                    {editingInvoice && <p style={{ margin: '0.25rem 0 0', fontSize: '0.8rem', color: '#64748b' }}>Root-level edit — original will be cancelled</p>}
                                 </div>
-                                <motion.button whileTap={{ scale: 0.9 }} onClick={() => setIsCreateModalOpen(false)} style={{ background: '#f1f5f9', border: 'none', borderRadius: '50%', width: 32, height: 32, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={18} /></motion.button>
+                                <motion.button whileTap={{ scale: 0.9 }} onClick={() => { setIsCreateModalOpen(false); setEditingInvoice(null); setEditNote(''); }} style={{ background: '#fff', border: 'none', borderRadius: '50%', width: 36, height: 36, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}><X size={20} /></motion.button>
                             </div>
 
+                            {/* EDIT MODE WARNING */}
+                            {editingInvoice && (
+                                <div style={{ background: '#fff7ed', border: '1.5px solid #fed7aa', borderRadius: '12px', padding: '1rem 1.25rem', marginBottom: '1.5rem', display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
+                                    <AlertCircle size={20} color="#f59e0b" style={{ flexShrink: 0, marginTop: '2px' }} />
+                                    <div>
+                                        <div style={{ fontWeight: 800, color: '#92400e', fontSize: '0.9rem' }}>Editing Invoice {editingInvoice.invoiceNumber}</div>
+                                        <div style={{ color: '#b45309', fontSize: '0.8rem', marginTop: '0.2rem' }}>Saving will cancel the original invoice and create a new invoice number. This action is irreversible.</div>
+                                    </div>
+                                </div>
+                            )}
+
                             <form onSubmit={submitInvoice}>
+                                {/* EDIT NOTE */}
+                                {editingInvoice && (
+                                    <div style={{ marginBottom: '1.5rem', padding: '1.5rem', borderRadius: '16px', background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+                                        <h4 style={{ margin: '0 0 1rem 0', color: '#0f172a' }}>Reason for Edit</h4>
+                                        <input
+                                            type="text"
+                                            value={editNote}
+                                            onChange={e => setEditNote(e.target.value)}
+                                            placeholder="Why are you editing this invoice? (e.g. Fixing serial number)"
+                                            style={{ ...inputStyle, background: '#fff', borderColor: !editNote ? '#fca5a5' : '#e2e8f0' }}
+                                            required
+                                        />
+                                    </div>
+                                )}
                                 {/* CLIENT & PROJECT INFO */}
                                 <div style={{ marginBottom: '1.5rem', padding: '1.5rem', borderRadius: '16px', background: '#f8fafc', border: '1px solid #e2e8f0' }}>
                                     <h4 style={{ margin: '0 0 1rem 0', color: '#0f172a' }}>1. Client & Project</h4>
@@ -466,7 +603,10 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
                                         <div>
                                             <label style={labelStyle}>Payment Method</label>
-                                            <select value={form.paymentMethod} onChange={e => setForm({ ...form, paymentMethod: e.target.value })} style={{ ...inputStyle, background: '#fff' }}>
+                                            <select value={form.paymentMethod} onChange={e => {
+                                                const val = e.target.value;
+                                                setForm({ ...form, paymentMethod: val, status: val === 'cash' ? 'Paid' : form.status });
+                                            }} style={{ ...inputStyle, background: '#fff' }}>
                                                 <option value="cash">Cash</option>
                                                 <option value="cheque">Cheque</option>
                                                 <option value="bank_transfer">Bank Transfer</option>
@@ -740,11 +880,12 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
                                 {/* STATUS */}
                                 <div style={{ marginBottom: '1.5rem' }}>
                                     <label style={labelStyle}>Invoice Status</label>
-                                    <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })} style={{ ...inputStyle, background: '#fff', maxWidth: '200px' }}>
+                                    <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })} disabled={form.paymentMethod === 'cash'} style={{ ...inputStyle, background: form.paymentMethod === 'cash' ? '#f1f5f9' : '#fff', maxWidth: '200px', opacity: form.paymentMethod === 'cash' ? 0.7 : 1 }}>
                                         <option value="Unpaid">Unpaid</option>
                                         <option value="Pending">Pending</option>
                                         <option value="Paid">Paid</option>
                                     </select>
+                                    {form.paymentMethod === 'cash' && <div style={{ fontSize: '0.7rem', color: '#10b981', marginTop: '0.3rem', fontWeight: 700 }}>✓ Cash invoices are automatically Paid</div>}
                                 </div>
 
                                 {/* FINAL TOTAL */}
@@ -963,6 +1104,35 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
                 )}
             </AnimatePresence>
 
+            {/* STATUS UPDATE MODAL */}
+            <AnimatePresence>
+                {isStatusModalOpen && selectedInvoiceForStatus && (
+                    <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.4)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem' }}>
+                        <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} style={{ background: '#fff', borderRadius: '24px', padding: '2.5rem', width: '100%', maxWidth: 450, boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
+                                <h3 style={{ margin: 0, fontWeight: 900 }}>Update Status for {selectedInvoiceForStatus.invoiceNumber}</h3>
+                                <motion.button whileTap={{ scale: 0.9 }} onClick={() => setIsStatusModalOpen(false)} style={{ background: '#f1f5f9', border: 'none', borderRadius: '50%', width: 32, height: 32, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={18} /></motion.button>
+                            </div>
+                            <form onSubmit={handleUpdateStatus}>
+                                <div style={{ marginBottom: '1rem' }}>
+                                    <label style={labelStyle}>New Status</label>
+                                    <select value={statusForm.status} onChange={e => setStatusForm({ ...statusForm, status: e.target.value })} style={{ ...inputStyle, background: '#fff' }}>
+                                        <option value="Unpaid">Unpaid</option>
+                                        <option value="Pending">Pending</option>
+                                        <option value="Paid">Paid</option>
+                                    </select>
+                                </div>
+                                <div style={{ marginBottom: '1.5rem' }}>
+                                    <label style={labelStyle}>Update Note (Optional)</label>
+                                    <textarea placeholder="Reason for status change, payment ref, etc..." value={statusForm.note} onChange={e => setStatusForm({ ...statusForm, note: e.target.value })} style={{ ...inputStyle, height: 80, resize: 'none', background: '#fff' }} />
+                                </div>
+                                <motion.button whileTap={{ scale: 0.98 }} type="submit" style={{ background: '#4f46e5', color: '#fff', border: 'none', borderRadius: '12px', padding: '1rem', width: '100%', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>Update Status</motion.button>
+                            </form>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
             {/* VIEW/PRINT MODAL */}
             <AnimatePresence>
                 {viewInvoice && (
@@ -975,6 +1145,43 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
                             <div style={{ boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)', borderRadius: '4px', overflow: 'hidden' }}>
                                 <InvoiceTemplate ref={printRef} invoice={viewInvoice} business={businessData} />
                             </div>
+
+                            {/* STATUS HISTORY SECTION - ADMIN ONLY */}
+                            {isAdmin && (
+                                <div style={{ marginTop: '2rem', background: '#fff', borderRadius: '16px', padding: '2rem', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}>
+                                    <h3 style={{ margin: '0 0 1.5rem 0', fontWeight: 900, color: '#0f172a', fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                        <RefreshCw size={20} color="#4f46e5" /> Status History
+                                    </h3>
+                                    {viewInvoice.statusHistory && viewInvoice.statusHistory.length > 0 ? (
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                            {viewInvoice.statusHistory.map((hist, idx) => (
+                                                <div key={idx} style={{ display: 'flex', gap: '1.5rem', alignItems: 'flex-start' }}>
+                                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '40px' }}>
+                                                        <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#4f46e5', margin: '4px 0' }} />
+                                                        {idx < viewInvoice.statusHistory.length - 1 && <div style={{ width: 2, height: '100%', background: '#e2e8f0', minHeight: '30px' }} />}
+                                                    </div>
+                                                    <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '12px', flex: 1, border: '1px solid #e2e8f0' }}>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                                                            <span className={`im-badge${hist.status === 'Paid' ? ' im-badge-paid' : hist.status === 'Pending' ? ' im-badge-pending' : ' im-badge-unpaid'}`} style={{ padding: '2px 8px', fontSize: '0.7rem' }}>{hist.status}</span>
+                                                            <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>{new Date(hist.editedAt).toLocaleString()}</span>
+                                                        </div>
+                                                        <div style={{ fontSize: '0.85rem', color: '#334155', marginBottom: hist.note ? '0.5rem' : '0' }}>
+                                                            Updated by <strong style={{ color: '#0f172a' }}>{hist.editedBy?.firstName || 'System'} {hist.editedBy?.lastName || ''}</strong>
+                                                        </div>
+                                                        {hist.note && (
+                                                            <div style={{ fontSize: '0.8rem', color: '#64748b', fontStyle: 'italic', background: '#fff', padding: '0.5rem', borderRadius: '6px', borderLeft: '3px solid #cbd5e1' }}>
+                                                                "{hist.note}"
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div style={{ color: '#64748b', fontSize: '0.9rem', fontStyle: 'italic' }}>No status history available.</div>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     </div>
                 )}

@@ -13,6 +13,7 @@ import UserClientManagement from '../components/user/UserClientManagement';
 import UserProjectCatalog from '../components/user/UserProjectCatalog';
 import QuotationManagement from '../components/shared/QuotationManagement';
 import InvoiceManagement from '../components/shared/InvoiceManagement';
+import WarrantyManagement from '../components/admin/WarrantyManagement';
 import './UserPortal.css';
 
 const MOCK_INVOICES = [
@@ -116,7 +117,7 @@ const UserPortal = () => {
                         </span>
                     </div>
                     <div className="user-nav-links">
-                        {['Dashboard', 'Invoices', 'Quotations', 'Products', 'Projects', 'Clients', 'Reports'].map((item, i) => (
+                        {['Dashboard', 'Invoices', 'Quotations', 'Products', 'Projects', 'Clients', 'Warranty', 'Reports'].map((item, i) => (
                             <button key={i} onClick={() => setActiveTab(item)}
                                 className={`user-nav-link ${activeTab === item ? 'active' : ''}`}
                             >{item}</button>
@@ -329,6 +330,8 @@ const UserPortal = () => {
                     <UserClientManagement showToast={showToast} /> 
                 ) : activeTab === 'Projects' ? (
                     <UserProjectCatalog />
+                ) : activeTab === 'Warranty' ? (
+                    <WarrantyManagement currentUser={user} showToast={showToast} />
                 ) : (
                     <div style={{ textAlign: 'center', padding: '4rem', color: '#64748b' }}>Module {activeTab} is currently under construction.</div>
                 )}

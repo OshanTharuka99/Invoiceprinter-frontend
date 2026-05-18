@@ -370,49 +370,6 @@ const ProductManagement = ({ currentUser, showToast }) => {
                     </tbody>
                   </table>
                 </div>
-                          </td></tr>
-                        : filtProds.map(p=>{
-                          const initials = p.name.split(' ').slice(0,2).map(w=>w[0]?.toUpperCase()||'').join('');
-                          const color = avatarColor(p.name);
-                          return (
-                          <tr key={p._id} style={{ borderBottom: '1px solid #f1f5f9', transition: 'all 0.2s ease' }}
-                              onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'}
-                              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                            <td style={{ padding: '1.125rem 1.5rem' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.875rem' }}>
-                                <div className="pm-prod-avatar" style={{ background: `${color}18`, color, padding: '10px', borderRadius: '12px', fontWeight: 700, fontSize: '0.85rem' }}>{initials}</div>
-                                <div>
-                                  <div className="pm-prod-name" style={{ fontWeight: 700, fontSize: '0.9rem', color: '#0f172a' }}>{p.name}</div>
-                                  {p.warrantyPeriod && <div className="pm-prod-warranty" style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '0.15rem' }}>🛡 {p.warrantyPeriod}</div>}
-                                </div>
-                              </div>
-                            </td>
-                            <td style={{ padding: '1.125rem 1.5rem', color: 'var(--pm-t2)', fontWeight: 600, fontSize: '0.85rem' }}>{p.category?.name}</td>
-                            <td style={{ padding: '1.125rem 1.5rem', textAlign: 'right' }}>
-                              <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.9rem' }}>{sym(p.currencyType)} {p.price.toLocaleString(undefined,{minimumFractionDigits:2})}</div>
-                              {p.isTaxIncluded && <div style={{ fontSize: '0.65rem', color: '#10b981', fontWeight: 700, marginTop: '0.15rem' }}>Incl. Tax</div>}
-                            </td>
-                            <td style={{ padding: '1.125rem 1.5rem', textAlign: 'center' }}>
-                              <span className={`pm-badge ${p.quantity>9?'pm-badge-in':p.quantity>0?'pm-badge-low':'pm-badge-out'}`}>
-                                {p.quantity>0 ? `${p.quantity} units` : 'Out of Stock'}
-                              </span>
-                            </td>
-                            <td style={{ padding: '1.125rem 1.5rem' }}>
-                              <div className="pm-table-actions" style={{ display: 'flex', gap: '0.375rem', justifyContent: 'center' }}>
-                                <button className="pm-btn pm-btn-view" onClick={()=>openView(p)} style={{ background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: '10px', width: 36, height: 36, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#475569' }}><FileText size={14} /></button>
-                                <button className="pm-btn pm-btn-stock" onClick={()=>openStockModal(p)} style={{ background: '#ecfdf5', border: '1.5px solid #d1fae5', borderRadius: '10px', width: 36, height: 36, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#10b981' }}><Plus size={14} /></button>
-                                {isAdmin && <>
-                                  <button className="pm-btn pm-btn-edit" onClick={()=>openProdModal(p)} style={{ background: '#eff6ff', border: '1.5px solid #dbeafe', borderRadius: '10px', width: 36, height: 36, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2563eb' }}><Edit2 size={14} /></button>
-                                  <button className="pm-btn pm-btn-danger" onClick={()=>deleteProd(p._id)} style={{ background: '#fef2f2', border: '1.5px solid #fee2e2', borderRadius: '10px', width: 36, height: 36, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444' }}><Trash2 size={14} /></button>
-                                </>}
-                              </div>
-                            </td>
-                          </tr>
-                        )})
-                      }
-                    </tbody>
-                  </table>
-                </div>
               </div>
             </motion.div>
           )}

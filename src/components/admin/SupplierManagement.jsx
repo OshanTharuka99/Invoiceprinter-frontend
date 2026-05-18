@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Truck, Plus, X, Edit2, Trash2, Search, RefreshCw, AlertTriangle, FileText, Phone, Mail, MapPin, Landmark, Building2, Users, CheckCircle2, DollarSign, CreditCard } from 'lucide-react';
 import api from '../../api';
 import './SupplierManagement.css';
+import '../../styles/modern-table.css';
 
 const SupplierManagement = ({ currentUser, showToast }) => {
     const [vendors, setVendors] = useState([]);
@@ -155,14 +156,15 @@ const SupplierManagement = ({ currentUser, showToast }) => {
                     <p className="sm-empty-sub">{searchTerm ? 'Try adjusting your search terms' : 'Create your first vendor to get started'}</p>
                 </div>
             ) : (
-                <div className="sm-table-wrap">
-                    <table className="sm-table">
+                <div className="sm-table-wrap modern-table-card">
+                    <table className="sm-table modern-table">
                         <thead>
                             <tr>
                                 <th>Vendor</th>
                                 <th>Contact</th>
+                                <th>Address</th>
                                 <th>Bank Status</th>
-                                <th style={{ textAlign: 'right' }}>Actions</th>
+                                <th className="text-center" style={{ width: '180px' }}>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -171,35 +173,39 @@ const SupplierManagement = ({ currentUser, showToast }) => {
                                     key={v._id}
                                     initial={{ opacity: 0, x: -10 }}
                                     animate={{ opacity: 1, x: 0 }}
-                                    transition={{ delay: idx * 0.03 }}
-                                    onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'}
-                                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                                    transition={{ delay: idx * 0.03 }}>
                                     <td>
-                                        <div className="sm-table-name">
-                                            <div className="sm-table-name-icon" style={{ background: '#fffbeb' }}><Truck size={16} color="#f59e0b" /></div>
+                                        <div className="modern-table-cell-primary">
+                                            <div className="sm-table-name-icon modern-table-cell-icon" style={{ background: '#fffbeb' }}><Truck size={18} color="#f59e0b" /></div>
                                             <div>
-                                                <div className="sm-table-name-text">{v.name}</div>
-                                                <div className="sm-table-id">{v.supplierId}</div>
+                                                <div className="sm-table-name-text modern-table-cell-title">{v.name}</div>
+                                                <span className="modern-table-cell-subtitle amber">{v.supplierId}</span>
                                             </div>
                                         </div>
                                     </td>
-                                    <td className="sm-table-contact">
-                                        {v.telephoneNumber && <div><Phone size={12} color="#94a3b8" /> {v.telephoneNumber}</div>}
-                                        {v.emailAddress && <div><Mail size={12} color="#94a3b8" /> {v.emailAddress}</div>}
-                                        {!v.telephoneNumber && !v.emailAddress && <span style={{ color: '#94a3b8' }}>—</span>}
+                                    <td>
+                                        {v.telephoneNumber && <div className="modern-table-cell-info" style={{ marginBottom: '0.35rem' }}><Phone size={14} color="#94a3b8" /><span>{v.telephoneNumber}</span></div>}
+                                        {v.emailAddress && <div className="modern-table-cell-info"><Mail size={14} color="#94a3b8" /><span>{v.emailAddress}</span></div>}
+                                        {!v.telephoneNumber && !v.emailAddress && <span className="modern-table-cell-info muted">—</span>}
+                                    </td>
+                                    <td>
+                                        <div className="modern-table-cell-info muted">
+                                            <MapPin size={14} color="#94a3b8" />
+                                            <span>{v.address || 'N/A'}</span>
+                                        </div>
                                     </td>
                                     <td>
                                         {v.bankDetails?.bankName ? (
-                                            <span className="sm-table-badge sm-table-badge-active">{v.bankDetails.bankName}</span>
+                                            <span className="modern-table-badge green">{v.bankDetails.bankName}</span>
                                         ) : (
-                                            <span className="sm-table-badge sm-table-badge-inactive">Not Set</span>
+                                            <span className="modern-table-badge gray">Not Set</span>
                                         )}
                                     </td>
                                     <td>
-                                        <div className="sm-table-actions">
-                                            <motion.button whileTap={{ scale: 0.9 }} onClick={() => setViewVendor(v)} className="sm-table-btn sm-table-btn-view"><FileText size={11} /> View</motion.button>
-                                            <motion.button whileTap={{ scale: 0.9 }} onClick={() => openModal(v)} className="sm-table-btn sm-table-btn-edit"><Edit2 size={11} /> Edit</motion.button>
-                                            <motion.button whileTap={{ scale: 0.9 }} onClick={() => deleteVendor(v._id)} className="sm-table-btn sm-table-btn-delete"><Trash2 size={11} /> Delete</motion.button>
+                                        <div className="sm-table-actions modern-table-actions">
+                                            <motion.button whileTap={{ scale: 0.95 }} onClick={() => setViewVendor(v)} className="modern-table-action view"><FileText size={14} /></motion.button>
+                                            <motion.button whileTap={{ scale: 0.95 }} onClick={() => openModal(v)} className="modern-table-action edit"><Edit2 size={14} /></motion.button>
+                                            <motion.button whileTap={{ scale: 0.95 }} onClick={() => deleteVendor(v._id)} className="modern-table-action delete"><Trash2 size={14} /></motion.button>
                                         </div>
                                     </td>
                                 </motion.tr>

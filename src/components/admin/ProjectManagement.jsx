@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Briefcase, Plus, X, Edit2, Trash2, Search, RefreshCw, AlertTriangle, UserCircle2, FileText, MapPin, Calendar, Landmark, Info, DollarSign, TrendingUp, CheckCircle2, Clock, FolderKanban, Building2 } from 'lucide-react';
 import api from '../../api';
+import '../../styles/modern-table.css';
 
 const ProjectManagement = ({ currentUser, showToast }) => {
     const [projects, setProjects] = useState([]);
@@ -198,120 +199,116 @@ const ProjectManagement = ({ currentUser, showToast }) => {
                     <p style={{ margin: '0.5rem 0 0', color: '#94a3b8', fontSize: '0.875rem' }}>{searchTerm ? 'Try adjusting your search terms' : 'Create your first project to get started'}</p>
                 </div>
             ) : (
-                <div style={{ display: 'grid', gap: '1rem' }}>
-                    {filtered.map((p, idx) => (
-                        <motion.div
-                            key={p._id}
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: idx * 0.05 }}
-                            style={{
-                                background: '#fff',
-                                borderRadius: '20px',
-                                border: '1px solid #e2e8f0',
-                                padding: '1.5rem 2rem',
-                                display: 'grid',
-                                gridTemplateColumns: '1fr auto auto auto',
-                                alignItems: 'center',
-                                gap: '1.5rem',
-                                boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-                                transition: 'all 0.2s ease'
-                            }}
-                            onMouseEnter={(e) => {
-                                e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.08)';
-                                e.currentTarget.style.borderColor = '#cbd5e1';
-                            }}
-                            onMouseLeave={(e) => {
-                                e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.04)';
-                                e.currentTarget.style.borderColor = '#e2e8f0';
-                            }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-                                <div style={{ background: '#fffbeb', padding: '12px', borderRadius: '14px', display: 'flex' }}>
-                                    <Briefcase size={20} color="#f59e0b" />
-                                </div>
-                                <div>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.375rem' }}>
-                                        <span style={{ fontWeight: 700, fontSize: '1rem', color: '#0f172a' }}>{p.name}</span>
-                                        <span style={{ fontSize: '0.7rem', fontWeight: 600, color: '#f59e0b', background: '#fffbeb', padding: '0.25rem 0.75rem', borderRadius: '8px' }}>{p.projectId}</span>
-                                    </div>
-                                    <div style={{ display: 'flex', gap: '1.5rem', fontSize: '0.8rem', color: '#64748b' }}>
-                                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}><UserCircle2 size={12} color="#94a3b8" /> {p.client?.firstName} {p.client?.lastName}</span>
-                                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}><MapPin size={12} color="#94a3b8" /> {p.location || 'N/A'}</span>
-                                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}><Calendar size={12} color="#94a3b8" /> {p.startDate ? new Date(p.startDate).toLocaleDateString() : 'TBD'}</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div style={{ textAlign: 'right' }}>
-                                <div style={{ fontSize: '0.65rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Value</div>
-                                <div style={{ fontSize: '1.125rem', fontWeight: 800, color: '#059669', marginTop: '0.25rem' }}>${(p.value || 0).toLocaleString()}</div>
-                            </div>
-                            <div style={{ textAlign: 'right' }}>
-                                <div style={{ fontSize: '0.65rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Timeline</div>
-                                <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginTop: '0.25rem' }}>
-                                    {p.startDate ? new Date(p.startDate).toLocaleDateString() : 'TBD'} → {p.endDate ? new Date(p.endDate).toLocaleDateString() : 'TBD'}
-                                </div>
-                            </div>
-                            <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                <motion.button
-                                    whileHover={{ scale: 1.05 }}
-                                    whileTap={{ scale: 0.95 }}
-                                    onClick={() => setViewProject(p)}
-                                    style={{
-                                        background: '#f8fafc',
-                                        border: '1.5px solid #e2e8f0',
-                                        borderRadius: '12px',
-                                        padding: '0.625rem 1rem',
-                                        cursor: 'pointer',
-                                        fontWeight: 600,
-                                        fontSize: '0.75rem',
-                                        color: '#475569',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '0.375rem'
-                                    }}>
-                                    <FileText size={14} /> View
-                                </motion.button>
-                                <motion.button
-                                    whileHover={{ scale: 1.05 }}
-                                    whileTap={{ scale: 0.95 }}
-                                    onClick={() => openModal(p)}
-                                    style={{
-                                        background: '#eff6ff',
-                                        border: '1.5px solid #dbeafe',
-                                        borderRadius: '12px',
-                                        padding: '0.625rem 1rem',
-                                        cursor: 'pointer',
-                                        fontWeight: 600,
-                                        fontSize: '0.75rem',
-                                        color: '#2563eb',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '0.375rem'
-                                    }}>
-                                    <Edit2 size={14} /> Edit
-                                </motion.button>
-                                <motion.button
-                                    whileHover={{ scale: 1.05 }}
-                                    whileTap={{ scale: 0.95 }}
-                                    onClick={() => deleteProject(p._id)}
-                                    style={{
-                                        background: '#fef2f2',
-                                        border: '1.5px solid #fee2e2',
-                                        borderRadius: '12px',
-                                        padding: '0.625rem 1rem',
-                                        cursor: 'pointer',
-                                        fontWeight: 600,
-                                        fontSize: '0.75rem',
-                                        color: '#ef4444',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '0.375rem'
-                                    }}>
-                                    <Trash2 size={14} /> Delete
-                                </motion.button>
-                            </div>
-                        </motion.div>
-                    ))}
+                <div className="modern-table-card">
+                    <div className="modern-table-scroll">
+                        <table className="modern-table">
+                            <thead>
+                                <tr>
+                                    <th>Project</th>
+                                    <th>Client</th>
+                                    <th>Location</th>
+                                    <th>Start Date</th>
+                                    <th>End Date</th>
+                                    <th className="text-right">Value</th>
+                                    <th className="text-center">Status</th>
+                                    <th className="text-center" style={{ width: '180px' }}>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {filtered.map((p, idx) => {
+                                    const isStarted = p.startDate && new Date(p.startDate) <= new Date();
+                                    const isEnded = p.endDate && new Date(p.endDate) < new Date();
+                                    const status = isEnded ? 'Completed' : isStarted ? 'Active' : 'Upcoming';
+                                    const statusClass = isEnded ? 'completed' : isStarted ? 'active' : 'upcoming';
+
+                                    return (
+                                        <motion.tr
+                                            key={p._id}
+                                            initial={{ opacity: 0, y: 10 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            transition={{ delay: idx * 0.03 }}>
+                                            <td>
+                                                <div className="modern-table-cell-primary">
+                                                    <div className="modern-table-cell-icon" style={{ background: '#fffbeb' }}>
+                                                        <Briefcase size={18} color="#f59e0b" />
+                                                    </div>
+                                                    <div>
+                                                        <div className="modern-table-cell-title">{p.name}</div>
+                                                        <span className="modern-table-cell-subtitle amber">{p.projectId}</span>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div className="modern-table-cell-info">
+                                                    <UserCircle2 size={16} color="#94a3b8" />
+                                                    <span className="info-value">{p.client?.firstName} {p.client?.lastName}</span>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div className="modern-table-cell-info muted">
+                                                    <MapPin size={16} color="#94a3b8" />
+                                                    <span>{p.location || 'N/A'}</span>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div className="modern-table-cell-info muted">
+                                                    <Calendar size={16} color="#94a3b8" />
+                                                    <span>{p.startDate ? new Date(p.startDate).toLocaleDateString() : 'TBD'}</span>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div className="modern-table-cell-info muted">
+                                                    <Calendar size={16} color="#94a3b8" />
+                                                    <span>{p.endDate ? new Date(p.endDate).toLocaleDateString() : 'TBD'}</span>
+                                                </div>
+                                            </td>
+                                            <td className="text-right">
+                                                <span className="modern-table-cell-value green">${(p.value || 0).toLocaleString()}</span>
+                                            </td>
+                                            <td className="text-center">
+                                                <span className={`modern-table-status ${statusClass}`}>
+                                                    {status === 'Active' ? <Clock size={10} /> : status === 'Completed' ? <CheckCircle2 size={10} /> : <TrendingUp size={10} />}
+                                                    {status}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <div className="modern-table-actions">
+                                                    <motion.button
+                                                        whileHover={{ scale: 1.05 }}
+                                                        whileTap={{ scale: 0.95 }}
+                                                        onClick={() => setViewProject(p)}
+                                                        title="View"
+                                                        className="modern-table-action view">
+                                                        <FileText size={14} />
+                                                    </motion.button>
+                                                    <motion.button
+                                                        whileHover={{ scale: 1.05 }}
+                                                        whileTap={{ scale: 0.95 }}
+                                                        onClick={() => openModal(p)}
+                                                        title="Edit"
+                                                        className="modern-table-action edit">
+                                                        <Edit2 size={14} />
+                                                    </motion.button>
+                                                    <motion.button
+                                                        whileHover={{ scale: 1.05 }}
+                                                        whileTap={{ scale: 0.95 }}
+                                                        onClick={() => deleteProject(p._id)}
+                                                        title="Delete"
+                                                        className="modern-table-action delete">
+                                                        <Trash2 size={14} />
+                                                    </motion.button>
+                                                </div>
+                                            </td>
+                                        </motion.tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div className="modern-table-footer">
+                        <span className="footer-info">Showing {filtered.length} of {projects.length} projects</span>
+                        <span className="footer-total">Total Value: <span className="total-value">${totalValue.toLocaleString()}</span></span>
+                    </div>
                 </div>
             )}
 

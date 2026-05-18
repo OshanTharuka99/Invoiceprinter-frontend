@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import api from '../../api';
 import './UserManagement.css';
+import '../../styles/modern-table.css';
 
 const UserManagement = ({ currentUser, showToast }) => {
     const [users, setUsers] = useState([]);
@@ -156,14 +157,15 @@ const UserManagement = ({ currentUser, showToast }) => {
                 </div>
 
                 {/* Table */}
-                <div className="user-table-wrapper">
-                    <table className="user-table">
+                <div className="user-table-wrapper" style={{ background: '#fff', borderRadius: '24px', border: '1px solid #e2e8f0', overflow: 'hidden', boxShadow: '0 4px 16px rgba(0,0,0,0.06)' }}>
+                    <table className="user-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
                         <thead className="user-table-head">
-                            <tr>
-                                <th className="user-table-th">Personnel</th>
-                                <th className="user-table-th">Position</th>
-                                <th className="user-table-th">Status</th>
-                                <th className="user-table-th user-table-th-right">Actions</th>
+                            <tr style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)' }}>
+                                <th className="user-table-th" style={{ padding: '1.125rem 1.5rem', textAlign: 'left', fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Personnel</th>
+                                <th className="user-table-th" style={{ padding: '1.125rem 1.5rem', textAlign: 'left', fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Position</th>
+                                <th className="user-table-th" style={{ padding: '1.125rem 1.5rem', textAlign: 'left', fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Contact</th>
+                                <th className="user-table-th" style={{ padding: '1.125rem 1.5rem', textAlign: 'center', fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Status</th>
+                                <th className="user-table-th" style={{ padding: '1.125rem 1.5rem', textAlign: 'center', fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em', width: '180px' }}>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -174,49 +176,41 @@ const UserManagement = ({ currentUser, showToast }) => {
                                 const canDelete = canManage && u._id !== currentUser._id;
 
                                 return (
-                                    <tr key={u._id} className="user-table-row">
-                                        <td className="user-table-td">
-                                            <div className="user-table-cell-user">
-                                                <div className={`user-avatar ${isTargetRoot ? 'user-avatar-root' : 'user-avatar-user'}`}>
-                                                    {isTargetRoot ? <Crown size={22} /> : (
-                                                        u.firstName?.[0].toUpperCase() + (u.lastName?.[0].toUpperCase() || '')
-                                                    )}
+                                    <tr key={u._id} className="user-table-row" style={{ borderBottom: '1px solid #f1f5f9', transition: 'all 0.2s ease' }}
+                                        onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'}
+                                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                                        <td className="user-table-td" style={{ padding: '1.125rem 1.5rem' }}>
+                                            <div className="user-table-cell-user" style={{ display: 'flex', alignItems: 'center', gap: '0.875rem' }}>
+                                                <div className={`user-avatar ${isTargetRoot ? 'user-avatar-root' : 'user-avatar-user'}`} style={{ width: 42, height: 42, borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>
+                                                    {isTargetRoot ? <Crown size={20} /> : (u.firstName?.[0].toUpperCase() + (u.lastName?.[0].toUpperCase() || ''))}
                                                 </div>
                                                 <div>
-                                                    <div className="user-name">{u.firstName} {u.lastName}</div>
-                                                    <div className="user-email">{u.email}</div>
+                                                    <div className="user-name" style={{ fontWeight: 700, fontSize: '0.9rem', color: '#0f172a' }}>{u.firstName} {u.lastName}</div>
+                                                    <div className="user-email" style={{ fontSize: '0.75rem', color: '#64748b' }}>{u.email}</div>
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="user-designation">{u.designation || '—'}</td>
-                                        <td className="user-table-td">
-                                            <span className={`user-role-badge ${isTargetRoot ? 'user-role-root' : isTargetAdmin ? 'user-role-admin' : 'user-role-user'}`}>
+                                        <td className="user-designation" style={{ padding: '1.125rem 1.5rem' }}>
+                                            <span style={{ fontSize: '0.85rem', color: '#475569', fontWeight: 600 }}>{u.designation || '—'}</span>
+                                        </td>
+                                        <td style={{ padding: '1.125rem 1.5rem' }}>
+                                            {u.telephoneNumber ? (
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                    <Phone size={14} color="#94a3b8" />
+                                                    <span style={{ fontSize: '0.85rem', color: '#475569' }}>{u.telephoneNumber}</span>
+                                                </div>
+                                            ) : <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>—</span>}
+                                        </td>
+                                        <td className="user-table-td" style={{ padding: '1.125rem 1.5rem', textAlign: 'center' }}>
+                                            <span className={`user-role-badge ${isTargetRoot ? 'user-role-root' : isTargetAdmin ? 'user-role-admin' : 'user-role-user'}`} style={{ fontSize: '0.7rem', fontWeight: 700, padding: '0.35rem 0.75rem', borderRadius: '8px' }}>
                                                 {u.role.toUpperCase()}
                                             </span>
                                         </td>
-                                        <td className="user-table-actions">
-                                            <div className="user-actions-wrapper">
-                                                <button
-                                                    onClick={() => setEditingUser({ ...u, password: '' })}
-                                                    disabled={!canManage}
-                                                    className="user-action-btn user-edit-btn"
-                                                >
-                                                    <Edit3 size={18} />
-                                                </button>
-                                                <button
-                                                    onClick={() => setUserToPromote(u)}
-                                                    disabled={!canManage}
-                                                    className="user-action-btn user-promote-btn"
-                                                >
-                                                    <ShieldCheck size={18} />
-                                                </button>
-                                                <button
-                                                    onClick={() => { setUserToDelete(u); setTypedConfirmName(''); }}
-                                                    disabled={!canDelete}
-                                                    className="user-action-btn user-delete-btn"
-                                                >
-                                                    <Trash2 size={18} />
-                                                </button>
+                                        <td className="user-table-actions" style={{ padding: '1.125rem 1.5rem' }}>
+                                            <div className="user-actions-wrapper" style={{ display: 'flex', gap: '0.375rem', justifyContent: 'center' }}>
+                                                <button onClick={() => setEditingUser({ ...u, password: '' })} disabled={!canManage} className="user-action-btn user-edit-btn" style={{ background: '#eff6ff', border: '1.5px solid #dbeafe', borderRadius: '10px', width: 36, height: 36, cursor: canManage ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2563eb', opacity: canManage ? 1 : 0.4 }}><Edit3 size={14} /></button>
+                                                <button onClick={() => setUserToPromote(u)} disabled={!canManage} className="user-action-btn user-promote-btn" style={{ background: '#f5f3ff', border: '1.5px solid #ede9fe', borderRadius: '10px', width: 36, height: 36, cursor: canManage ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8b5cf6', opacity: canManage ? 1 : 0.4 }}><ShieldCheck size={14} /></button>
+                                                <button onClick={() => { setUserToDelete(u); setTypedConfirmName(''); }} disabled={!canDelete} className="user-action-btn user-delete-btn" style={{ background: '#fef2f2', border: '1.5px solid #fee2e2', borderRadius: '10px', width: 36, height: 36, cursor: canDelete ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444', opacity: canDelete ? 1 : 0.4 }}><Trash2 size={14} /></button>
                                             </div>
                                         </td>
                                     </tr>

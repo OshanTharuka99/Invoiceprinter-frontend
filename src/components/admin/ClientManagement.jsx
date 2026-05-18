@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Users, Plus, X, Edit2, Trash2, Search, RefreshCw, AlertTriangle, Building2, UserCircle2, Landmark, FileText, Phone, Mail, MapPin, Hash } from 'lucide-react';
 import api from '../../api';
+import '../../styles/modern-table.css';
 
 const ClientManagement = ({ currentUser, showToast }) => {
     const [clients, setClients] = useState([]);
@@ -91,42 +92,61 @@ const ClientManagement = ({ currentUser, showToast }) => {
                         </div>
                     </div>
 
-                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                        <thead>
-                            <tr style={{ borderBottom: '2px solid #f1f5f9' }}>
-                                <th style={{ padding: '1.25rem 1rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.75rem' }}>Client Profile</th>
-                                <th style={{ padding: '1.25rem 1rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.75rem' }}>Contact Information</th>
-                                <th style={{ padding: '1.25rem 1rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.75rem' }}>Client Type</th>
-                                <th style={{ padding: '1.25rem 1rem', textAlign: 'right' }}>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {filtered.map(c => (
-                                <tr key={c._id} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.2s' }}>
-                                    <td style={{ padding: '1.25rem 1rem' }}>
-                                        <div style={{ fontWeight: 800, color: '#0f172a' }}>{c.firstName} {c.lastName}</div>
-                                        <div style={{ fontSize: '0.75rem', color: '#3b82f6', fontWeight: 700 }}>{c.clientId}</div>
-                                    </td>
-                                    <td style={{ padding: '1.25rem 1rem', fontSize: '0.85rem', color: '#475569' }}>
-                                        {c.telephoneNumber && <div>📞 {c.telephoneNumber}</div>}
-                                        {c.emailAddress && <div>📧 {c.emailAddress}</div>}
-                                    </td>
-                                    <td style={{ padding: '1.25rem 1rem' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: '#f8fafc', padding: '4px 8px', borderRadius: '8px', width: 'fit-content', border: '1px solid #e2e8f0' }}>
-                                            {getIcon(c.clientType)} <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569' }}>{c.clientType}</span>
-                                        </div>
-                                    </td>
-                                    <td style={{ padding: '1.25rem 1rem', textAlign: 'right' }}>
-                                        <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'flex-end' }}>
-                                            <motion.button whileTap={{ scale: 0.9 }} title="View Details" onClick={() => setViewClient(c)} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '8px 12px', cursor: 'pointer', fontWeight: 800, color: '#0f172a', display: 'flex', gap: '0.4rem', fontSize: '0.7rem' }}><FileText size={12} /> View</motion.button>
-                                            <motion.button whileTap={{ scale: 0.9 }} title="Edit Records" onClick={() => openModal(c)} style={{ background: '#eff6ff', border: '1px solid #dbeafe', borderRadius: '8px', padding: '8px 12px', cursor: 'pointer', fontWeight: 800, color: '#2563eb', display: 'flex', gap: '0.4rem', fontSize: '0.7rem' }}><Edit2 size={12} /> Edit</motion.button>
-                                            <motion.button whileTap={{ scale: 0.9 }} title="Delete Client" onClick={() => deleteClient(c._id)} style={{ background: '#fff1f2', border: '1px solid #fee2e2', borderRadius: '8px', padding: '8px 12px', cursor: 'pointer', fontWeight: 800, color: '#ef4444', fontSize: '0.7rem' }}>Delete</motion.button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                    <div className="modern-table-card">
+                        <div className="modern-table-scroll">
+                            <table className="modern-table">
+                                <thead>
+                                    <tr>
+                                        <th>Client Profile</th>
+                                        <th>Contact Information</th>
+                                        <th>Type</th>
+                                        <th>Registered</th>
+                                        <th className="text-center" style={{ width: '180px' }}>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {filtered.map(c => (
+                                        <tr key={c._id}>
+                                            <td>
+                                                <div className="modern-table-cell-primary">
+                                                    <div className="modern-table-cell-icon" style={{ background: '#3b82f615' }}>
+                                                        {getIcon(c.clientType)}
+                                                    </div>
+                                                    <div>
+                                                        <div className="modern-table-cell-title">{c.firstName} {c.lastName}</div>
+                                                        <span className="modern-table-cell-subtitle blue">{c.clientId}</span>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                {c.telephoneNumber && <div className="modern-table-cell-info" style={{ marginBottom: '0.35rem' }}><Phone size={14} color="#94a3b8" /><span>{c.telephoneNumber}</span></div>}
+                                                {c.emailAddress && <div className="modern-table-cell-info"><Mail size={14} color="#94a3b8" /><span>{c.emailAddress}</span></div>}
+                                                {!c.telephoneNumber && !c.emailAddress && <span className="modern-table-cell-info muted">—</span>}
+                                            </td>
+                                            <td>
+                                                <span className="modern-table-type">
+                                                    {getIcon(c.clientType)} {c.clientType}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span style={{ fontSize: '0.85rem', color: '#64748b' }}>{new Date(c.createdAt).toLocaleDateString()}</span>
+                                            </td>
+                                            <td>
+                                                <div className="modern-table-actions">
+                                                    <motion.button whileTap={{ scale: 0.95 }} title="View Details" onClick={() => setViewClient(c)} className="modern-table-action view"><FileText size={14} /></motion.button>
+                                                    <motion.button whileTap={{ scale: 0.95 }} title="Edit Records" onClick={() => openModal(c)} className="modern-table-action edit"><Edit2 size={14} /></motion.button>
+                                                    <motion.button whileTap={{ scale: 0.95 }} title="Delete Client" onClick={() => deleteClient(c._id)} className="modern-table-action delete"><Trash2 size={14} /></motion.button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                        <div className="modern-table-footer">
+                            <span className="footer-info">Showing {filtered.length} of {clients.length} clients</span>
+                        </div>
+                    </div>
                 </div>
             )}
 

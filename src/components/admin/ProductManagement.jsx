@@ -6,6 +6,7 @@ import { Package, Plus, X, Edit2, Trash2, RefreshCw, FolderTree, Search,
 import * as XLSX from 'xlsx';
 import api from '../../api';
 import './ProductManagement.css';
+import '../../styles/modern-table.css';
 
 const FV = { initial:{opacity:0,y:8}, animate:{opacity:1,y:0}, exit:{opacity:0,y:-8} };
 const FM = { initial:{scale:0.95,opacity:0}, animate:{scale:1,opacity:1}, exit:{scale:0.95,opacity:0} };
@@ -265,20 +266,27 @@ const ProductManagement = ({ currentUser, showToast }) => {
                     {isAdmin && <button className="pm-btn pm-btn-primary" onClick={()=>openCatModal()}><Plus size={16}/>New Category</button>}
                   </div>
                 </div>
-                <div className="pm-table-wrap">
-                  <table className="pm-table">
-                    <thead><tr><th>Name</th><th>Code</th><th>Parent</th>{isAdmin&&<th style={{textAlign:'right'}}>Actions</th>}</tr></thead>
+                <div className="pm-table-wrap modern-table-card">
+                  <table className="pm-table modern-table">
+                    <thead>
+                      <tr>
+                        <th>Name</th>
+                        <th>Code</th>
+                        <th>Parent</th>
+                        {isAdmin&&<th className="text-center" style={{width:'150px'}}>Actions</th>}
+                      </tr>
+                    </thead>
                     <tbody>
                       {filtCats.length===0
-                        ? <tr><td colSpan={4} className="pm-empty">No categories found</td></tr>
+                        ? <tr><td colSpan={4} className="pm-empty modern-table-empty">No categories found</td></tr>
                         : filtCats.map(c=>(
                           <tr key={c._id}>
-                            <td style={{fontWeight:700}}>{c.name}</td>
+                            <td style={{fontWeight:700, color:'#0f172a', fontSize:'0.9rem'}}>{c.name}</td>
                             <td><span className="pm-badge pm-badge-code">{c.code}</span></td>
                             <td style={{color:'var(--pm-text-2)',fontWeight:600}}>{c.parentCategory?.name||'—'}</td>
-                            {isAdmin&&<td><div className="pm-table-actions">
-                              <button className="pm-btn pm-btn-edit" onClick={()=>openCatModal(c)}><Edit2 size={12}/>Edit</button>
-                              <button className="pm-btn pm-btn-danger" onClick={()=>deleteCat(c._id)}><Trash2 size={12}/>Delete</button>
+                            {isAdmin&&<td><div className="pm-table-actions modern-table-actions">
+                              <button className="pm-btn pm-btn-edit modern-table-action edit" onClick={()=>openCatModal(c)}><Edit2 size={14} /></button>
+                              <button className="pm-btn pm-btn-danger modern-table-action delete" onClick={()=>deleteCat(c._id)}><Trash2 size={14} /></button>
                             </div></td>}
                           </tr>
                         ))
@@ -309,17 +317,16 @@ const ProductManagement = ({ currentUser, showToast }) => {
                     {isAdmin && <button className="pm-btn pm-btn-primary" onClick={()=>openProdModal()}><Plus size={16}/>Add Product</button>}
                   </div>
                 </div>
-                <div className="pm-table-wrap">
-                  <table className="pm-table">
+                <div className="pm-table-wrap modern-table-card">
+                  <table className="pm-table modern-table">
                     <thead><tr>
-                      <th>Product ID</th><th>Name</th><th>Category</th>
-                      <th>Selling Price</th><th>Stock</th><th style={{textAlign:'right'}}>Actions</th>
+                      <th>Product</th><th>Category</th>
+                      <th className="text-right">Price</th><th className="text-center">Stock</th><th className="text-center" style={{width:'220px'}}>Actions</th>
                     </tr></thead>
                     <tbody>
                       {filtProds.length===0
-                        ? <tr><td colSpan={6}>
-                            <div className="pm-empty">
-                              <div className="pm-empty-icon">📦</div>
+                        ? <tr><td colSpan={5}>
+                            <div className="pm-empty modern-table-empty">
                               No products found
                             </div>
                           </td></tr>
@@ -328,34 +335,78 @@ const ProductManagement = ({ currentUser, showToast }) => {
                           const color = avatarColor(p.name);
                           return (
                           <tr key={p._id}>
-                            <td><span className="pm-badge pm-badge-id">{p.productId}</span></td>
                             <td>
-                              <div className="pm-prod-cell">
-                                <div className="pm-prod-avatar" style={{background:`${color}18`,color}}>{initials}</div>
+                              <div style={{display:'flex',alignItems:'center',gap:'0.875rem'}}>
+                                <div className="pm-prod-avatar" style={{background:`${color}18`,color,padding:'10px',borderRadius:'12px',fontWeight:700,fontSize:'0.85rem'}}>{initials}</div>
                                 <div>
-                                  <div className="pm-prod-name">{p.name}</div>
-                                  {p.warrantyPeriod&&<div className="pm-prod-warranty">🛡 {p.warrantyPeriod}</div>}
+                                  <div className="pm-prod-name" style={{fontWeight:700,fontSize:'0.9rem',color:'#0f172a'}}>{p.name}</div>
+                                  {p.warrantyPeriod&&<div className="pm-prod-warranty" style={{fontSize:'0.7rem',color:'#64748b',marginTop:'0.15rem'}}>🛡 {p.warrantyPeriod}</div>}
                                 </div>
                               </div>
                             </td>
-                            <td style={{color:'var(--pm-t2)',fontWeight:600,fontSize:'0.83rem'}}>{p.category?.name}</td>
-                            <td>
-                              <div style={{fontWeight:800,color:'var(--pm-t1)'}}>{sym(p.currencyType)} {p.price.toLocaleString(undefined,{minimumFractionDigits:2})}</div>
-                              {p.isTaxIncluded&&<div style={{fontSize:'0.65rem',color:'var(--pm-green)',fontWeight:700}}>Incl. Tax</div>}
+                            <td style={{color:'var(--pm-t2)',fontWeight:600,fontSize:'0.85rem'}}>{p.category?.name}</td>
+                            <td className="text-right">
+                              <div style={{fontWeight:800,color:'#0f172a',fontSize:'0.9rem'}}>{sym(p.currencyType)} {p.price.toLocaleString(undefined,{minimumFractionDigits:2})}</div>
+                              {p.isTaxIncluded&&<div style={{fontSize:'0.65rem',color:'#10b981',fontWeight:700,marginTop:'0.15rem'}}>Incl. Tax</div>}
                             </td>
-                            <td>
+                            <td className="text-center">
                               <span className={`pm-badge ${p.quantity>9?'pm-badge-in':p.quantity>0?'pm-badge-low':'pm-badge-out'}`}>
                                 {p.quantity>0?`${p.quantity} units`:'Out of Stock'}
                               </span>
                             </td>
-                            <td><div className="pm-table-actions">
-                              <button className="pm-btn pm-btn-view" onClick={()=>openView(p)}><FileText size={12}/>View</button>
-                              <button className="pm-btn pm-btn-stock" onClick={()=>openStockModal(p)}><Plus size={12}/>Stock</button>
-                              {isAdmin&&<>
-                                <button className="pm-btn pm-btn-edit" onClick={()=>openProdModal(p)}><Edit2 size={12}/>Edit</button>
-                                <button className="pm-btn pm-btn-danger" onClick={()=>deleteProd(p._id)}><Trash2 size={12}/></button>
-                              </>}
-                            </div></td>
+                            <td>
+                              <div className="pm-table-actions modern-table-actions">
+                                <button className="pm-btn pm-btn-view modern-table-action view" onClick={()=>openView(p)}><FileText size={14} /></button>
+                                <button className="pm-btn pm-btn-stock modern-table-action stock" onClick={()=>openStockModal(p)}><Plus size={14} /></button>
+                                {isAdmin&&<>
+                                  <button className="pm-btn pm-btn-edit modern-table-action edit" onClick={()=>openProdModal(p)}><Edit2 size={14} /></button>
+                                  <button className="pm-btn pm-btn-danger modern-table-action delete" onClick={()=>deleteProd(p._id)}><Trash2 size={14} /></button>
+                                </>}
+                              </div>
+                            </td>
+                          </tr>
+                        )})
+                      }
+                    </tbody>
+                  </table>
+                </div>
+                          </td></tr>
+                        : filtProds.map(p=>{
+                          const initials = p.name.split(' ').slice(0,2).map(w=>w[0]?.toUpperCase()||'').join('');
+                          const color = avatarColor(p.name);
+                          return (
+                          <tr key={p._id} style={{ borderBottom: '1px solid #f1f5f9', transition: 'all 0.2s ease' }}
+                              onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'}
+                              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                            <td style={{ padding: '1.125rem 1.5rem' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.875rem' }}>
+                                <div className="pm-prod-avatar" style={{ background: `${color}18`, color, padding: '10px', borderRadius: '12px', fontWeight: 700, fontSize: '0.85rem' }}>{initials}</div>
+                                <div>
+                                  <div className="pm-prod-name" style={{ fontWeight: 700, fontSize: '0.9rem', color: '#0f172a' }}>{p.name}</div>
+                                  {p.warrantyPeriod && <div className="pm-prod-warranty" style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '0.15rem' }}>🛡 {p.warrantyPeriod}</div>}
+                                </div>
+                              </div>
+                            </td>
+                            <td style={{ padding: '1.125rem 1.5rem', color: 'var(--pm-t2)', fontWeight: 600, fontSize: '0.85rem' }}>{p.category?.name}</td>
+                            <td style={{ padding: '1.125rem 1.5rem', textAlign: 'right' }}>
+                              <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.9rem' }}>{sym(p.currencyType)} {p.price.toLocaleString(undefined,{minimumFractionDigits:2})}</div>
+                              {p.isTaxIncluded && <div style={{ fontSize: '0.65rem', color: '#10b981', fontWeight: 700, marginTop: '0.15rem' }}>Incl. Tax</div>}
+                            </td>
+                            <td style={{ padding: '1.125rem 1.5rem', textAlign: 'center' }}>
+                              <span className={`pm-badge ${p.quantity>9?'pm-badge-in':p.quantity>0?'pm-badge-low':'pm-badge-out'}`}>
+                                {p.quantity>0 ? `${p.quantity} units` : 'Out of Stock'}
+                              </span>
+                            </td>
+                            <td style={{ padding: '1.125rem 1.5rem' }}>
+                              <div className="pm-table-actions" style={{ display: 'flex', gap: '0.375rem', justifyContent: 'center' }}>
+                                <button className="pm-btn pm-btn-view" onClick={()=>openView(p)} style={{ background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: '10px', width: 36, height: 36, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#475569' }}><FileText size={14} /></button>
+                                <button className="pm-btn pm-btn-stock" onClick={()=>openStockModal(p)} style={{ background: '#ecfdf5', border: '1.5px solid #d1fae5', borderRadius: '10px', width: 36, height: 36, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#10b981' }}><Plus size={14} /></button>
+                                {isAdmin && <>
+                                  <button className="pm-btn pm-btn-edit" onClick={()=>openProdModal(p)} style={{ background: '#eff6ff', border: '1.5px solid #dbeafe', borderRadius: '10px', width: 36, height: 36, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2563eb' }}><Edit2 size={14} /></button>
+                                  <button className="pm-btn pm-btn-danger" onClick={()=>deleteProd(p._id)} style={{ background: '#fef2f2', border: '1.5px solid #fee2e2', borderRadius: '10px', width: 36, height: 36, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444' }}><Trash2 size={14} /></button>
+                                </>}
+                              </div>
+                            </td>
                           </tr>
                         )})
                       }

@@ -73,6 +73,7 @@ const InvoiceTemplate = React.forwardRef(({ invoice, business }, ref) => {
 
     return (
         <div ref={ref} data-invoicetemplate style={{
+            position: 'relative',
             background: '#fff',
             color: DARK,
             fontFamily: FONT,
@@ -86,8 +87,28 @@ const InvoiceTemplate = React.forwardRef(({ invoice, business }, ref) => {
             flexDirection: 'column',
             padding: '12mm 14mm 14mm 14mm'
         }}>
+            {/* WATERMARK */}
+            {inv.status === 'Cancelled' && (
+                <div style={{
+                    position: 'absolute',
+                    top: '40%',
+                    left: '50%',
+                    transform: 'translate(-50%, -50%) rotate(-30deg)',
+                    fontSize: '120px',
+                    fontWeight: '900',
+                    color: 'rgba(239, 68, 68, 0.12)',
+                    textTransform: 'uppercase',
+                    letterSpacing: '10px',
+                    pointerEvents: 'none',
+                    zIndex: 0,
+                    whiteSpace: 'nowrap'
+                }}>
+                    CANCELLED
+                </div>
+            )}
+
             {/* HEADER */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div style={{ position: 'relative', zIndex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div style={{ maxWidth: '52%' }}>
                     {b.quotationLogo
                         ? <img src={b.quotationLogo} alt="Logo"

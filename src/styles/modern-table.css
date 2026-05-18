@@ -1,0 +1,404 @@
+/* ============================================
+   MODERN TABLE STYLES - Shared Across All Management Components
+   ============================================ */
+
+/* Table Container Card */
+.modern-table-card {
+    background: #fff;
+    border-radius: 24px;
+    border: 1px solid #e2e8f0;
+    overflow: hidden;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+}
+
+.modern-table-scroll {
+    overflow-x: auto;
+}
+
+/* Base Table */
+.modern-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+/* Table Header */
+.modern-table thead tr {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+}
+
+.modern-table thead th {
+    padding: 1.125rem 1.5rem;
+    text-align: left;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.modern-table thead th.text-right {
+    text-align: right;
+}
+
+.modern-table thead th.text-center {
+    text-align: center;
+}
+
+/* Table Body Rows */
+.modern-table tbody tr {
+    border-bottom: 1px solid #f1f5f9;
+    transition: all 0.2s ease;
+}
+
+.modern-table tbody tr:last-child {
+    border-bottom: none;
+}
+
+.modern-table tbody tr:hover {
+    background: #f8fafc;
+}
+
+.modern-table tbody td {
+    padding: 1.125rem 1.5rem;
+}
+
+.modern-table tbody td.text-right {
+    text-align: right;
+}
+
+.modern-table tbody td.text-center {
+    text-align: center;
+}
+
+/* Cell Content Styles */
+.modern-table-cell-primary {
+    display: flex;
+    align-items: center;
+    gap: 0.875rem;
+}
+
+.modern-table-cell-icon {
+    padding: 10px;
+    border-radius: 12px;
+    display: flex;
+}
+
+.modern-table-cell-title {
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: #0f172a;
+    margin-bottom: 0.25rem;
+}
+
+.modern-table-cell-subtitle {
+    font-size: 0.65rem;
+    font-weight: 600;
+    padding: 0.15rem 0.5rem;
+    border-radius: 6px;
+    display: inline-block;
+}
+
+.modern-table-cell-subtitle.amber {
+    color: #f59e0b;
+    background: #fffbeb;
+}
+
+.modern-table-cell-subtitle.blue {
+    color: #3b82f6;
+    background: #eff6ff;
+}
+
+.modern-table-cell-subtitle.green {
+    color: #10b981;
+    background: #ecfdf5;
+}
+
+.modern-table-cell-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    color: #475569;
+}
+
+.modern-table-cell-info.muted {
+    color: #94a3b8;
+}
+
+.modern-table-cell-info .info-label {
+    font-weight: 600;
+}
+
+.modern-table-cell-info .info-value {
+    font-weight: 700;
+}
+
+.modern-table-cell-value {
+    font-weight: 800;
+    font-size: 0.95rem;
+}
+
+.modern-table-cell-value.green {
+    color: #059669;
+}
+
+.modern-table-cell-value.amber {
+    color: #f59e0b;
+}
+
+.modern-table-cell-value.blue {
+    color: #2563eb;
+}
+
+/* Action Buttons Container */
+.modern-table-actions {
+    display: flex;
+    gap: 0.375rem;
+    justify-content: center;
+}
+
+/* Individual Action Button */
+.modern-table-action {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    border: 1.5px solid;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.modern-table-action:active {
+    transform: scale(0.95);
+}
+
+.modern-table-action.view {
+    background: #f8fafc;
+    border-color: #e2e8f0;
+    color: #475569;
+}
+
+.modern-table-action.view:hover {
+    background: #f1f5f9;
+}
+
+.modern-table-action.edit {
+    background: #eff6ff;
+    border-color: #dbeafe;
+    color: #2563eb;
+}
+
+.modern-table-action.edit:hover {
+    background: #dbeafe;
+}
+
+.modern-table-action.delete {
+    background: #fef2f2;
+    border-color: #fee2e2;
+    color: #ef4444;
+}
+
+.modern-table-action.delete:hover {
+    background: #fee2e2;
+}
+
+.modern-table-action.stock {
+    background: #ecfdf5;
+    border-color: #d1fae5;
+    color: #10b981;
+}
+
+.modern-table-action.stock:hover {
+    background: #d1fae5;
+}
+
+.modern-table-action.print {
+    background: #f8fafc;
+    border-color: #e2e8f0;
+    color: #475569;
+}
+
+.modern-table-action.print:hover {
+    background: #f1f5f9;
+}
+
+.modern-table-action.promote {
+    background: #f5f3ff;
+    border-color: #ede9fe;
+    color: #8b5cf6;
+}
+
+.modern-table-action.promote:hover {
+    background: #ede9fe;
+}
+
+.modern-table-action.disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/* Status Badge */
+.modern-table-status {
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 0.35rem 0.75rem;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.modern-table-status.active {
+    color: #3b82f6;
+    background: #eff6ff;
+}
+
+.modern-table-status.completed {
+    color: #10b981;
+    background: #ecfdf5;
+}
+
+.modern-table-status.upcoming {
+    color: #f59e0b;
+    background: #fffbeb;
+}
+
+.modern-table-status.paid {
+    color: #10b981;
+    background: #ecfdf5;
+}
+
+.modern-table-status.pending {
+    color: #f59e0b;
+    background: #fffbeb;
+}
+
+.modern-table-status.unpaid {
+    color: #ef4444;
+    background: #fef2f2;
+}
+
+.modern-table-status.cancelled {
+    color: #64748b;
+    background: #f8fafc;
+}
+
+.modern-table-status.cursor-pointer {
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.modern-table-status.cursor-pointer:hover {
+    filter: brightness(0.95);
+}
+
+/* Type Badge */
+.modern-table-type {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #475569;
+    background: #f8fafc;
+    padding: 0.35rem 0.75rem;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+/* Footer */
+.modern-table-footer {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid #f1f5f9;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modern-table-footer .footer-info {
+    font-size: 0.8rem;
+    color: #94a3b8;
+    font-weight: 600;
+}
+
+.modern-table-footer .footer-total {
+    font-size: 0.8rem;
+    color: #64748b;
+    font-weight: 600;
+}
+
+.modern-table-footer .footer-total .total-value {
+    color: #059669;
+    font-weight: 700;
+}
+
+/* Empty State */
+.modern-table-empty {
+    padding: 2rem;
+    text-align: center;
+    color: #94a3b8;
+}
+
+/* Avatar Styles */
+.modern-table-avatar {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+/* Badge Variants */
+.modern-table-badge {
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 0.35rem 0.75rem;
+    border-radius: 8px;
+    display: inline-block;
+}
+
+.modern-table-badge.green {
+    color: #10b981;
+    background: #ecfdf5;
+}
+
+.modern-table-badge.gray {
+    color: #94a3b8;
+    background: #f8fafc;
+}
+
+.modern-table-badge.blue {
+    color: #3b82f6;
+    background: #eff6ff;
+}
+
+.modern-table-badge.amber {
+    color: #f59e0b;
+    background: #fffbeb;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .modern-table thead th,
+    .modern-table tbody td {
+        padding: 0.875rem 1rem;
+    }
+
+    .modern-table-cell-primary {
+        gap: 0.625rem;
+    }
+
+    .modern-table-cell-icon {
+        padding: 8px;
+    }
+
+    .modern-table-actions {
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+}

@@ -404,48 +404,52 @@ const PromainvoiceManagemnt = ({ currentUser, showToast }) => {
                             )}
                         </div>
                     </div>
-                    <div className="im-table-wrap">
-                        <table className="im-table">
+                    <div className="im-table-wrap" style={{ background: '#fff', borderRadius: '24px', border: '1px solid #e2e8f0', overflow: 'hidden', boxShadow: '0 4px 16px rgba(0,0,0,0.06)' }}>
+                        <table className="im-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
                             <thead>
-                                <tr>
-                                    <th>Invoice ID</th>
-                                    <th>Client</th>
-                                    <th>Payment</th>
-                                    <th>Total</th>
-                                    <th>Status</th>
-                                    <th style={{ textAlign: 'right' }}>Actions</th>
+                                <tr style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)' }}>
+                                    <th style={{ padding: '1.125rem 1.5rem', textAlign: 'left', fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Invoice ID</th>
+                                    <th style={{ padding: '1.125rem 1.5rem', textAlign: 'left', fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Client</th>
+                                    <th style={{ padding: '1.125rem 1.5rem', textAlign: 'left', fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Payment</th>
+                                    <th style={{ padding: '1.125rem 1.5rem', textAlign: 'right', fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Total</th>
+                                    <th style={{ padding: '1.125rem 1.5rem', textAlign: 'center', fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Status</th>
+                                    <th style={{ padding: '1.125rem 1.5rem', textAlign: 'center', fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em', width: '180px' }}>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {filtered.map(inv => (
-                                    <tr key={inv._id}>
-                                        <td>
-                                            <div style={{ fontWeight: 800, color: '#10b981', fontSize: '0.9rem' }}>{inv.invoiceNumber}</div>
-                                            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--im-t3)' }}>{new Date(inv.invoiceDate || inv.createdAt).toLocaleDateString()}</div>
+                                    <tr key={inv._id} style={{ borderBottom: '1px solid #f1f5f9', transition: 'all 0.2s ease' }}
+                                        onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'}
+                                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                                        <td style={{ padding: '1.125rem 1.5rem' }}>
+                                            <div style={{ fontWeight: 800, color: '#10b981', fontSize: '0.9rem', marginBottom: '0.25rem' }}>{inv.invoiceNumber}</div>
+                                            <span style={{ fontSize: '0.7rem', fontWeight: 600, color: '#64748b' }}>{new Date(inv.invoiceDate || inv.createdAt).toLocaleDateString()}</span>
                                         </td>
-                                        <td style={{ fontWeight: 700, color: 'var(--im-t1)' }}>
+                                        <td style={{ padding: '1.125rem 1.5rem', fontWeight: 700, color: '#0f172a', fontSize: '0.9rem' }}>
                                             {inv.clientRef ? `${inv.clientRef.firstName} ${inv.clientRef.lastName}` : inv.manualClientDetails?.name || 'Unknown'}
                                         </td>
-                                        <td style={{ fontSize: '0.85rem', color: 'var(--im-t2)', fontWeight: 600, textTransform: 'capitalize' }}>
-                                            {inv.paymentMethod?.replace('_', ' ')}
+                                        <td style={{ padding: '1.125rem 1.5rem' }}>
+                                            <span style={{ fontSize: '0.85rem', color: '#475569', fontWeight: 600, textTransform: 'capitalize' }}>
+                                                {inv.paymentMethod?.replace('_', ' ')}
+                                            </span>
                                         </td>
-                                        <td style={{ fontWeight: 800, color: 'var(--im-t1)' }}>
-                                            {businessData?.primaryCurrency?.symbol || 'Rs.'} {parseFloat(inv.finalTotal).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                                        <td style={{ padding: '1.125rem 1.5rem', textAlign: 'right' }}>
+                                            <span style={{ fontWeight: 800, color: '#059669', fontSize: '0.95rem' }}>
+                                                {businessData?.primaryCurrency?.symbol || 'Rs.'} {parseFloat(inv.finalTotal).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                                            </span>
                                         </td>
-                                        <td>
-                                            <span onClick={() => openStatusModal(inv)} className={`im-badge${inv.status === 'Paid' ? ' im-badge-paid' : inv.status === 'Pending' ? ' im-badge-pending' : ' im-badge-unpaid'}`} style={{ cursor: inv.paymentMethod === 'cash' ? 'default' : 'pointer', transition: 'all 0.2s' }} title={inv.paymentMethod === 'cash' ? 'Cash invoices cannot change status' : 'Click to update status'}>{inv.status}</span>
+                                        <td style={{ padding: '1.125rem 1.5rem', textAlign: 'center' }}>
+                                            <span onClick={() => openStatusModal(inv)} className={`im-badge${inv.status === 'Paid' ? ' im-badge-paid' : inv.status === 'Pending' ? ' im-badge-pending' : ' im-badge-unpaid'}`} style={{ cursor: inv.paymentMethod === 'cash' ? 'default' : 'pointer', transition: 'all 0.2s', fontSize: '0.7rem', fontWeight: 700, padding: '0.35rem 0.75rem', borderRadius: '8px' }} title={inv.paymentMethod === 'cash' ? 'Cash invoices cannot change status' : 'Click to update status'}>{inv.status}</span>
                                         </td>
-                                        <td style={{ textAlign: 'right' }}>
-                                            <div className="im-table-actions">
-                                                <motion.button whileTap={{ scale: 0.9 }} onClick={() => setViewInvoice(inv)} className="im-btn-view"><Printer size={14} /> View</motion.button>
-                                                <motion.button whileTap={{ scale: 0.9 }} onClick={() => openDeleteModal(inv)} className="im-btn-danger">
-                                                    {isAdmin ? 'Delete' : 'Delete Request'}
-                                                </motion.button>
+                                        <td style={{ padding: '1.125rem 1.5rem' }}>
+                                            <div className="im-table-actions" style={{ display: 'flex', gap: '0.375rem', justifyContent: 'center' }}>
+                                                <motion.button whileTap={{ scale: 0.95 }} onClick={() => setViewInvoice(inv)} style={{ background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: '10px', width: 36, height: 36, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#475569' }}><Printer size={14} /></motion.button>
+                                                <motion.button whileTap={{ scale: 0.95 }} onClick={() => openDeleteModal(inv)} style={{ background: '#fef2f2', border: '1.5px solid #fee2e2', borderRadius: '10px', width: 36, height: 36, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444' }}><Trash2 size={14} /></motion.button>
                                             </div>
                                         </td>
                                     </tr>
                                 ))}
-                                {filtered.length === 0 && <tr><td colSpan="6"><div className="im-empty">No invoices in registry.</div></td></tr>}
+                                {filtered.length === 0 && <tr><td colSpan="6"><div className="im-empty" style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8' }}>No invoices in registry.</div></td></tr>}
                             </tbody>
                         </table>
                     </div>

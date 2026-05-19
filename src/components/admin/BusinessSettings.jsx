@@ -23,7 +23,9 @@ const BusinessSettings = ({ currentUser, showToast }) => {
             { name: 'Test Profile', type: 'fixed', value: 500, minBillAmount: 0 }
         ],
         quotationTerms: 'Standard terms and conditions apply.', quotationNotes: '',
-        invoiceTerms: 'Standard invoice terms and conditions apply.', invoiceNotes: ''
+        invoiceTerms: 'Standard invoice terms and conditions apply.', invoiceNotes: '',
+        purchaseOrderTerms: 'Standard purchase order terms and conditions apply.', purchaseOrderNotes: '',
+        stores: []
     });
 
     const [isEditMode, setIsEditMode] = useState(false);
@@ -37,7 +39,10 @@ const BusinessSettings = ({ currentUser, showToast }) => {
                 setBusinessData({
                     ...details,
                     invoiceTerms: details.invoiceTerms || 'Standard invoice terms and conditions apply.',
-                    invoiceNotes: details.invoiceNotes || ''
+                    invoiceNotes: details.invoiceNotes || '',
+                    purchaseOrderTerms: details.purchaseOrderTerms || 'Standard purchase order terms and conditions apply.',
+                    purchaseOrderNotes: details.purchaseOrderNotes || '',
+                    stores: details.stores || []
                 });
             }
         } catch (err) { showToast('Sync failed', 'error'); }
@@ -78,6 +83,7 @@ const BusinessSettings = ({ currentUser, showToast }) => {
             <div className="bs-subtab-bar">
                 <button onClick={() => { setActiveSubTab('business'); setIsEditMode(false); }} className={`bs-subtab-btn${activeSubTab === 'business' ? ' bs-subtab-btn--active' : ''}`}>Business Settings</button>
                 <button onClick={() => { setActiveSubTab('quotation'); setIsEditMode(false); }} className={`bs-subtab-btn${activeSubTab === 'quotation' ? ' bs-subtab-btn--active' : ''}`}>Document Format Settings</button>
+                <button onClick={() => { setActiveSubTab('stores'); setIsEditMode(false); }} className={`bs-subtab-btn${activeSubTab === 'stores' ? ' bs-subtab-btn--active' : ''}`}>Store Locations</button>
             </div>
 
             <AnimatePresence mode="wait">
@@ -237,7 +243,7 @@ const BusinessSettings = ({ currentUser, showToast }) => {
                             ))}
                         </div>
                     </motion.div>
-                ) : (
+                ) : activeSubTab === 'quotation' ? (
                     <motion.div key="quotation" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }}>
 
                         {/* Quotation Format */}
@@ -278,6 +284,46 @@ const BusinessSettings = ({ currentUser, showToast }) => {
                             </div>
                         </div>
 
+                        {/* Purchase Order Format */}
+                        <div className="bs-card">
+                            <div className="bs-doc-header">
+                                <div className="bs-doc-header-left">
+                                    <div className="bs-card-icon" style={{ background: '#0ea5e915', color: '#e9af0eff' }}><Receipt size={24} /></div>
+                                    <h3 className="bs-card-title">Purchase Order Format</h3>
+                                </div>
+                                {isRoot && (
+                                    <button onClick={isEditMode ? handleSave : () => setIsEditMode(true)} disabled={isSaving} className={`bs-header-btn${isEditMode ? ' bs-header-btn--save' : ' bs-header-btn--edit'}`}>
+                                        {isSaving ? <RefreshCw className="animate-spin" size={18} /> : (isEditMode ? <CheckCircle size={18} /> : <Edit3 size={18} />)}
+                                        {isEditMode ? 'SAVE FORMAT' : 'EDIT FORMAT'}
+                                    </button>
+                                )}
+                            </div>
+
+
+                            <div className="bs-doc-form">
+                                <div>
+                                    <label className="bs-label">Purchase Order Terms & Conditions</label>
+                                    <textarea
+                                        value={businessData.purchaseOrderTerms}
+                                        onChange={e => setBusinessData({ ...businessData, purchaseOrderTerms: e.target.value })}
+                                        disabled={!isEditMode}
+                                        className={`${inputClass} bs-textarea-lg`}
+                                        placeholder="Enter standard terms (e.g. Valid for 30 days...)"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="bs-label">Default Purchase Order Notes</label>
+                                    <textarea
+                                        value={businessData.purchaseOrderNotes}
+                                        onChange={e => setBusinessData({ ...businessData, purchaseOrderNotes: e.target.value })}
+                                        disabled={!isEditMode}
+                                        className={`${inputClass} bs-textarea`}
+                                        placeholder="Enter default notes or thank you messages..."
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
                         {/* Invoice Format */}
                         <div className="bs-card">
                             <div className="bs-doc-header">
@@ -292,6 +338,8 @@ const BusinessSettings = ({ currentUser, showToast }) => {
                                     </button>
                                 )}
                             </div>
+
+
                             <div className="bs-doc-form">
                                 <div>
                                     <label className="bs-label">Invoice Terms & Conditions</label>
@@ -314,6 +362,62 @@ const BusinessSettings = ({ currentUser, showToast }) => {
                                     />
                                 </div>
                             </div>
+                        </div>
+                    </motion.div>
+                ) : (
+                    <motion.div key="stores" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+                        <div className="bs-header">
+                            <div className="bs-header-accent">
+                                <p className="bs-header-desc">
+                                    Manage store and inventory warehouse locations for delivery destination assignment.
+                                </p>
+                            </div>
+                            {isRoot && (
+                                <button onClick={isEditMode ? handleSave : () => setIsEditMode(true)} disabled={isSaving} className={`bs-header-btn${isEditMode ? ' bs-header-btn--save' : ' bs-header-btn--edit'}`}>
+                                    {isSaving ? <RefreshCw className="animate-spin" size={18} /> : (isEditMode ? <CheckCircle size={18} /> : <Edit3 size={18} />)}
+                                    {isEditMode ? 'SAVE STORE LOCATIONS' : 'EDIT STORES'}
+                                </button>
+                            )}
+                        </div>
+
+                        <div className="bs-card">
+                            <div className="bs-dynamic-header">
+                                <div className="bs-card-header">
+                                    <div className="bs-card-icon" style={{ background: '#3b82f615', color: '#3b82f6' }}><MapPin size={24} /></div>
+                                    <h3 className="bs-card-title">Active Warehouse / Stores</h3>
+                                </div>
+                                {isEditMode && (
+                                    <button onClick={() => setBusinessData({ ...businessData, stores: [...(businessData.stores || []), { name: '', address: '', phoneNumber: '' }] })} className="bs-add-btn">+ Add Store Location</button>
+                                )}
+                            </div>
+                            
+                            {(!businessData.stores || businessData.stores.length === 0) ? (
+                                <div style={{ textAlign: 'center', padding: '3rem 1.5rem', color: '#64748b', fontWeight: 600 }}>
+                                    No managed stores added. Deliveries will default to the Main Organization Address.
+                                </div>
+                            ) : (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1rem' }}>
+                                    {businessData.stores.map((store, i) => (
+                                        <div key={i} className="bs-dynamic-row bs-dynamic-row--store" style={{ display: 'grid', gridTemplateColumns: '1fr 2fr 1fr auto', gap: '12px', alignItems: 'end', background: '#f8fafc', padding: '12px 16px', borderRadius: '12px', border: '1.5px solid #e2e8f0' }}>
+                                            <div>
+                                                <label className="bs-label">Store/Warehouse Name</label>
+                                                <input value={store.name} onChange={e => { const up = [...businessData.stores]; up[i].name = e.target.value; setBusinessData({ ...businessData, stores: up }) }} disabled={!isEditMode} className={inputClass} placeholder="e.g. Central Store" />
+                                            </div>
+                                            <div>
+                                                <label className="bs-label">Address</label>
+                                                <input value={store.address} onChange={e => { const up = [...businessData.stores]; up[i].address = e.target.value; setBusinessData({ ...businessData, stores: up }) }} disabled={!isEditMode} className={inputClass} placeholder="e.g. 123 Storage Rd, Colombo" />
+                                            </div>
+                                            <div>
+                                                <label className="bs-label">Telephone</label>
+                                                <input value={store.phoneNumber} onChange={e => { const up = [...businessData.stores]; up[i].phoneNumber = e.target.value; setBusinessData({ ...businessData, stores: up }) }} disabled={!isEditMode} className={inputClass} placeholder="e.g. +94112345678" />
+                                            </div>
+                                            {isEditMode && (
+                                                <button onClick={() => { const up = businessData.stores.filter((_, idx) => idx !== i); setBusinessData({ ...businessData, stores: up }) }} className="bs-remove-btn" style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', paddingBottom: '8px' }}><MinusCircle size={22} /></button>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     </motion.div>
                 )}

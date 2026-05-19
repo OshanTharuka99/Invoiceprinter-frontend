@@ -398,7 +398,7 @@
     }
 
     .modern-table-actions {
-        flex-direction: column;
+        flex-wrap: nowrap;
         gap: 0.25rem;
     }
 }

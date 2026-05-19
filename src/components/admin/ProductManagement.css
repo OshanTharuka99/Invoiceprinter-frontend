@@ -193,7 +193,7 @@
 .pm-table tbody tr:last-child td { border-bottom:none; }
 .pm-table tbody tr { transition:background 0.15s; }
 .pm-table tbody tr:hover { background:#fafbfc; }
-.pm-table-actions { display:flex; gap:5px; justify-content:flex-end; flex-wrap:wrap; }
+.pm-table-actions { display:flex; gap:5px; justify-content:flex-end; flex-wrap:nowrap; }
 
 /* ── Product Avatar ──────────────────────────────────── */
 .pm-prod-cell { display:flex; align-items:center; gap:0.85rem; }

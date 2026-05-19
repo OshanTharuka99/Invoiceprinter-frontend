@@ -326,7 +326,7 @@
   display: flex;
   gap: 5px;
   justify-content: flex-end;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 
 .sm-table-btn {

@@ -120,7 +120,7 @@
 .im-table tbody tr:last-child td { border-bottom:none; }
 .im-table tbody tr { transition:background 0.15s; }
 .im-table tbody tr:hover { background:#fafbfc; }
-.im-table-actions { display:flex; gap:5px; justify-content:flex-end; flex-wrap:wrap; }
+.im-table-actions { display:flex; gap:5px; justify-content:flex-end; flex-wrap:nowrap; }
 
 .im-badge { display:inline-flex; align-items:center; gap:4px; padding:3px 10px; border-radius:20px; font-weight:700; font-size:0.7rem; white-space:nowrap; }
 .im-badge-id     { background:var(--im-yellow-s); color:var(--im-yellow); border:1px solid #fde68a; font-family:monospace; letter-spacing:0.04em; }

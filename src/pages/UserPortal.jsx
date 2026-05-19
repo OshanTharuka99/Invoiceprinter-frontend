@@ -14,6 +14,7 @@ import UserProjectCatalog from '../components/user/UserProjectCatalog';
 import QuotationManagement from '../components/shared/QuotationManagement';
 import InvoiceManagement from '../components/shared/InvoiceManagement';
 import WarrantyManagement from '../components/admin/WarrantyManagement';
+import PurchaseOrderManagement from '../components/shared/PurchaseOrderManagement';
 import './UserPortal.css';
 
 const MOCK_INVOICES = [
@@ -117,7 +118,7 @@ const UserPortal = () => {
                         </span>
                     </div>
                     <div className="user-nav-links">
-                        {['Dashboard', 'Invoices', 'Quotations', 'Products', 'Projects', 'Clients', 'Warranty', 'Reports'].map((item, i) => (
+                        {['Dashboard', 'Invoices', 'Quotations', 'Purchase Orders', 'Products', 'Projects', 'Clients', 'Warranty', 'Reports'].map((item, i) => (
                             <button key={i} onClick={() => setActiveTab(item)}
                                 className={`user-nav-link ${activeTab === item ? 'active' : ''}`}
                             >{item}</button>
@@ -324,6 +325,8 @@ const UserPortal = () => {
                     <ProductManagement currentUser={user} showToast={showToast} />
                 ) : activeTab === 'Quotations' ? (
                     <QuotationManagement currentUser={user} showToast={showToast} />
+                ) : activeTab === 'Purchase Orders' ? (
+                    <PurchaseOrderManagement currentUser={user} showToast={showToast} />
                 ) : activeTab === 'Invoices' ? (
                     <InvoiceManagement currentUser={user} showToast={showToast} />
                 ) : activeTab === 'Clients' ? (

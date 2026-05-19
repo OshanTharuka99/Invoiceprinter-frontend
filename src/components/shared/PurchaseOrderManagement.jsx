@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FileText, Plus, X, Search, RefreshCw, Printer, AlertTriangle, ShieldAlert, CheckCircle, Briefcase, Trash2, Users, Building, MapPin } from 'lucide-react';
 import api from '../../api';
+import PriceInput from '../../utils/PriceInput';
 import PurchaseOrderTemplate from './PurchaseOrderTemplate';
 import './PurchaseOrderManagement.css';
 import '../../styles/modern-table.css';
@@ -454,7 +455,7 @@ const PurchaseOrderManagement = ({ currentUser, showToast }) => {
                                                         <input required type="number" min="1" value={it.quantity} onChange={e => updateItem(idx, 'quantity', parseInt(e.target.value) || 0)} style={{ ...inputStyle, background: '#fff', padding: '0.5rem', textAlign: 'center' }} />
                                                     </td>
                                                     <td style={{ padding: '0.5rem' }}>
-                                                        <input required type="number" step="0.01" value={it.unitPrice} onChange={e => updateItem(idx, 'unitPrice', parseFloat(e.target.value) || 0)} style={{ ...inputStyle, background: '#fff', padding: '0.5rem', textAlign: 'right' }} />
+                                                        <PriceInput value={it.unitPrice} onChange={v => updateItem(idx, 'unitPrice', v)} style={{ ...inputStyle, background: '#fff', padding: '0.5rem', textAlign: 'right' }} required />
                                                     </td>
                                                     <td style={{ padding: '0.5rem', textAlign: 'right', fontWeight: 800, color: '#0f172a' }}>
                                                         {it.lineTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}

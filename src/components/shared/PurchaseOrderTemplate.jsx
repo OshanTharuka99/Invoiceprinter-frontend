@@ -48,6 +48,10 @@ const PurchaseOrderTemplate = React.forwardRef(({ po, business }, ref) => {
     const MID = '#475569';
     const LIGHT = '#94a3b8';
     const BORDER = '#e2e8f0';
+    const PO_TITLE_COLOR = b.purchaseOrderTitleColor || '#0284c7';
+    const PO_DIVIDER_COLOR = b.purchaseOrderDividerColor || '#0284c7';
+    const PAGE_W = b.pageWidth || 210;
+    const PAGE_H = b.pageHeight || 297;
 
     const sectionTitle = {
         fontSize: '10px',
@@ -98,7 +102,7 @@ const PurchaseOrderTemplate = React.forwardRef(({ po, business }, ref) => {
 
                 {/* Right: PURCHASE ORDER title + meta */}
                 <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontFamily: FONT, fontSize: '26px', fontWeight: '900', color: '#0284c7', letterSpacing: '2px', textTransform: 'uppercase', marginBottom: '12px' }}>
+                    <div style={{ fontFamily: FONT, fontSize: '26px', fontWeight: '900', color: PO_TITLE_COLOR, letterSpacing: '2px', textTransform: 'uppercase', marginBottom: '12px' }}>
                         PURCHASE ORDER
                     </div>
                     <table style={{ marginLeft: 'auto', borderCollapse: 'collapse' }}>
@@ -130,7 +134,7 @@ const PurchaseOrderTemplate = React.forwardRef(({ po, business }, ref) => {
             </div>
 
             {/* ── DIVIDER ── */}
-            <div style={{ height: '4px', background: '#0284c7', margin: '14px 0 16px' }} />
+            <div style={{ height: '4px', background: PO_DIVIDER_COLOR, margin: '14px 0 16px' }} />
 
             {/* ── SUPPLIER & DELIVERY ADDRESS ── */}
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '18px' }}>
@@ -163,7 +167,7 @@ const PurchaseOrderTemplate = React.forwardRef(({ po, business }, ref) => {
             {/* ── ITEMS TABLE ── */}
             <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '20px' }}>
                 <thead>
-                    <tr style={{ background: '#0284c7', color: '#fff' }}>
+                    <tr style={{ background: PO_DIVIDER_COLOR, color: '#fff' }}>
                         <th style={{ fontFamily: FONT, padding: '9px 10px', textAlign: 'left', fontWeight: '700', fontSize: '11.5px', width: '5%' }}>No</th>
                         <th style={{ fontFamily: FONT, padding: '9px 10px', textAlign: 'left', fontWeight: '700', fontSize: '11.5px', width: '47%' }}>Description</th>
                         <th style={{ fontFamily: FONT, padding: '9px 10px', textAlign: 'center', fontWeight: '700', fontSize: '11.5px', width: '10%' }}>Qty</th>
@@ -211,15 +215,15 @@ const PurchaseOrderTemplate = React.forwardRef(({ po, business }, ref) => {
                             </tr>
                         ))}
                         <tr>
-                            <td style={{ fontFamily: FONT, color: '#fff', fontWeight: '900', fontSize: '13.5px', padding: '12px 14px', background: '#0284c7' }}>Total PO Sum</td>
-                            <td style={{ fontFamily: FONT, color: '#fff', fontWeight: '900', fontSize: '14.5px', padding: '12px 14px', background: '#0284c7', textAlign: 'right' }}>{currencySymbol} {money(p.finalTotal)}</td>
+                            <td style={{ fontFamily: FONT, color: '#fff', fontWeight: '900', fontSize: '13.5px', padding: '12px 14px', background: PO_DIVIDER_COLOR }}>Total PO Sum</td>
+                            <td style={{ fontFamily: FONT, color: '#fff', fontWeight: '900', fontSize: '14.5px', padding: '12px 14px', background: PO_DIVIDER_COLOR, textAlign: 'right' }}>{currencySymbol} {money(p.finalTotal)}</td>
                         </tr>
                     </tbody>
                 </table>
             </div>
 
             {/* ── DIVIDER ── */}
-            <div style={{ height: '4px', background: '#0284c7', margin: '14px 0 16px' }} />
+            <div style={{ height: '4px', background: PO_DIVIDER_COLOR, margin: '14px 0 16px' }} />
 
             {/* ── TERMS & CONDITIONS ── */}
             {showTerms && (
@@ -282,7 +286,7 @@ const PurchaseOrderTemplate = React.forwardRef(({ po, business }, ref) => {
 
                 @media print {
                     @page {
-                        size: A4 portrait;
+                        size: ${PAGE_W}mm ${PAGE_H}mm portrait;
                         margin: 14mm 15mm 20mm 15mm;
                     }
                     body {

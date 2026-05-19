@@ -5,6 +5,7 @@ import { Package, Plus, X, Edit2, Trash2, RefreshCw, FolderTree, Search,
   MapPin, DollarSign, Tag, Layers } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import api from '../../api';
+import PriceInput from '../../utils/PriceInput';
 import './ProductManagement.css';
 import '../../styles/modern-table.css';
 
@@ -453,7 +454,7 @@ const ProductManagement = ({ currentUser, showToast }) => {
                 </div>
                 <div className="pm-form-row pm-form-row-2">
                   <div><label className="pm-label">Stock Location</label><input className="pm-input" value={stockForm.location} onChange={e=>setStockForm({...stockForm,location:e.target.value})} placeholder="e.g. Shelf A-3, Warehouse B"/></div>
-                  <div><label className="pm-label">Buying Price / Unit</label><input className="pm-input" type="number" min="0" step="0.01" value={stockForm.buyingPrice} onChange={e=>setStockForm({...stockForm,buyingPrice:e.target.value})} placeholder="0.00"/></div>
+                  <div><label className="pm-label">Buying Price / Unit</label><PriceInput value={parseFloat(stockForm.buyingPrice) || 0} onChange={v => setStockForm({...stockForm, buyingPrice: v.toString()})} className="pm-input" placeholder="0.00" /></div>
                 </div>
                 <div><label className="pm-label">Notes <span className="pm-label-optional">(optional)</span></label><textarea className="pm-input pm-textarea" value={stockForm.notes} onChange={e=>setStockForm({...stockForm,notes:e.target.value})} placeholder="Supplier name, invoice #, purchase order..."/></div>
                 <div className="pm-serial-section">
@@ -553,7 +554,7 @@ const ProductManagement = ({ currentUser, showToast }) => {
                   )}
                 </div>
                 <div className="pm-form-row pm-form-row-2">
-                  <div><label className="pm-label">Selling Price *</label><input className="pm-input" type="number" step="0.01" min="0" required value={prodForm.price} onChange={e=>setProdForm({...prodForm,price:e.target.value})} placeholder="0.00"/></div>
+                  <div><label className="pm-label">Selling Price *</label><PriceInput value={parseFloat(prodForm.price) || 0} onChange={v => setProdForm({...prodForm, price: v.toString()})} className="pm-input" required placeholder="0.00" /></div>
                   <div><label className="pm-label">Currency</label>
                     <select className="pm-input pm-select-input" value={prodForm.currencyType} onChange={e=>setProdForm({...prodForm,currencyType:e.target.value})}>
                       <option value="primary">Primary</option>

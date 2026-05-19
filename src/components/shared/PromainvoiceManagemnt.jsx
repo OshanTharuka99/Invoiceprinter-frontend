@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FileText, Plus, X, Search, RefreshCw, Printer, AlertTriangle, ShieldAlert, CheckCircle, Users, Briefcase, Barcode } from 'lucide-react';
 import api from '../../api';
+import PriceInput from '../../utils/PriceInput';
 import InvoiceTemplate from './InvoiceTemplate';
 import './PromainvoiceManagemnt.css';
 import '../../styles/modern-table.css';
@@ -588,7 +589,7 @@ const PromainvoiceManagemnt = ({ currentUser, showToast }) => {
                                                     <td style={{ padding: '0.75rem 0.5rem' }}>
                                                         <div style={{ position: 'relative' }}>
                                                             <span style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', fontSize: '0.75rem' }}>{businessData?.primaryCurrency?.symbol || 'Rs.'}</span>
-                                                            <input required type="number" step="0.01" value={it.unitPrice} onChange={e => updateItem(idx, 'unitPrice', parseFloat(e.target.value) || 0)} disabled={creationMode === 'automatic'} style={{ ...inputStyle, background: creationMode === 'automatic' ? '#f8fafc' : '#fff', padding: '0.6rem 0.75rem 0.6rem 1.5rem', textAlign: 'right', fontSize: '0.85rem' }} />
+                                                            <PriceInput value={it.unitPrice} onChange={v => updateItem(idx, 'unitPrice', v)} disabled={creationMode === 'automatic'} style={{ ...inputStyle, background: creationMode === 'automatic' ? '#f8fafc' : '#fff', padding: '0.6rem 0.75rem 0.6rem 1.5rem', textAlign: 'right', fontSize: '0.85rem' }} required />
                                                         </div>
                                                     </td>
                                                     <td style={{ padding: '0.75rem 0.5rem', textAlign: 'right', fontWeight: 800, color: '#0f172a', fontSize: '0.9rem' }}>

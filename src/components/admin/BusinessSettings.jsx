@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
     Building2, Phone, MapPin, Coins, Receipt, Tag, Save,
     Edit3, CheckCircle, PlusCircle, MinusCircle, AlertCircle,
-    Check, RefreshCw, Hash, Mail, Globe, Landmark, DollarSign, ChevronDown, Settings2, Shield, Award
+    Check, RefreshCw, Hash, Mail, Globe, Landmark, DollarSign, ChevronDown, Settings2, Shield, Award, Type, Minus, FileText
 } from 'lucide-react';
 import api from '../../api';
 import './BusinessSettings.css';
@@ -22,6 +22,13 @@ const BusinessSettings = ({ currentUser, showToast }) => {
             { name: 'Summer Sale', type: 'percentage', value: 10, minBillAmount: 10000 },
             { name: 'Test Profile', type: 'fixed', value: 500, minBillAmount: 0 }
         ],
+        quotationPrefix: 'QN', quotationDigits: 5,
+        quotationTitleColor: '#0f172a', quotationDividerColor: '#0f172a',
+        invoicePrefix: 'INV', invoiceDigits: 5,
+        invoiceTitleColor: '#0f172a', invoiceDividerColor: '#0f172a',
+        purchaseOrderPrefix: 'PO', purchaseOrderDigits: 5,
+        purchaseOrderTitleColor: '#0284c7', purchaseOrderDividerColor: '#0284c7',
+        pageSizePreset: 'A4', pageWidth: 210, pageHeight: 297, iconColor: '#3b82f6',
         quotationTerms: 'Standard terms and conditions apply.', quotationNotes: '',
         invoiceTerms: 'Standard invoice terms and conditions apply.', invoiceNotes: '',
         purchaseOrderTerms: 'Standard purchase order terms and conditions apply.', purchaseOrderNotes: '',
@@ -52,7 +59,7 @@ const BusinessSettings = ({ currentUser, showToast }) => {
 
     const handleSave = async (e) => {
         if (e) e.preventDefault();
-        if (currentUser.role !== 'root') return showToast('Operation Denied: Root clearance required', 'error');
+        if (currentUser.role !== 'root' && currentUser.role !== 'admin') return showToast('Operation Denied: Admin clearance required', 'error');
         setIsSaving(true);
         try {
             await api.patch('/business', businessData);
@@ -75,7 +82,40 @@ const BusinessSettings = ({ currentUser, showToast }) => {
     };
 
     const inputClass = isEditMode ? 'bs-input bs-input--edit' : 'bs-input bs-input--view';
-    const isRoot = currentUser.role === 'root';
+    const isRoot = currentUser.role === 'root' || currentUser.role === 'admin';
+
+    const ColorPicker = ({ label, value, onChange, disabled, icon: Icon }) => (
+        <div className="bs-color-group">
+            <label className="bs-label">{label}</label>
+            <div className={`bs-color-picker ${disabled ? 'bs-color-picker--disabled' : ''}`}>
+                <div className="bs-color-swatch" style={{ background: value }}>
+                    {Icon && <Icon size={14} color={value === '#ffffff' ? '#94a3b8' : '#fff'} />}
+                </div>
+                <span className="bs-color-hex">{value}</span>
+                {!disabled && (
+                    <input
+                        type="color"
+                        value={value}
+                        onChange={e => onChange(e.target.value)}
+                        className="bs-color-input-hidden"
+                    />
+                )}
+            </div>
+        </div>
+    );
+
+    const ColorPreview = ({ titleColor, dividerColor, title, borderColor }) => (
+        <div className="bs-color-preview" style={{ borderColor: borderColor || '#e2e8f0' }}>
+            <div className="bs-color-preview-title" style={{ color: titleColor }}>
+                {title}
+            </div>
+            <div className="bs-color-preview-divider" style={{ background: dividerColor }} />
+            <div className="bs-color-preview-body">
+                <div className="bs-color-preview-line" style={{ background: '#f1f5f9' }} />
+                <div className="bs-color-preview-line short" style={{ background: '#f1f5f9' }} />
+            </div>
+        </div>
+    );
 
     return (
         <div className="bs-root">
@@ -83,7 +123,6 @@ const BusinessSettings = ({ currentUser, showToast }) => {
             <div className="bs-subtab-bar">
                 <button onClick={() => { setActiveSubTab('business'); setIsEditMode(false); }} className={`bs-subtab-btn${activeSubTab === 'business' ? ' bs-subtab-btn--active' : ''}`}>Business Settings</button>
                 <button onClick={() => { setActiveSubTab('quotation'); setIsEditMode(false); }} className={`bs-subtab-btn${activeSubTab === 'quotation' ? ' bs-subtab-btn--active' : ''}`}>Document Format Settings</button>
-                <button onClick={() => { setActiveSubTab('stores'); setIsEditMode(false); }} className={`bs-subtab-btn${activeSubTab === 'stores' ? ' bs-subtab-btn--active' : ''}`}>Store Locations</button>
             </div>
 
             <AnimatePresence mode="wait">
@@ -242,177 +281,36 @@ const BusinessSettings = ({ currentUser, showToast }) => {
                                 </div>
                             ))}
                         </div>
-                    </motion.div>
-                ) : activeSubTab === 'quotation' ? (
-                    <motion.div key="quotation" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }}>
 
-                        {/* Quotation Format */}
-                        <div className="bs-card">
-                            <div className="bs-doc-header">
-                                <div className="bs-doc-header-left">
-                                    <div className="bs-card-icon" style={{ background: '#0ea5e915', color: '#0ea5e9' }}><Receipt size={24} /></div>
-                                    <h3 className="bs-card-title">Quotation Format</h3>
-                                </div>
-                                {isRoot && (
-                                    <button onClick={isEditMode ? handleSave : () => setIsEditMode(true)} disabled={isSaving} className={`bs-header-btn${isEditMode ? ' bs-header-btn--save' : ' bs-header-btn--edit'}`}>
-                                        {isSaving ? <RefreshCw className="animate-spin" size={18} /> : (isEditMode ? <CheckCircle size={18} /> : <Edit3 size={18} />)}
-                                        {isEditMode ? 'SAVE FORMAT' : 'EDIT FORMAT'}
-                                    </button>
-                                )}
-                            </div>
-                            <div className="bs-doc-form">
-                                <div>
-                                    <label className="bs-label">Quotation Terms & Conditions</label>
-                                    <textarea
-                                        value={businessData.quotationTerms}
-                                        onChange={e => setBusinessData({ ...businessData, quotationTerms: e.target.value })}
-                                        disabled={!isEditMode}
-                                        className={`${inputClass} bs-textarea-lg`}
-                                        placeholder="Enter standard terms (e.g. Valid for 30 days...)"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="bs-label">Default Quotation Notes</label>
-                                    <textarea
-                                        value={businessData.quotationNotes}
-                                        onChange={e => setBusinessData({ ...businessData, quotationNotes: e.target.value })}
-                                        disabled={!isEditMode}
-                                        className={`${inputClass} bs-textarea`}
-                                        placeholder="Enter default notes or thank you messages..."
-                                    />
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Purchase Order Format */}
-                        <div className="bs-card">
-                            <div className="bs-doc-header">
-                                <div className="bs-doc-header-left">
-                                    <div className="bs-card-icon" style={{ background: '#0ea5e915', color: '#e9af0eff' }}><Receipt size={24} /></div>
-                                    <h3 className="bs-card-title">Purchase Order Format</h3>
-                                </div>
-                                {isRoot && (
-                                    <button onClick={isEditMode ? handleSave : () => setIsEditMode(true)} disabled={isSaving} className={`bs-header-btn${isEditMode ? ' bs-header-btn--save' : ' bs-header-btn--edit'}`}>
-                                        {isSaving ? <RefreshCw className="animate-spin" size={18} /> : (isEditMode ? <CheckCircle size={18} /> : <Edit3 size={18} />)}
-                                        {isEditMode ? 'SAVE FORMAT' : 'EDIT FORMAT'}
-                                    </button>
-                                )}
-                            </div>
-
-
-                            <div className="bs-doc-form">
-                                <div>
-                                    <label className="bs-label">Purchase Order Terms & Conditions</label>
-                                    <textarea
-                                        value={businessData.purchaseOrderTerms}
-                                        onChange={e => setBusinessData({ ...businessData, purchaseOrderTerms: e.target.value })}
-                                        disabled={!isEditMode}
-                                        className={`${inputClass} bs-textarea-lg`}
-                                        placeholder="Enter standard terms (e.g. Valid for 30 days...)"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="bs-label">Default Purchase Order Notes</label>
-                                    <textarea
-                                        value={businessData.purchaseOrderNotes}
-                                        onChange={e => setBusinessData({ ...businessData, purchaseOrderNotes: e.target.value })}
-                                        disabled={!isEditMode}
-                                        className={`${inputClass} bs-textarea`}
-                                        placeholder="Enter default notes or thank you messages..."
-                                    />
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Invoice Format */}
-                        <div className="bs-card">
-                            <div className="bs-doc-header">
-                                <div className="bs-doc-header-left">
-                                    <div className="bs-card-icon" style={{ background: '#0ea5e915', color: '#e92f0e' }}><Receipt size={24} /></div>
-                                    <h3 className="bs-card-title">Invoice Format</h3>
-                                </div>
-                                {isRoot && (
-                                    <button onClick={isEditMode ? handleSave : () => setIsEditMode(true)} disabled={isSaving} className={`bs-header-btn${isEditMode ? ' bs-header-btn--save' : ' bs-header-btn--edit'}`}>
-                                        {isSaving ? <RefreshCw className="animate-spin" size={18} /> : (isEditMode ? <CheckCircle size={18} /> : <Edit3 size={18} />)}
-                                        {isEditMode ? 'SAVE FORMAT' : 'EDIT FORMAT'}
-                                    </button>
-                                )}
-                            </div>
-
-
-                            <div className="bs-doc-form">
-                                <div>
-                                    <label className="bs-label">Invoice Terms & Conditions</label>
-                                    <textarea
-                                        value={businessData.invoiceTerms}
-                                        onChange={e => setBusinessData({ ...businessData, invoiceTerms: e.target.value })}
-                                        disabled={!isEditMode}
-                                        className={`${inputClass} bs-textarea-lg`}
-                                        placeholder="Enter standard terms (e.g. Valid for 30 days...)"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="bs-label">Default Invoice Notes</label>
-                                    <textarea
-                                        value={businessData.invoiceNotes}
-                                        onChange={e => setBusinessData({ ...businessData, invoiceNotes: e.target.value })}
-                                        disabled={!isEditMode}
-                                        className={`${inputClass} bs-textarea`}
-                                        placeholder="Enter default notes or thank you messages..."
-                                    />
-                                </div>
-                            </div>
-                        </div>
-                    </motion.div>
-                ) : (
-                    <motion.div key="stores" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-                        <div className="bs-header">
-                            <div className="bs-header-accent">
-                                <p className="bs-header-desc">
-                                    Manage store and inventory warehouse locations for delivery destination assignment.
-                                </p>
-                            </div>
-                            {isRoot && (
-                                <button onClick={isEditMode ? handleSave : () => setIsEditMode(true)} disabled={isSaving} className={`bs-header-btn${isEditMode ? ' bs-header-btn--save' : ' bs-header-btn--edit'}`}>
-                                    {isSaving ? <RefreshCw className="animate-spin" size={18} /> : (isEditMode ? <CheckCircle size={18} /> : <Edit3 size={18} />)}
-                                    {isEditMode ? 'SAVE STORE LOCATIONS' : 'EDIT STORES'}
-                                </button>
-                            )}
-                        </div>
-
+                        {/* 10. STORE LOCATIONS */}
                         <div className="bs-card">
                             <div className="bs-dynamic-header">
                                 <div className="bs-card-header">
-                                    <div className="bs-card-icon" style={{ background: '#3b82f615', color: '#3b82f6' }}><MapPin size={24} /></div>
-                                    <h3 className="bs-card-title">Active Warehouse / Stores</h3>
+                                    <div className="bs-card-icon" style={{ background: '#f59e0b15', color: '#f59e0b' }}><Building2 size={24} /></div>
+                                    <h3 className="bs-card-title">Store Locations</h3>
                                 </div>
                                 {isEditMode && (
-                                    <button onClick={() => setBusinessData({ ...businessData, stores: [...(businessData.stores || []), { name: '', address: '', phoneNumber: '' }] })} className="bs-add-btn">+ Add Store Location</button>
+                                    <button onClick={() => setBusinessData({ ...businessData, stores: [...(businessData.stores || []), { name: '', address: '', phoneNumber: '' }] })} className="bs-add-btn">+ Add Store</button>
                                 )}
                             </div>
-                            
                             {(!businessData.stores || businessData.stores.length === 0) ? (
-                                <div style={{ textAlign: 'center', padding: '3rem 1.5rem', color: '#64748b', fontWeight: 600 }}>
-                                    No managed stores added. Deliveries will default to the Main Organization Address.
+                                <div className="bs-empty-state">
+                                    No store locations added. Deliveries will default to the main business address.
                                 </div>
                             ) : (
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1rem' }}>
+                                <div className="bs-stores-list">
                                     {businessData.stores.map((store, i) => (
-                                        <div key={i} className="bs-dynamic-row bs-dynamic-row--store" style={{ display: 'grid', gridTemplateColumns: '1fr 2fr 1fr auto', gap: '12px', alignItems: 'end', background: '#f8fafc', padding: '12px 16px', borderRadius: '12px', border: '1.5px solid #e2e8f0' }}>
-                                            <div>
-                                                <label className="bs-label">Store/Warehouse Name</label>
-                                                <input value={store.name} onChange={e => { const up = [...businessData.stores]; up[i].name = e.target.value; setBusinessData({ ...businessData, stores: up }) }} disabled={!isEditMode} className={inputClass} placeholder="e.g. Central Store" />
-                                            </div>
-                                            <div>
-                                                <label className="bs-label">Address</label>
-                                                <input value={store.address} onChange={e => { const up = [...businessData.stores]; up[i].address = e.target.value; setBusinessData({ ...businessData, stores: up }) }} disabled={!isEditMode} className={inputClass} placeholder="e.g. 123 Storage Rd, Colombo" />
-                                            </div>
-                                            <div>
-                                                <label className="bs-label">Telephone</label>
-                                                <input value={store.phoneNumber} onChange={e => { const up = [...businessData.stores]; up[i].phoneNumber = e.target.value; setBusinessData({ ...businessData, stores: up }) }} disabled={!isEditMode} className={inputClass} placeholder="e.g. +94112345678" />
+                                        <div key={i} className="bs-store-card">
+                                            <div className="bs-store-card-left">
+                                                <div className="bs-store-avatar"><MapPin size={18} /></div>
+                                                <div className="bs-store-fields">
+                                                    <input value={store.name} onChange={e => { const up = [...businessData.stores]; up[i].name = e.target.value; setBusinessData({ ...businessData, stores: up }) }} disabled={!isEditMode} className={inputClass} placeholder="Store name" />
+                                                    <input value={store.address} onChange={e => { const up = [...businessData.stores]; up[i].address = e.target.value; setBusinessData({ ...businessData, stores: up }) }} disabled={!isEditMode} className={inputClass} placeholder="Address" />
+                                                    <input value={store.phoneNumber} onChange={e => { const up = [...businessData.stores]; up[i].phoneNumber = e.target.value; setBusinessData({ ...businessData, stores: up }) }} disabled={!isEditMode} className={inputClass} placeholder="Phone" />
+                                                </div>
                                             </div>
                                             {isEditMode && (
-                                                <button onClick={() => { const up = businessData.stores.filter((_, idx) => idx !== i); setBusinessData({ ...businessData, stores: up }) }} className="bs-remove-btn" style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', paddingBottom: '8px' }}><MinusCircle size={22} /></button>
+                                                <button onClick={() => { const up = businessData.stores.filter((_, idx) => idx !== i); setBusinessData({ ...businessData, stores: up }) }} className="bs-remove-btn"><MinusCircle size={22} /></button>
                                             )}
                                         </div>
                                     ))}
@@ -420,7 +318,138 @@ const BusinessSettings = ({ currentUser, showToast }) => {
                             )}
                         </div>
                     </motion.div>
-                )}
+                ) : activeSubTab === 'quotation' ? (
+                    <motion.div key="quotation" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }}>
+
+                        <div className="bs-header">
+                            <div className="bs-header-accent">
+                                <p className="bs-header-desc">
+                                    Configure document number formats (prefix & digit length) and color themes for each document type.
+                                </p>
+                            </div>
+                            {isRoot && (
+                                <button onClick={isEditMode ? handleSave : () => setIsEditMode(true)} disabled={isSaving} className={`bs-header-btn${isEditMode ? ' bs-header-btn--save' : ' bs-header-btn--edit'}`}>
+                                    {isSaving ? <RefreshCw className="animate-spin" size={18} /> : (isEditMode ? <CheckCircle size={18} /> : <Edit3 size={18} />)}
+                                    {isEditMode ? 'SAVE ALL FORMATS' : 'EDIT FORMATS'}
+                                </button>
+                            )}
+                        </div>
+
+                        {/* Quotation Settings */}
+                        <div className="bs-card">
+                            <div className="bs-card-header">
+                                <div className="bs-card-icon" style={{ background: '#0ea5e915', color: '#0ea5e9' }}><Receipt size={24} /></div>
+                                <h3 className="bs-card-title">Quotation Settings</h3>
+                                <ColorPreview titleColor={businessData.quotationTitleColor} dividerColor={businessData.quotationDividerColor} title="QUOTATION" />
+                            </div>
+                            <div className="bs-doc-format-grid">
+                                <div className="bs-doc-left">
+                                    <div className="bs-form-row-2">
+                                        <div className="bs-form-group"><label className="bs-label">Prefix</label><input value={businessData.quotationPrefix} onChange={e => setBusinessData({ ...businessData, quotationPrefix: e.target.value })} disabled={!isEditMode} className={inputClass} placeholder="e.g. QN" /></div>
+                                        <div className="bs-form-group"><label className="bs-label">Digits</label><input type="number" min="2" max="10" value={businessData.quotationDigits} onChange={e => setBusinessData({ ...businessData, quotationDigits: parseInt(e.target.value) || 5 })} disabled={!isEditMode} className={inputClass} placeholder="5" /></div>
+                                    </div>
+                                    <div className="bs-form-row-2" style={{ marginTop: '1rem' }}>
+                                        <ColorPicker label="Title Color" value={businessData.quotationTitleColor} onChange={v => setBusinessData({ ...businessData, quotationTitleColor: v })} disabled={!isEditMode} icon={Type} />
+                                        <ColorPicker label="Divider Color" value={businessData.quotationDividerColor} onChange={v => setBusinessData({ ...businessData, quotationDividerColor: v })} disabled={!isEditMode} icon={Minus} />
+                                    </div>
+                                </div>
+                                <div className="bs-doc-right">
+                                    <div className="bs-doc-form">
+                                        <div><label className="bs-label">Quotation Terms & Conditions</label><textarea value={businessData.quotationTerms} onChange={e => setBusinessData({ ...businessData, quotationTerms: e.target.value })} disabled={!isEditMode} className={`${inputClass} bs-textarea-lg`} placeholder="Enter standard terms..." /></div>
+                                        <div><label className="bs-label">Default Quotation Notes</label><textarea value={businessData.quotationNotes} onChange={e => setBusinessData({ ...businessData, quotationNotes: e.target.value })} disabled={!isEditMode} className={`${inputClass} bs-textarea`} placeholder="Enter default notes..." /></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Purchase Order Settings */}
+                        <div className="bs-card">
+                            <div className="bs-card-header">
+                                <div className="bs-card-icon" style={{ background: '#0ea5e915', color: '#e9af0eff' }}><Receipt size={24} /></div>
+                                <h3 className="bs-card-title">Purchase Order Settings</h3>
+                                <ColorPreview titleColor={businessData.purchaseOrderTitleColor} dividerColor={businessData.purchaseOrderDividerColor} title="PURCHASE ORDER" />
+                            </div>
+                            <div className="bs-doc-format-grid">
+                                <div className="bs-doc-left">
+                                    <div className="bs-form-row-2">
+                                        <div className="bs-form-group"><label className="bs-label">Prefix</label><input value={businessData.purchaseOrderPrefix} onChange={e => setBusinessData({ ...businessData, purchaseOrderPrefix: e.target.value })} disabled={!isEditMode} className={inputClass} placeholder="e.g. PO" /></div>
+                                        <div className="bs-form-group"><label className="bs-label">Digits</label><input type="number" min="2" max="10" value={businessData.purchaseOrderDigits} onChange={e => setBusinessData({ ...businessData, purchaseOrderDigits: parseInt(e.target.value) || 5 })} disabled={!isEditMode} className={inputClass} placeholder="5" /></div>
+                                    </div>
+                                    <div className="bs-form-row-2" style={{ marginTop: '1rem' }}>
+                                        <ColorPicker label="Title Color" value={businessData.purchaseOrderTitleColor} onChange={v => setBusinessData({ ...businessData, purchaseOrderTitleColor: v })} disabled={!isEditMode} icon={Type} />
+                                        <ColorPicker label="Divider Color" value={businessData.purchaseOrderDividerColor} onChange={v => setBusinessData({ ...businessData, purchaseOrderDividerColor: v })} disabled={!isEditMode} icon={Minus} />
+                                    </div>
+                                </div>
+                                <div className="bs-doc-right">
+                                    <div className="bs-doc-form">
+                                        <div><label className="bs-label">Purchase Order Terms & Conditions</label><textarea value={businessData.purchaseOrderTerms} onChange={e => setBusinessData({ ...businessData, purchaseOrderTerms: e.target.value })} disabled={!isEditMode} className={`${inputClass} bs-textarea-lg`} placeholder="Enter standard terms..." /></div>
+                                        <div><label className="bs-label">Default Purchase Order Notes</label><textarea value={businessData.purchaseOrderNotes} onChange={e => setBusinessData({ ...businessData, purchaseOrderNotes: e.target.value })} disabled={!isEditMode} className={`${inputClass} bs-textarea`} placeholder="Enter default notes..." /></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Invoice Settings */}
+                        <div className="bs-card">
+                            <div className="bs-card-header">
+                                <div className="bs-card-icon" style={{ background: '#0ea5e915', color: '#e92f0e' }}><Receipt size={24} /></div>
+                                <h3 className="bs-card-title">Invoice Settings</h3>
+                                <ColorPreview titleColor={businessData.invoiceTitleColor} dividerColor={businessData.invoiceDividerColor} title="INVOICE" />
+                            </div>
+                            <div className="bs-doc-format-grid">
+                                <div className="bs-doc-left">
+                                    <div className="bs-form-row-2">
+                                        <div className="bs-form-group"><label className="bs-label">Prefix</label><input value={businessData.invoicePrefix} onChange={e => setBusinessData({ ...businessData, invoicePrefix: e.target.value })} disabled={!isEditMode} className={inputClass} placeholder="e.g. INV" /></div>
+                                        <div className="bs-form-group"><label className="bs-label">Digits</label><input type="number" min="2" max="10" value={businessData.invoiceDigits} onChange={e => setBusinessData({ ...businessData, invoiceDigits: parseInt(e.target.value) || 5 })} disabled={!isEditMode} className={inputClass} placeholder="5" /></div>
+                                    </div>
+                                    <div className="bs-form-row-2" style={{ marginTop: '1rem' }}>
+                                        <ColorPicker label="Title Color" value={businessData.invoiceTitleColor} onChange={v => setBusinessData({ ...businessData, invoiceTitleColor: v })} disabled={!isEditMode} icon={Type} />
+                                        <ColorPicker label="Divider Color" value={businessData.invoiceDividerColor} onChange={v => setBusinessData({ ...businessData, invoiceDividerColor: v })} disabled={!isEditMode} icon={Minus} />
+                                    </div>
+                                </div>
+                                <div className="bs-doc-right">
+                                    <div className="bs-doc-form">
+                                        <div><label className="bs-label">Invoice Terms & Conditions</label><textarea value={businessData.invoiceTerms} onChange={e => setBusinessData({ ...businessData, invoiceTerms: e.target.value })} disabled={!isEditMode} className={`${inputClass} bs-textarea-lg`} placeholder="Enter standard terms..." /></div>
+                                        <div><label className="bs-label">Default Invoice Notes</label><textarea value={businessData.invoiceNotes} onChange={e => setBusinessData({ ...businessData, invoiceNotes: e.target.value })} disabled={!isEditMode} className={`${inputClass} bs-textarea`} placeholder="Enter default notes..." /></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Page Size Settings */}
+                        <div className="bs-card">
+                            <div className="bs-card-header">
+                                <div className="bs-card-icon" style={{ background: '#8b5cf615', color: '#8b5cf6' }}><FileText size={24} /></div>
+                                <h3 className="bs-card-title">Print Page Size</h3>
+                            </div>
+                            <div className="bs-form-row-3">
+                                <div className="bs-form-group">
+                                    <label className="bs-label">Paper Size</label>
+                                    <select value={businessData.pageSizePreset} onChange={e => {
+                                        const sizes = { A4: [210, 297], A3: [297, 420], A5: [148, 210], Letter: [216, 279], Legal: [216, 356] };
+                                        const dims = sizes[e.target.value];
+                                        setBusinessData({ ...businessData, pageSizePreset: e.target.value, pageWidth: dims?.[0] || 210, pageHeight: dims?.[1] || 297 });
+                                    }} disabled={!isEditMode} className={inputClass}>
+                                        <option value="A4">A4 (210 × 297 mm)</option>
+                                        <option value="A3">A3 (297 × 420 mm)</option>
+                                        <option value="A5">A5 (148 × 210 mm)</option>
+                                        <option value="Letter">Letter (216 × 279 mm)</option>
+                                        <option value="Legal">Legal (216 × 356 mm)</option>
+                                        <option value="Custom">Custom</option>
+                                    </select>
+                                </div>
+                                <div className="bs-form-group">
+                                    <label className="bs-label">Width (mm)</label>
+                                    <input type="number" min="50" max="1000" value={businessData.pageWidth} onChange={e => { setBusinessData({ ...businessData, pageWidth: parseInt(e.target.value) || 210, pageSizePreset: 'Custom' })}} disabled={!isEditMode || businessData.pageSizePreset !== 'Custom'} className={inputClass} />
+                                </div>
+                                <div className="bs-form-group">
+                                    <label className="bs-label">Height (mm)</label>
+                                    <input type="number" min="50" max="1000" value={businessData.pageHeight} onChange={e => { setBusinessData({ ...businessData, pageHeight: parseInt(e.target.value) || 297, pageSizePreset: 'Custom' })}} disabled={!isEditMode || businessData.pageSizePreset !== 'Custom'} className={inputClass} />
+                                </div>
+                            </div>
+                        </div>
+                    </motion.div>
+                ) : null}
             </AnimatePresence>
 
         </div>

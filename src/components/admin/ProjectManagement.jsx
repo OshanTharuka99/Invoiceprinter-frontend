@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
+// eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
 import { Briefcase, Plus, X, Edit2, Trash2, Search, RefreshCw, AlertTriangle, UserCircle2, FileText, MapPin, Calendar, Landmark, Info, DollarSign, TrendingUp, CheckCircle2, Clock, FolderKanban, Building2 } from 'lucide-react';
 import api from '../../api';
+import './ProjectManagement.css';
 import '../../styles/modern-table.css';
 
 const ProjectManagement = ({ currentUser, showToast }) => {

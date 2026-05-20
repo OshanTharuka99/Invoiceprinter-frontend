@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+// eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
@@ -95,13 +96,6 @@ const UserPortal = () => {
         { label: 'Overdue', value: `$${totalOverdue.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, icon: AlertCircle, change: '1 overdue', positive: false },
     ];
 
-    const inputStyle = {
-        width: '100%', background: '#f8fafc', border: '1.5px solid #e2e8f0',
-        borderRadius: '10px', padding: '0.7rem 1rem', color: '#0f172a', outline: 'none',
-        fontSize: '0.875rem', fontFamily: "'Outfit', sans-serif",
-        transition: 'all 0.2s ease', boxSizing: 'border-box', colorScheme: 'light'
-    };
-
     return (
         <div className="user-container">
 
@@ -185,141 +179,127 @@ const UserPortal = () => {
             <main className="user-main">
                 {activeTab === 'Dashboard' ? (
                     <>
-                {/* Page Header */}
-                <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-                    style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
-                    <div>
-                        <h1 style={{ margin: 0, fontSize: '1.875rem', fontWeight: 800, letterSpacing: '-0.03em', color: '#0f172a' }}>Dashboard</h1>
-                        <p style={{ margin: '0.35rem 0 0', color: '#64748b', fontSize: '0.9rem' }}>
-                            Welcome back, <strong style={{ color: '#0f172a' }}>{user?.firstName}</strong>. Here's your billing overview.
-                        </p>
-                    </div>
-                    <button onClick={() => setNewInvoiceModal(true)}
-                        style={{ background: '#0f172a', color: '#fff', border: 'none', borderRadius: '12px', padding: '0.7rem 1.5rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', fontWeight: 700, fontFamily: "'Outfit', sans-serif", transition: 'all 0.2s ease', boxShadow: '0 4px 12px rgba(15,23,42,0.2)' }}
-                        onMouseEnter={e => { e.currentTarget.style.background = '#1e293b'; e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(15,23,42,0.25)'; }}
-                        onMouseLeave={e => { e.currentTarget.style.background = '#0f172a'; e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(15,23,42,0.2)'; }}
-                    >
-                        <Plus size={16} /> New Invoice
-                    </button>
-                </motion.div>
+                        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="user-dashboard-header">
+                            <div>
+                                <h1 className="user-dashboard-title">Dashboard</h1>
+                                <p className="user-dashboard-subtitle">
+                                    Welcome back, <strong>{user?.firstName}</strong>. Here's your billing overview.
+                                </p>
+                            </div>
+                            <button onClick={() => setNewInvoiceModal(true)} className="user-btn-primary">
+                                <Plus size={16} /> New Invoice
+                            </button>
+                        </motion.div>
 
-                {/* Stats Grid */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
-                    {stats.map((stat, i) => {
-                        const Icon = stat.icon;
-                        return (
-                            <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}
-                                style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '1.5rem', boxShadow: '0 1px 4px rgba(0,0,0,0.04)', transition: 'all 0.2s ease', cursor: 'default' }}
-                                onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.08)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
-                                onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 1px 4px rgba(0,0,0,0.04)'; e.currentTarget.style.transform = 'none'; }}
-                            >
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-                                    <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{stat.label}</span>
-                                    <div style={{ width: 34, height: 34, background: '#f1f5f9', borderRadius: '9px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                        <Icon size={16} color="#64748b" />
+                        <div className="user-stats-grid">
+                            {stats.map((stat, i) => {
+                                const Icon = stat.icon;
+                                const changeClass = stat.positive === true ? 'positive' : stat.positive === false ? 'negative' : 'neutral';
+                                return (
+                                    <motion.div
+                                        key={i}
+                                        initial={{ opacity: 0, y: 8 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: i * 0.06 }}
+                                        className="user-stat-card"
+                                    >
+                                        <div className="user-stat-header">
+                                            <span className="user-stat-label">{stat.label}</span>
+                                            <div className="user-stat-icon"><Icon size={16} color="#dc2626" /></div>
+                                        </div>
+                                        <div className="user-stat-value">{stat.value}</div>
+                                        <div className={`user-stat-change ${changeClass}`}>
+                                            {stat.positive === true && <ArrowUpRight size={12} />}
+                                            {stat.positive === false && <ArrowDownRight size={12} />}
+                                            {stat.change}
+                                        </div>
+                                    </motion.div>
+                                );
+                            })}
+                        </div>
+
+                        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} className="user-invoice-table-wrapper">
+                            <div className="user-invoice-controls">
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                    <h2 className="user-invoice-title">Invoices</h2>
+                                    <span className="user-invoice-count">{filteredInvoices.length}</span>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                                    <div className="user-filter-pills">
+                                        {['all', 'paid', 'pending', 'overdue'].map(f => (
+                                            <button
+                                                key={f}
+                                                onClick={() => setFilter(f)}
+                                                className={`user-filter-pill ${filter === f ? 'active' : ''}`}
+                                            >{f}</button>
+                                        ))}
+                                    </div>
+                                    <div className="user-search-wrapper">
+                                        <Search size={14} className="user-search-icon" />
+                                        <input
+                                            type="text"
+                                            placeholder="Search invoices..."
+                                            value={searchTerm}
+                                            onChange={e => setSearchTerm(e.target.value)}
+                                            className="user-search-input"
+                                        />
                                     </div>
                                 </div>
-                                <div style={{ fontSize: '1.6rem', fontWeight: 800, letterSpacing: '-0.03em', color: '#0f172a', marginBottom: '0.4rem' }}>{stat.value}</div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.76rem', color: stat.positive === true ? '#059669' : stat.positive === false ? '#dc2626' : '#94a3b8', fontWeight: 500 }}>
-                                    {stat.positive === true && <ArrowUpRight size={12} />}
-                                    {stat.positive === false && <ArrowDownRight size={12} />}
-                                    {stat.change}
-                                </div>
-                            </motion.div>
-                        );
-                    })}
-                </div>
-
-                {/* Invoice Table */}
-                <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}
-                    style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '20px', overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
-
-                    {/* Controls */}
-                    <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                            <h2 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: '#0f172a' }}>Invoices</h2>
-                            <span style={{ background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '2px 8px', fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>{filteredInvoices.length}</span>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-                            {/* Filter pills */}
-                            <div style={{ display: 'flex', gap: '0.25rem', background: '#f1f5f9', borderRadius: '10px', padding: '3px' }}>
-                                {['all', 'paid', 'pending', 'overdue'].map(f => (
-                                    <button key={f} onClick={() => setFilter(f)}
-                                        style={{ background: filter === f ? '#fff' : 'transparent', border: filter === f ? '1px solid #e2e8f0' : '1px solid transparent', cursor: 'pointer', color: filter === f ? '#0f172a' : '#94a3b8', padding: '0.3rem 0.75rem', borderRadius: '7px', fontFamily: "'Outfit', sans-serif", fontSize: '0.78rem', fontWeight: filter === f ? 700 : 400, textTransform: 'capitalize', transition: 'all 0.2s', boxShadow: filter === f ? '0 1px 2px rgba(0,0,0,0.06)' : 'none' }}>
-                                        {f}
-                                    </button>
-                                ))}
                             </div>
-                            {/* Search */}
-                            <div style={{ position: 'relative' }}>
-                                <Search size={14} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
-                                <input type="text" placeholder="Search invoices..." value={searchTerm}
-                                    onChange={e => setSearchTerm(e.target.value)}
-                                    style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '9px', padding: '0.45rem 0.875rem 0.45rem 2.25rem', color: '#0f172a', outline: 'none', fontSize: '0.82rem', width: 200, fontFamily: "'Outfit', sans-serif", transition: 'border-color 0.2s' }}
-                                    onFocus={e => e.target.style.borderColor = '#0f172a'}
-                                    onBlur={e => e.target.style.borderColor = '#e2e8f0'}
-                                />
-                            </div>
-                        </div>
-                    </div>
 
-                    {/* Table */}
-                    <div style={{ overflowX: 'auto' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
-                            <thead>
-                                <tr style={{ borderBottom: '1px solid #f1f5f9', background: '#f8fafc' }}>
-                                    {['Invoice', 'Client', 'Amount', 'Date', 'Due Date', 'Status', ''].map((h, i) => (
-                                        <th key={i} style={{ padding: '0.75rem 1.25rem', textAlign: i === 6 ? 'right' : 'left', color: '#94a3b8', fontWeight: 600, fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.08em', whiteSpace: 'nowrap' }}>{h}</th>
-                                    ))}
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <AnimatePresence>
-                                    {filteredInvoices.map((inv, idx) => {
-                                        const sc = STATUS_CONFIG[inv.status];
-                                        return (
-                                            <motion.tr key={inv.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: idx * 0.04 }}
-                                                style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.15s', cursor: 'pointer' }}
-                                                onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'}
-                                                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                                                onClick={() => setSelectedInvoice(inv)}
-                                            >
-                                                <td style={{ padding: '0.875rem 1.25rem', fontWeight: 700, fontFamily: 'monospace', fontSize: '0.8rem', color: '#64748b' }}>{inv.id}</td>
-                                                <td style={{ padding: '0.875rem 1.25rem' }}>
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                                        <div style={{ width: 32, height: 32, background: '#f1f5f9', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 700, color: '#64748b' }}>
-                                                            {inv.client.substring(0, 2).toUpperCase()}
-                                                        </div>
-                                                        <span style={{ fontWeight: 600, color: '#0f172a' }}>{inv.client}</span>
-                                                    </div>
-                                                </td>
-                                                <td style={{ padding: '0.875rem 1.25rem', fontWeight: 800, letterSpacing: '-0.02em', color: '#0f172a' }}>${inv.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
-                                                <td style={{ padding: '0.875rem 1.25rem', color: '#94a3b8', fontSize: '0.82rem' }}>{inv.date}</td>
-                                                <td style={{ padding: '0.875rem 1.25rem', color: inv.status === 'overdue' ? '#dc2626' : '#94a3b8', fontSize: '0.82rem', fontWeight: inv.status === 'overdue' ? 600 : 400 }}>{inv.due}</td>
-                                                <td style={{ padding: '0.875rem 1.25rem' }}>
-                                                    <span style={{ padding: '4px 10px', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 700, background: sc.bg, color: sc.color, border: `1px solid ${sc.border}` }}>
-                                                        {sc.label}
-                                                    </span>
-                                                </td>
-                                                <td style={{ padding: '0.875rem 1.25rem', textAlign: 'right' }}>
-                                                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.375rem' }}>
-                                                        {[Download, Send].map((Icon, j) => (
-                                                            <button key={j} onClick={e => e.stopPropagation()}
-                                                                style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '7px', padding: '5px 7px', cursor: 'pointer', color: '#64748b', display: 'flex', transition: 'all 0.2s' }}
-                                                                onMouseEnter={e => { e.currentTarget.style.background = '#0f172a'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = '#0f172a'; }}
-                                                                onMouseLeave={e => { e.currentTarget.style.background = '#f8fafc'; e.currentTarget.style.color = '#64748b'; e.currentTarget.style.borderColor = '#e2e8f0'; }}
-                                                            ><Icon size={13} /></button>
-                                                        ))}
-                                                    </div>
-                                                </td>
-                                            </motion.tr>
-                                        );
-                                    })}
-                                </AnimatePresence>
-                            </tbody>
-                        </table>
-                    </div>
-                </motion.div>
+                            <div className="user-invoice-table-scroll">
+                                <table className="user-invoice-table">
+                                    <thead>
+                                        <tr>
+                                            {['Invoice', 'Client', 'Amount', 'Date', 'Due Date', 'Status', ''].map((h, i) => (
+                                                <th key={i} style={{ textAlign: i === 6 ? 'right' : 'left' }}>{h}</th>
+                                            ))}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <AnimatePresence>
+                                            {filteredInvoices.map((inv, idx) => {
+                                                const sc = STATUS_CONFIG[inv.status];
+                                                return (
+                                                    <motion.tr
+                                                        key={inv.id}
+                                                        initial={{ opacity: 0 }}
+                                                        animate={{ opacity: 1 }}
+                                                        transition={{ delay: idx * 0.04 }}
+                                                        onClick={() => setSelectedInvoice(inv)}
+                                                    >
+                                                        <td><span className="user-invoice-id">{inv.id}</span></td>
+                                                        <td>
+                                                            <div className="user-invoice-client">
+                                                                <div className="user-invoice-client-avatar">
+                                                                    {inv.client.substring(0, 2).toUpperCase()}
+                                                                </div>
+                                                                <span className="user-invoice-client-name">{inv.client}</span>
+                                                            </div>
+                                                        </td>
+                                                        <td><span className="user-invoice-amount">${inv.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span></td>
+                                                        <td><span className="user-invoice-date">{inv.date}</span></td>
+                                                        <td><span className={`user-invoice-due ${inv.status === 'overdue' ? 'overdue' : ''}`}>{inv.due}</span></td>
+                                                        <td>
+                                                            <span className={`user-invoice-status ${inv.status}`}>{sc.label}</span>
+                                                        </td>
+                                                        <td>
+                                                            <div className="user-invoice-actions">
+                                                                {[Download, Send].map((Icon, j) => (
+                                                                    <button key={j} onClick={e => e.stopPropagation()} className="user-invoice-action-btn">
+                                                                        <Icon size={13} />
+                                                                    </button>
+                                                                ))}
+                                                            </div>
+                                                        </td>
+                                                    </motion.tr>
+                                                );
+                                            })}
+                                        </AnimatePresence>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </motion.div>
                     </>
                 ) : activeTab === 'Products' ? (
                     <ProductManagement currentUser={user} showToast={showToast} />
@@ -336,7 +316,7 @@ const UserPortal = () => {
                 ) : activeTab === 'Warranty' ? (
                     <WarrantyManagement currentUser={user} showToast={showToast} />
                 ) : (
-                    <div style={{ textAlign: 'center', padding: '4rem', color: '#64748b' }}>Module {activeTab} is currently under construction.</div>
+                    <div className="user-empty-module">Module {activeTab} is currently under construction.</div>
                 )}
             </main>
 
@@ -344,46 +324,47 @@ const UserPortal = () => {
             <AnimatePresence>
                 {selectedInvoice && (
                     <>
-                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setSelectedInvoice(null)}
-                            style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.4)', backdropFilter: 'blur(4px)', zIndex: 100 }} />
-                        <motion.aside initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-                            style={{ position: 'fixed', right: 0, top: 0, bottom: 0, width: 400, background: '#fff', borderLeft: '1px solid #e2e8f0', zIndex: 101, overflowY: 'auto', padding: '2rem', boxShadow: '-20px 0 40px rgba(0,0,0,0.08)' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                                <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.02em' }}>{selectedInvoice.id}</h2>
-                                <button onClick={() => setSelectedInvoice(null)}
-                                    style={{ background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '6px 8px', cursor: 'pointer', color: '#64748b', display: 'flex', transition: 'all 0.2s' }}
-                                    onMouseEnter={e => e.currentTarget.style.background = '#e2e8f0'}
-                                    onMouseLeave={e => e.currentTarget.style.background = '#f1f5f9'}
-                                ><X size={16} /></button>
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setSelectedInvoice(null)}
+                            className="user-drawer-overlay"
+                        />
+                        <motion.aside
+                            initial={{ x: '100%' }}
+                            animate={{ x: 0 }}
+                            exit={{ x: '100%' }}
+                            transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+                            className="user-drawer"
+                        >
+                            <div className="user-drawer-header">
+                                <h2 className="user-drawer-title">{selectedInvoice.id}</h2>
+                                <button onClick={() => setSelectedInvoice(null)} className="user-drawer-close-btn">
+                                    <X size={16} />
+                                </button>
                             </div>
-                            {(() => { const sc = STATUS_CONFIG[selectedInvoice.status]; return (
-                                <span style={{ padding: '5px 12px', borderRadius: '8px', fontSize: '0.78rem', fontWeight: 700, background: sc.bg, color: sc.color, border: `1px solid ${sc.border}`, display: 'inline-block' }}>{sc.label}</span>
-                            ); })()}
-                            <div style={{ marginTop: '1.5rem', padding: '1.5rem', background: '#0f172a', borderRadius: '16px', color: '#fff' }}>
-                                <div style={{ fontSize: '0.72rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.5rem' }}>Total Amount</div>
-                                <div style={{ fontSize: '2.5rem', fontWeight: 800, letterSpacing: '-0.04em' }}>${selectedInvoice.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
+                            {(() => {
+                                const sc = STATUS_CONFIG[selectedInvoice.status];
+                                return <span className="user-drawer-status" style={{ background: sc.bg, color: sc.color, border: `1px solid ${sc.border}` }}>{sc.label}</span>;
+                            })()}
+                            <div className="user-drawer-amount-card">
+                                <div className="user-drawer-amount-label">Total Amount</div>
+                                <div className="user-drawer-amount-value">${selectedInvoice.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
                             </div>
                             {[
                                 { label: 'Client', value: selectedInvoice.client },
                                 { label: 'Invoice Date', value: selectedInvoice.date },
                                 { label: 'Due Date', value: selectedInvoice.due },
                             ].map(({ label, value }) => (
-                                <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '1rem 0', borderBottom: '1px solid #f1f5f9' }}>
-                                    <span style={{ color: '#94a3b8', fontSize: '0.875rem' }}>{label}</span>
-                                    <span style={{ fontWeight: 600, fontSize: '0.875rem', color: '#0f172a' }}>{value}</span>
+                                <div key={label} className="user-drawer-detail">
+                                    <span className="user-drawer-detail-label">{label}</span>
+                                    <span className="user-drawer-detail-value">{value}</span>
                                 </div>
                             ))}
-                            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '2rem' }}>
-                                <button style={{ flex: 1, background: '#0f172a', color: '#fff', border: 'none', borderRadius: '12px', padding: '0.875rem', cursor: 'pointer', fontWeight: 700, fontSize: '0.875rem', fontFamily: "'Outfit', sans-serif", display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', transition: 'all 0.2s', boxShadow: '0 4px 12px rgba(15,23,42,0.2)' }}
-                                    onMouseEnter={e => e.currentTarget.style.background = '#1e293b'}
-                                    onMouseLeave={e => e.currentTarget.style.background = '#0f172a'}>
-                                    <Download size={15} /> Download
-                                </button>
-                                <button style={{ flex: 1, background: '#fff', color: '#0f172a', border: '1.5px solid #e2e8f0', borderRadius: '12px', padding: '0.875rem', cursor: 'pointer', fontWeight: 600, fontSize: '0.875rem', fontFamily: "'Outfit', sans-serif", display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', transition: 'all 0.2s' }}
-                                    onMouseEnter={e => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.borderColor = '#0f172a'; }}
-                                    onMouseLeave={e => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.borderColor = '#e2e8f0'; }}>
-                                    <Send size={15} /> Send
-                                </button>
+                            <div className="user-drawer-actions">
+                                <button className="user-drawer-btn primary"><Download size={15} /> Download</button>
+                                <button className="user-drawer-btn secondary"><Send size={15} /> Send</button>
                             </div>
                         </motion.aside>
                     </>
@@ -393,23 +374,29 @@ const UserPortal = () => {
             {/* ── New Invoice Modal ─────────────────── */}
             <AnimatePresence>
                 {newInvoiceModal && (
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
                         onClick={e => { if (e.target === e.currentTarget) setNewInvoiceModal(false); }}
-                        style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.5)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200, padding: '1rem' }}>
-                        <motion.div initial={{ scale: 0.96, opacity: 0, y: 12 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.96, opacity: 0, y: 12 }}
-                            style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '28px', padding: '2.5rem', width: '100%', maxWidth: 460, boxShadow: '0 32px 64px rgba(0,0,0,0.15)' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                        className="user-modal-overlay"
+                    >
+                        <motion.div
+                            initial={{ scale: 0.96, opacity: 0, y: 12 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
+                            exit={{ scale: 0.96, opacity: 0, y: 12 }}
+                            className="user-modal"
+                        >
+                            <div className="user-modal-header">
                                 <div>
-                                    <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 800, letterSpacing: '-0.03em', color: '#0f172a' }}>Create Invoice</h2>
-                                    <p style={{ margin: '0.35rem 0 0', color: '#64748b', fontSize: '0.875rem' }}>Fill in the invoice details below</p>
+                                    <h2 className="user-modal-title">Create Invoice</h2>
+                                    <p className="user-modal-subtitle">Fill in the invoice details below</p>
                                 </div>
-                                <button onClick={() => setNewInvoiceModal(false)}
-                                    style={{ background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '6px 8px', cursor: 'pointer', color: '#64748b', display: 'flex', transition: 'all 0.2s' }}
-                                    onMouseEnter={e => e.currentTarget.style.background = '#e2e8f0'}
-                                    onMouseLeave={e => e.currentTarget.style.background = '#f1f5f9'}
-                                ><X size={16} /></button>
+                                <button onClick={() => setNewInvoiceModal(false)} className="user-modal-close-btn">
+                                    <X size={16} />
+                                </button>
                             </div>
-                            <form onSubmit={e => { e.preventDefault(); setNewInvoiceModal(false); }} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                            <form onSubmit={e => { e.preventDefault(); setNewInvoiceModal(false); }} className="user-form">
                                 {[
                                     { label: 'Client Name', type: 'text', placeholder: 'e.g. Acme Corporation' },
                                     { label: 'Amount (USD)', type: 'number', placeholder: '0.00' },
@@ -417,21 +404,16 @@ const UserPortal = () => {
                                     { label: 'Description', type: 'text', placeholder: 'Services rendered...' },
                                 ].map(({ label, type, placeholder }) => (
                                     <div key={label}>
-                                        <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: '#0f172a', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</label>
-                                        <input type={type} required placeholder={placeholder}
-                                            style={inputStyle}
-                                            onFocus={e => { e.target.style.borderColor = '#0f172a'; e.target.style.background = '#fff'; e.target.style.boxShadow = '0 0 0 3px rgba(15,23,42,0.06)'; }}
-                                            onBlur={e => { e.target.style.borderColor = '#e2e8f0'; e.target.style.background = '#f8fafc'; e.target.style.boxShadow = 'none'; }}
+                                        <label className="user-form-label">{label}</label>
+                                        <input
+                                            type={type}
+                                            required
+                                            placeholder={placeholder}
+                                            className="user-form-input"
                                         />
                                     </div>
                                 ))}
-                                <button type="submit"
-                                    style={{ background: '#0f172a', color: '#fff', border: 'none', borderRadius: '12px', padding: '0.9rem', cursor: 'pointer', fontWeight: 700, fontSize: '0.95rem', fontFamily: "'Outfit', sans-serif", marginTop: '0.5rem', transition: 'all 0.2s', boxShadow: '0 4px 12px rgba(15,23,42,0.2)' }}
-                                    onMouseEnter={e => { e.currentTarget.style.background = '#1e293b'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
-                                    onMouseLeave={e => { e.currentTarget.style.background = '#0f172a'; e.currentTarget.style.transform = 'none'; }}
-                                >
-                                    Generate Invoice
-                                </button>
+                                <button type="submit" className="user-modal-submit-btn">Generate Invoice</button>
                             </form>
                         </motion.div>
                     </motion.div>

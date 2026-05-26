@@ -389,6 +389,15 @@ const AdminDashboard = ({ currentUser }) => {
                                         <span className="ad-status-row-pct">({statusPct('Pending')}%)</span>
                                     </span>
                                 </div>
+                                <div className="ad-status-row">
+                                    <div className="ad-status-row-left">
+                                        <span className="ad-status-row-bar" style={{background:'#6b7280'}} />
+                                        <span className="ad-status-row-label" style={{color:'#6b7280'}}>Cancelled</span>
+                                    </div>
+                                    <span className="ad-status-row-count" style={{color:'#6b7280'}}>
+                                        {invoiceStats?.cancelledCount ?? 0}
+                                    </span>
+                                </div>
                             </div>
                             <div className="ad-status-divider">
                                 <div className="ad-status-mini-row">

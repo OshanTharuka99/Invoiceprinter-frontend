@@ -21,15 +21,19 @@ import QuotationManagement from '../components/shared/QuotationManagement';
 import InvoiceManagement from '../components/shared/InvoiceManagement';
 import WarrantyManagement from '../components/admin/WarrantyManagement';
 import PurchaseOrderManagement from '../components/shared/PurchaseOrderManagement';
+import UserSettings from '../components/shared/UserSettings';
+
 
 
 const AdminPortal = () => {
-    const { user, logout } = useAuth();
+    const { user, logout, updateUser } = useAuth();
     const [activeNav, setActiveNav] = useState('analytics');
+    const [businessSubTab, setBusinessSubTab] = useState('settings');
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const [notifications, setNotifications] = useState([]);
     const [showNotifications, setShowNotifications] = useState(false);
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
 
     const fetchNotifications = async () => {
         try {
@@ -54,8 +58,9 @@ const AdminPortal = () => {
         { id: 'business', label: 'General Settings', icon: Settings },
         { id: 'invoices', label: 'Invoice Engine', icon: FileText },
         { id: 'warranty', label: 'Warranty Management', icon: ShieldCheck },
-        { id: 'purchase_orders', label: 'Purchase Orders', icon: ScrollText }
+        { id: 'purchase_orders', label: 'Purchase Orders', icon: ScrollText },
     ];
+
 
     const showToast = (message, type = 'success') => {
         toast(message, {
@@ -92,7 +97,38 @@ const AdminPortal = () => {
     const renderContent = () => {
         switch (activeNav) {
             case 'users': return <UserManagement currentUser={user} showToast={showToast} />;
-            case 'business': return <BusinessSettings currentUser={user} showToast={showToast} />;
+            case 'business': return (
+                <div>
+                    <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', padding: '0.25rem', background: '#f1f5f9', borderRadius: '12px', width: 'fit-content' }}>
+                        <button
+                            onClick={() => setBusinessSubTab('settings')}
+                            style={{
+                                padding: '0.5rem 1.25rem', borderRadius: '10px', border: 'none',
+                                fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer',
+                                background: businessSubTab === 'settings' ? '#fff' : 'transparent',
+                                color: businessSubTab === 'settings' ? '#0f172a' : '#64748b',
+                                boxShadow: businessSubTab === 'settings' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                                transition: 'all 0.2s'
+                            }}
+                        >Business Settings</button>
+                        <button
+                            onClick={() => setBusinessSubTab('profile')}
+                            style={{
+                                padding: '0.5rem 1.25rem', borderRadius: '10px', border: 'none',
+                                fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer',
+                                background: businessSubTab === 'profile' ? '#fff' : 'transparent',
+                                color: businessSubTab === 'profile' ? '#0f172a' : '#64748b',
+                                boxShadow: businessSubTab === 'profile' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                                transition: 'all 0.2s'
+                            }}
+                        >My Profile</button>
+                    </div>
+                    {businessSubTab === 'settings'
+                        ? <BusinessSettings currentUser={user} showToast={showToast} />
+                        : <UserSettings currentUser={user} showToast={showToast} onUserUpdate={updateUser} />
+                    }
+                </div>
+            );
             case 'products': return <ProductManagement currentUser={user} showToast={showToast} />;
             case 'approvals': return <ApprovalsDashboard currentUser={user} showToast={showToast} />;
             case 'clients': return <ClientManagement currentUser={user} showToast={showToast} />;
@@ -106,6 +142,7 @@ const AdminPortal = () => {
             default: return <div className="admin-empty-module">Module under development...</div>;
         }
     };
+
 
     return (
         <div className="admin-container">
@@ -181,14 +218,18 @@ const AdminPortal = () => {
                     {/* Right: User Profile → Notification → Sign Out */}
                     <div className="admin-header-right">
                         <div className="admin-user-section">
-                            <div className="admin-user-avatar">
-                                {user?.firstName?.[0]?.toUpperCase()}{user?.lastName?.[0]?.toUpperCase()}
+                            <div className="admin-user-avatar" style={user?.profilePicture ? { padding: 0, overflow: 'hidden' } : {}}>
+                                {user?.profilePicture
+                                    ? <img src={user.profilePicture} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    : <>{user?.firstName?.[0]?.toUpperCase()}{user?.lastName?.[0]?.toUpperCase()}</>
+                                }
                             </div>
                             <div className="admin-user-details">
                                 <div className="admin-user-name">{user?.firstName} {user?.lastName}</div>
                                 <div className="admin-user-role">{user?.role?.toUpperCase()}</div>
                             </div>
                         </div>
+
 
                         <div className="admin-notification-wrapper">
                             <button

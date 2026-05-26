@@ -13,6 +13,12 @@ const FV = { initial:{opacity:0,y:8}, animate:{opacity:1,y:0}, exit:{opacity:0,y
 const FM = { initial:{scale:0.95,opacity:0}, animate:{scale:1,opacity:1}, exit:{scale:0.95,opacity:0} };
 const EMPTY_PROD = { name:'', category:'', price:'', currencyType:'primary', isTaxIncluded:false, description:'', warrantyPeriod:'' };
 const EMPTY_STOCK = { location:'', buyingPrice:'', quantity:'', warrantyPeriod:'', notes:'' };
+const STOCK_LOCATIONS = ['Showroom', 'Warehouse A', 'Warehouse B', 'Store Room', 'Main Store'];
+const MODIFY_REASONS = {
+  stock: ['Stock Level Correction', 'Damaged / Broken Stock', 'Data Entry Error', 'Incorrect Serial Number', 'Stock Location Correction', 'Supplier Return'],
+  product: ['Correction of Name / Code', 'Pricing Update', 'Description Update', 'Warranty Period Change', 'Tax Settings Change', 'Category Reorganization'],
+  category: ['Correction of Name / Code', 'Category Reorganization', 'Data Entry Error']
+};
 
 const ProductManagement = ({ currentUser, showToast }) => {
   const [activeTab, setActiveTab] = useState('products');
@@ -44,6 +50,21 @@ const ProductManagement = ({ currentUser, showToast }) => {
   const [existingStockSerials, setExistingStockSerials] = useState([]);
   const excelRef = useRef(null);
   const isAdmin = ['root','admin'].includes(currentUser?.role);
+
+  // Edit Batch Modal
+  const [editBatchModal, setEditBatchModal] = useState(null);
+  const [editBatchForm, setEditBatchForm] = useState({ location: '', buyingPrice: '', quantity: '', notes: '' });
+  const [editBatchReason, setEditBatchReason] = useState('');
+  const [editBatchSaving, setEditBatchSaving] = useState(false);
+  const [editBatchSerials, setEditBatchSerials] = useState([]);
+  const [editBatchSerialInput, setEditBatchSerialInput] = useState('');
+  const [editBatchAvailableSerials, setEditBatchAvailableSerials] = useState([]);
+  const [editBatchUseSerials, setEditBatchUseSerials] = useState(false);
+
+  // Edit Request (standard user flow)
+  const [editReqModal, setEditReqModal] = useState(null);
+  const [editReqReason, setEditReqReason] = useState('');
+  const [editReqSaving, setEditReqSaving] = useState(false);
 
   const fetchData = async () => {
     setLoading(true);
@@ -78,6 +99,17 @@ const ProductManagement = ({ currentUser, showToast }) => {
                  : { name:'', code:'', parentCategory:'' });
     setCatModal(true);
   };
+  const submitEditRequest = async (type, targetId, targetName, proposedChanges) => {
+    if (!editReqReason.trim()) { showToast?.('Please select a reason for modification', 'error'); return; }
+    setEditReqSaving(true);
+    try {
+      await api.post('/products/inventory-requests', { type, targetId, targetName, proposedChanges, reason: editReqReason });
+      showToast?.('Edit request submitted for approval', 'success');
+      setEditReqModal(null); setEditReqReason(''); setCatModal(false); setProdModal(false); fetchData();
+    } catch(err) { showToast?.(err.response?.data?.message || 'Failed to submit request', 'error'); }
+    finally { setEditReqSaving(false); }
+  };
+
   const saveCat = async (e, inline = false) => {
     if (e) e.preventDefault();
     try {
@@ -87,10 +119,20 @@ const ProductManagement = ({ currentUser, showToast }) => {
         fetchData();
         return res.data.data;
       }
-      if (editCat) await api.put(`/products/categories/${editCat._id}`, { ...catForm, parentCategory:catForm.parentCategory||null });
-      else await api.post('/products/categories', { ...catForm, parentCategory:catForm.parentCategory||null });
-      showToast?.(editCat ? 'Category updated' : 'Category created', 'success');
-      setCatModal(false); fetchData();
+      if (editCat) {
+        if (isAdmin) {
+          await api.put(`/products/categories/${editCat._id}`, { ...catForm, parentCategory:catForm.parentCategory||null });
+          showToast?.('Category updated', 'success');
+          setCatModal(false); fetchData();
+        } else {
+          setEditReqModal({ type: 'Category', targetId: editCat._id, targetName: catForm.name, proposedChanges: catForm });
+          setEditReqReason('');
+        }
+      } else {
+        await api.post('/products/categories', { ...catForm, parentCategory:catForm.parentCategory||null });
+        showToast?.('Category created', 'success');
+        setCatModal(false); fetchData();
+      }
     } catch(err) { showToast?.(err.response?.data?.message || 'Error', 'error'); return null; }
   };
   const deleteCat = (id) => setConfirm({
@@ -121,10 +163,20 @@ const ProductManagement = ({ currentUser, showToast }) => {
         catId = nc._id;
       } else if (!catId) return showToast?.('Select a category','error');
       const payload = { ...prodForm, category:catId };
-      if (editProd) await api.put(`/products/${editProd._id}`, payload);
-      else await api.post('/products', payload);
-      showToast?.(editProd ? 'Product updated' : 'Product created', 'success');
-      setProdModal(false); fetchData();
+      if (editProd) {
+        if (isAdmin) {
+          await api.put(`/products/${editProd._id}`, payload);
+          showToast?.('Product updated', 'success');
+          setProdModal(false); fetchData();
+        } else {
+          setEditReqModal({ type: 'Product', targetId: editProd._id, targetName: prodForm.name, proposedChanges: payload });
+          setEditReqReason('');
+        }
+      } else {
+        await api.post('/products', payload);
+        showToast?.('Product created', 'success');
+        setProdModal(false); fetchData();
+      }
     } catch(err) { showToast?.(err.response?.data?.message||'Error','error'); }
   };
   const deleteProd = (id) => setConfirm({
@@ -137,7 +189,7 @@ const ProductManagement = ({ currentUser, showToast }) => {
 
   // ── Stock Entry ───────────────────────────────────────────────────────────
   const openStockModal = async (p) => {
-    setStockProd(p); setStockForm(EMPTY_STOCK);
+    setStockProd(p); setStockForm({ ...EMPTY_STOCK, warrantyPeriod: p.warrantyPeriod || '' });
     setSerials([]); setSerialInput(''); setUseSerials(false); setExistingStockSerials([]);
     // Pre-load existing serials for this product to enable duplicate detection
     try {
@@ -264,7 +316,7 @@ const ProductManagement = ({ currentUser, showToast }) => {
                       <Search size={14} className="pm-search-icon"/>
                       <input className="pm-search-input" placeholder="Search categories..." value={catSearch} onChange={e=>setCatSearch(e.target.value)}/>
                     </div>
-                    {isAdmin && <button className="pm-btn pm-btn-primary" onClick={()=>openCatModal()}><Plus size={16}/>New Category</button>}
+                    <button className="pm-btn pm-btn-primary" onClick={()=>openCatModal()}><Plus size={16}/>New Category</button>
                   </div>
                 </div>
                 <div className="pm-table-wrap modern-table-card">
@@ -274,7 +326,7 @@ const ProductManagement = ({ currentUser, showToast }) => {
                         <th>Name</th>
                         <th>Code</th>
                         <th>Parent</th>
-                        {isAdmin&&<th className="text-center" style={{width:'150px'}}>Actions</th>}
+                        <th className="text-center" style={{width:'150px'}}>Actions</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -285,10 +337,10 @@ const ProductManagement = ({ currentUser, showToast }) => {
                             <td style={{fontWeight:700, color:'#0f172a', fontSize:'0.9rem'}}>{c.name}</td>
                             <td><span className="pm-badge pm-badge-code">{c.code}</span></td>
                             <td style={{color:'var(--pm-text-2)',fontWeight:600}}>{c.parentCategory?.name||'—'}</td>
-                            {isAdmin&&<td><div className="pm-table-actions modern-table-actions">
+                            <td><div className="pm-table-actions modern-table-actions">
                               <button className="pm-btn pm-btn-edit modern-table-action edit" onClick={()=>openCatModal(c)}><Edit2 size={14} /></button>
-                              <button className="pm-btn pm-btn-danger modern-table-action delete" onClick={()=>deleteCat(c._id)}><Trash2 size={14} /></button>
-                            </div></td>}
+                              {isAdmin&&<button className="pm-btn pm-btn-danger modern-table-action delete" onClick={()=>deleteCat(c._id)}><Trash2 size={14} /></button>}
+                            </div></td>
                           </tr>
                         ))
                       }
@@ -315,7 +367,7 @@ const ProductManagement = ({ currentUser, showToast }) => {
                       <option value="">All Categories</option>
                       {categories.map(c=><option key={c._id} value={c._id}>{c.name}</option>)}
                     </select>
-                    {isAdmin && <button className="pm-btn pm-btn-primary" onClick={()=>openProdModal()}><Plus size={16}/>Add Product</button>}
+                    <button className="pm-btn pm-btn-primary" onClick={()=>openProdModal()}><Plus size={16}/>Add Product</button>
                   </div>
                 </div>
                 <div className="pm-table-wrap modern-table-card">
@@ -358,11 +410,9 @@ const ProductManagement = ({ currentUser, showToast }) => {
                             <td>
                               <div className="pm-table-actions modern-table-actions">
                                 <button className="pm-btn pm-btn-view modern-table-action view" onClick={()=>openView(p)}><FileText size={14} /></button>
-                                <button className="pm-btn pm-btn-stock modern-table-action stock" onClick={()=>openStockModal(p)}><Plus size={14} /></button>
-                                {isAdmin&&<>
-                                  <button className="pm-btn pm-btn-edit modern-table-action edit" onClick={()=>openProdModal(p)}><Edit2 size={14} /></button>
-                                  <button className="pm-btn pm-btn-danger modern-table-action delete" onClick={()=>deleteProd(p._id)}><Trash2 size={14} /></button>
-                                </>}
+                                <button className="pm-btn pm-btn-stock modern-table-action stock" title="Add Stock" onClick={()=>openStockModal(p)}><Package size={14} /></button>
+                                <button className="pm-btn pm-btn-edit modern-table-action edit" onClick={()=>openProdModal(p)}><Edit2 size={14} /></button>
+                                {isAdmin&&<button className="pm-btn pm-btn-danger modern-table-action delete" onClick={()=>deleteProd(p._id)}><Trash2 size={14} /></button>}
                               </div>
                             </td>
                           </tr>
@@ -407,6 +457,27 @@ const ProductManagement = ({ currentUser, showToast }) => {
                         <div className="pm-entry-card-header">
                           <span className="pm-entry-batch">{e.batchRef}</span>
                           <span className="pm-entry-date">{new Date(e.createdAt).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})}</span>
+                          <button
+                            className="pm-btn pm-btn-edit modern-table-action edit"
+                            style={{marginLeft:'auto',padding:'4px 10px',fontSize:'0.75rem'}}
+                            onClick={async () => {
+                              setEditBatchModal(e);
+                              setEditBatchForm({ location: e.location||'', buyingPrice: e.buyingPrice?.toString()||'', quantity: e.quantity?.toString()||'', notes: e.notes||'' });
+                              setEditBatchSerials(e.serialNumbers ? [...e.serialNumbers] : []);
+                              setEditBatchSerialInput('');
+                              setEditBatchUseSerials(e.hasSerialNumbers);
+                              setEditBatchReason('');
+                              // Load available serials from OTHER stock entries for this product
+                              try {
+                                const res = await api.get(`/products/${viewProd._id}/stock`);
+                                const allSerials = (res.data.data || []).flatMap(ent => ent.serialNumbers || []);
+                                const currentUpper = (e.serialNumbers || []).map(s => s.toUpperCase());
+                                const avail = [...new Set(allSerials.filter(s => !currentUpper.includes(s.toUpperCase())))];
+                                setEditBatchAvailableSerials(avail);
+                              } catch { setEditBatchAvailableSerials([]); }
+                            }}
+                            title="Edit Batch"
+                          ><Edit2 size={12}/> Edit Batch</button>
                         </div>
                         <div className="pm-entry-meta">
                           <span><Hash size={12}/> Qty: {e.quantity}</span>
@@ -453,7 +524,12 @@ const ProductManagement = ({ currentUser, showToast }) => {
                   <div><label className="pm-label">Warranty Period</label><input className="pm-input" value={stockForm.warrantyPeriod} onChange={e=>setStockForm({...stockForm,warrantyPeriod:e.target.value})} placeholder="e.g. 12 months"/></div>
                 </div>
                 <div className="pm-form-row pm-form-row-2">
-                  <div><label className="pm-label">Stock Location</label><input className="pm-input" value={stockForm.location} onChange={e=>setStockForm({...stockForm,location:e.target.value})} placeholder="e.g. Shelf A-3, Warehouse B"/></div>
+                  <div><label className="pm-label">Stock Location</label>
+                    <select className="pm-input pm-select-input" value={stockForm.location} onChange={e=>setStockForm({...stockForm,location:e.target.value})}>
+                      <option value="">— Select Location —</option>
+                      {STOCK_LOCATIONS.map(loc=><option key={loc} value={loc}>{loc}</option>)}
+                    </select>
+                  </div>
                   <div><label className="pm-label">Buying Price / Unit</label><PriceInput value={parseFloat(stockForm.buyingPrice) || 0} onChange={v => setStockForm({...stockForm, buyingPrice: v.toString()})} className="pm-input" placeholder="0.00" /></div>
                 </div>
                 <div><label className="pm-label">Notes <span className="pm-label-optional">(optional)</span></label><textarea className="pm-input pm-textarea" value={stockForm.notes} onChange={e=>setStockForm({...stockForm,notes:e.target.value})} placeholder="Supplier name, invoice #, purchase order..."/></div>
@@ -567,6 +643,173 @@ const ProductManagement = ({ currentUser, showToast }) => {
                 <div className="pm-checkbox-row"><input type="checkbox" id="taxInc" checked={prodForm.isTaxIncluded} onChange={e=>setProdForm({...prodForm,isTaxIncluded:e.target.checked})}/><label htmlFor="taxInc">Selling price includes tax</label></div>
                 <button type="submit" className="pm-btn pm-btn-success pm-btn-full">Save Product</button>
               </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ── EDIT BATCH MODAL ── */}
+      <AnimatePresence>
+        {editBatchModal && (
+          <div className="pm-overlay" onClick={()=>setEditBatchModal(null)}>
+            <motion.div {...FM} className="pm-modal pm-modal-md" onClick={e=>e.stopPropagation()}>
+              <div className="pm-modal-header">
+                <div className="pm-modal-title-row">
+                  <div className="pm-card-icon green"><Edit2 size={18}/></div>
+                  <div><h2>Edit Stock Batch</h2><div className="pm-modal-subtitle">{editBatchModal.batchRef}</div></div>
+                </div>
+                <button className="pm-modal-close" onClick={()=>setEditBatchModal(null)}><X size={18}/></button>
+              </div>
+              <form className="pm-form" onSubmit={async (e) => {
+                e.preventDefault();
+                if (!editBatchReason) return showToast?.('Please select a reason for modification', 'error');
+                const changes = {};
+                if (editBatchForm.location !== (editBatchModal.location||'')) changes.location = editBatchForm.location;
+                if (parseFloat(editBatchForm.buyingPrice||0) !== (editBatchModal.buyingPrice||0)) changes.buyingPrice = parseFloat(editBatchForm.buyingPrice||0);
+                if (parseInt(editBatchForm.quantity||0) !== editBatchModal.quantity) changes.quantity = parseInt(editBatchForm.quantity||0);
+                if (editBatchForm.notes !== (editBatchModal.notes||'')) changes.notes = editBatchForm.notes;
+                if (editBatchUseSerials) {
+                  const origSerials = (editBatchModal.serialNumbers || []).map(s => s.toUpperCase()).sort();
+                  const newSerials = editBatchSerials.map(s => s.toUpperCase()).sort();
+                  if (JSON.stringify(origSerials) !== JSON.stringify(newSerials)) {
+                    changes.serialNumbers = editBatchSerials.map(s => s.toUpperCase());
+                    changes.hasSerialNumbers = editBatchSerials.length > 0;
+                  }
+                }
+                if (Object.keys(changes).length === 0) return showToast?.('No changes detected', 'error');
+                setEditBatchSaving(true);
+                try {
+                  if (isAdmin) {
+                    await api.patch(`/products/${editBatchModal.product}/stock/${editBatchModal._id}`, { ...changes, reason: editBatchReason });
+                    showToast?.('Stock batch updated', 'success');
+                    setEditBatchModal(null); fetchStockEntries(viewProd._id);
+                  } else {
+                    const product = products.find(p => p._id === editBatchModal.product);
+                    await api.post('/products/inventory-requests', {
+                      type: 'StockEntry', targetId: editBatchModal._id,
+                      targetName: `${product?.name || ''} - ${editBatchModal.batchRef}`,
+                      proposedChanges: changes, reason: editBatchReason
+                    });
+                    showToast?.('Edit request submitted for approval', 'success');
+                    setEditBatchModal(null);
+                  }
+                } catch(err) { showToast?.(err.response?.data?.message||'Error','error'); }
+                finally { setEditBatchSaving(false); }
+              }}>
+                <div className="pm-form-row pm-form-row-2">
+                  <div><label className="pm-label">Quantity</label><input className="pm-input" type="number" min="1" value={editBatchForm.quantity} onChange={e=>setEditBatchForm({...editBatchForm,quantity:e.target.value})}/></div>
+                  <div><label className="pm-label">Buying Price / Unit</label><PriceInput value={parseFloat(editBatchForm.buyingPrice) || 0} onChange={v => setEditBatchForm({...editBatchForm, buyingPrice: v.toString()})} className="pm-input" /></div>
+                </div>
+                <div><label className="pm-label">Stock Location</label>
+                  <select className="pm-input pm-select-input" value={editBatchForm.location} onChange={e=>setEditBatchForm({...editBatchForm,location:e.target.value})}>
+                    <option value="">— Select Location —</option>
+                    {STOCK_LOCATIONS.map(loc=><option key={loc} value={loc}>{loc}</option>)}
+                  </select>
+                </div>
+                <div><label className="pm-label">Notes</label><textarea className="pm-input pm-textarea" value={editBatchForm.notes} onChange={e=>setEditBatchForm({...editBatchForm,notes:e.target.value})}/></div>
+                <div className="pm-serial-section">
+                  <div className="pm-serial-toggle-row">
+                    <input type="checkbox" id="editBatchUseSerial" checked={editBatchUseSerials} onChange={e=>{setEditBatchUseSerials(e.target.checked);if(!e.target.checked)setEditBatchSerials([]);}} style={{width:17,height:17,accentColor:'#6366f1',cursor:'pointer'}}/>
+                    <label htmlFor="editBatchUseSerial" style={{fontWeight:700,fontSize:'0.88rem',color:'var(--pm-text-2)',cursor:'pointer'}}>Edit Serial Numbers</label>
+                  </div>
+                  {editBatchUseSerials && (
+                    <>
+                      {/* Available serials from other batches */}
+                      {editBatchAvailableSerials.length > 0 && (
+                        <div style={{marginBottom:'0.5rem'}}>
+                          <label className="pm-label" style={{fontSize:'0.65rem',marginBottom:'0.3rem'}}>Available Serials in Catalog — click to add</label>
+                          <div className="pm-chips" style={{gap:'0.3rem'}}>
+                            {editBatchAvailableSerials.map((s,i)=>{
+                              const alreadyInBatch = editBatchSerials.map(x=>x.toUpperCase()).includes(s.toUpperCase());
+                              return alreadyInBatch ? null : (
+                                <span key={i} className="pm-chip" style={{cursor:'pointer',background:'#e0e7ff',color:'#4338ca',border:'1px solid #c7d2fe'}}
+                                  onClick={() => {
+                                    setEditBatchSerials(prev => [...prev, s]);
+                                    setEditBatchAvailableSerials(prev => prev.filter(a => a.toUpperCase() !== s.toUpperCase()));
+                                  }}
+                                >+ {s}</span>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                      {/* Current / edited serials */}
+                      <div className="pm-serial-input-row">
+                        <input className="pm-input" value={editBatchSerialInput}
+                          onChange={e=>setEditBatchSerialInput(e.target.value.toUpperCase())}
+                          onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();const v=editBatchSerialInput.trim().toUpperCase();if(v&&!editBatchSerials.map(x=>x.toUpperCase()).includes(v)){setEditBatchSerials(prev=>[...prev,v]);setEditBatchAvailableSerials(prev=>prev.filter(a=>a.toUpperCase()!==v));}setEditBatchSerialInput('');}}}
+                          placeholder="Type serial & press Enter"/>
+                        <button type="button" className="pm-btn pm-btn-primary" onClick={()=>{const v=editBatchSerialInput.trim().toUpperCase();if(v&&!editBatchSerials.map(x=>x.toUpperCase()).includes(v)){setEditBatchSerials(prev=>[...prev,v]);setEditBatchAvailableSerials(prev=>prev.filter(a=>a.toUpperCase()!==v));}setEditBatchSerialInput('');}}>Add</button>
+                      </div>
+                      {editBatchSerials.length > 0 && (
+                        <>
+                          <div className="pm-chips">
+                            {editBatchSerials.map((s,i)=>(
+                              <span key={i} className="pm-chip" style={{background:'#e0e7ff',color:'#4338ca',border:'1px solid #c7d2fe'}}>
+                                {s}
+                                <button type="button" className="pm-chip-remove" onClick={()=>{
+                                  setEditBatchSerials(prev=>prev.filter((_,idx)=>idx!==i));
+                                  setEditBatchAvailableSerials(prev=>[...prev,s]);
+                                }}>×</button>
+                              </span>
+                            ))}
+                          </div>
+                          <div className={`pm-serial-info ${editBatchForm.quantity&&editBatchSerials.length!==parseInt(editBatchForm.quantity)?'pm-serial-warn':'pm-serial-ok'}`}>
+                            {editBatchSerials.length} serial{editBatchSerials.length!==1?'s':''}
+                            {editBatchForm.quantity&&editBatchSerials.length!==parseInt(editBatchForm.quantity)
+                              ?` — must match quantity (${editBatchForm.quantity})`:' ✓'}
+                          </div>
+                        </>
+                      )}
+                    </>
+                  )}
+                </div>
+                <div><label className="pm-label">Reason for Modification *</label>
+                  <select className="pm-input pm-select-input" required value={editBatchReason} onChange={e=>setEditBatchReason(e.target.value)}>
+                    <option value="">— Select Reason —</option>
+                    {MODIFY_REASONS.stock.map(r=><option key={r} value={r}>{r}</option>)}
+                  </select>
+                </div>
+                <button type="submit" className="pm-btn pm-btn-success pm-btn-full" disabled={editBatchSaving}>
+                  {editBatchSaving ? 'Saving...' : (isAdmin ? 'Save Changes' : 'Submit for Approval')}
+                </button>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ── EDIT REQUEST REASON MODAL (standard users) ── */}
+      <AnimatePresence>
+        {editReqModal && (
+          <div className="pm-overlay" onClick={()=>{setEditReqModal(null);setEditReqReason('');}}>
+            <motion.div {...FM} className="pm-modal pm-modal-sm" onClick={e=>e.stopPropagation()}>
+              <div className="pm-modal-header">
+                <div className="pm-modal-title-row">
+                  <div className="pm-card-icon amber"><AlertTriangle size={18}/></div>
+                  <h2>Request {editReqModal.type} Edit</h2>
+                </div>
+                <button className="pm-modal-close" onClick={()=>{setEditReqModal(null);setEditReqReason('');}}><X size={18}/></button>
+              </div>
+              <div className="pm-form" style={{padding:'1rem 1.5rem 1.5rem'}}>
+                <p style={{fontSize:'0.85rem',color:'var(--pm-text-2)',marginBottom:'1rem'}}>
+                  Your changes to <strong>{editReqModal.targetName}</strong> will be submitted for admin approval.
+                </p>
+                <div><label className="pm-label">Reason for Modification *</label>
+                  <select className="pm-input pm-select-input" required value={editReqReason} onChange={e=>setEditReqReason(e.target.value)}>
+                    <option value="">— Select Reason —</option>
+                    {(MODIFY_REASONS[editReqModal.type === 'StockEntry' ? 'stock' : editReqModal.type === 'Product' ? 'product' : 'category']||[]).map(r=>(
+                      <option key={r} value={r}>{r}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="pm-confirm-actions" style={{marginTop:'1.5rem'}}>
+                  <button className="pm-btn-abort" onClick={()=>{setEditReqModal(null);setEditReqReason('');}}>Cancel</button>
+                  <button className="pm-btn-confirm-danger" onClick={()=>submitEditRequest(editReqModal.type, editReqModal.targetId, editReqModal.targetName, editReqModal.proposedChanges)} disabled={editReqSaving} style={{background:'var(--pm-indigo)',color:'#fff'}}>
+                    {editReqSaving ? 'Submitting...' : 'Submit Request'}
+                  </button>
+                </div>
+              </div>
             </motion.div>
           </div>
         )}

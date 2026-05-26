@@ -16,6 +16,8 @@ import QuotationManagement from '../components/shared/QuotationManagement';
 import InvoiceManagement from '../components/shared/InvoiceManagement';
 import WarrantyManagement from '../components/admin/WarrantyManagement';
 import PurchaseOrderManagement from '../components/shared/PurchaseOrderManagement';
+import UserSettings from '../components/shared/UserSettings';
+
 import './UserPortal.css';
 
 const MOCK_INVOICES = [
@@ -33,7 +35,8 @@ const STATUS_CONFIG = {
 };
 
 const UserPortal = () => {
-    const { user, logout } = useAuth();
+    const { user, logout, updateUser } = useAuth();
+
     const [activeTab, setActiveTab] = useState('Dashboard');
     const [notifications, setNotifications] = useState([]);
     const [showNotifications, setShowNotifications] = useState(false);
@@ -112,12 +115,13 @@ const UserPortal = () => {
                         </span>
                     </div>
                     <div className="user-nav-links">
-                        {['Dashboard', 'Invoices', 'Quotations', 'Purchase Orders', 'Products', 'Projects', 'Clients', 'Warranty', 'Reports'].map((item, i) => (
+                        {['Dashboard', 'Invoices', 'Quotations', 'Purchase Orders', 'Products', 'Projects', 'Clients', 'Warranty', 'Settings'].map((item, i) => (
                             <button key={i} onClick={() => setActiveTab(item)}
                                 className={`user-nav-link ${activeTab === item ? 'active' : ''}`}
                             >{item}</button>
                         ))}
                     </div>
+
                 </div>
 
                 {/* Right side */}
@@ -162,10 +166,19 @@ const UserPortal = () => {
                             <div className="user-nav-username">{user?.firstName} {user?.lastName}</div>
                             <div className="user-nav-userrole">{user?.designation || 'User Account'}</div>
                         </div>
-                        <div className="user-nav-avatar">
-                            {user?.firstName?.[0]}{user?.lastName?.[0]}
+                        <div
+                            className="user-nav-avatar"
+                            style={user?.profilePicture ? { padding: 0, overflow: 'hidden', cursor: 'pointer' } : { cursor: 'pointer' }}
+                            onClick={() => setActiveTab('Settings')}
+                            title="My Profile Settings"
+                        >
+                            {user?.profilePicture
+                                ? <img src={user.profilePicture} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                : <>{user?.firstName?.[0]}{user?.lastName?.[0]}</>
+                            }
                         </div>
                     </div>
+
                     <div className="user-nav-divider" />
                     <button onClick={handleLogout}
                         className="user-signout-btn"
@@ -310,14 +323,17 @@ const UserPortal = () => {
                 ) : activeTab === 'Invoices' ? (
                     <InvoiceManagement currentUser={user} showToast={showToast} />
                 ) : activeTab === 'Clients' ? (
-                    <UserClientManagement showToast={showToast} /> 
+                    <UserClientManagement showToast={showToast} />
                 ) : activeTab === 'Projects' ? (
                     <UserProjectCatalog />
                 ) : activeTab === 'Warranty' ? (
                     <WarrantyManagement currentUser={user} showToast={showToast} />
+                ) : activeTab === 'Settings' ? (
+                    <UserSettings currentUser={user} showToast={showToast} onUserUpdate={updateUser} />
                 ) : (
                     <div className="user-empty-module">Module {activeTab} is currently under construction.</div>
                 )}
+
             </main>
 
             {/* ── Invoice Detail Drawer ─────────────── */}

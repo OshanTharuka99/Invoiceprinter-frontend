@@ -410,7 +410,7 @@ const ProductManagement = ({ currentUser, showToast }) => {
                             <td>
                               <div className="pm-table-actions modern-table-actions">
                                 <button className="pm-btn pm-btn-view modern-table-action view" onClick={()=>openView(p)}><FileText size={14} /></button>
-                                <button className="pm-btn pm-btn-stock modern-table-action stock" title="Add Stock" onClick={()=>openStockModal(p)}><Package size={14} /></button>
+                                <button className="pm-btn pm-btn-stock modern-table-action stock" title="Add Stock" onClick={()=>openStockModal(p)}><Plus size={14} /></button>
                                 <button className="pm-btn pm-btn-edit modern-table-action edit" onClick={()=>openProdModal(p)}><Edit2 size={14} /></button>
                                 {isAdmin&&<button className="pm-btn pm-btn-danger modern-table-action delete" onClick={()=>deleteProd(p._id)}><Trash2 size={14} /></button>}
                               </div>

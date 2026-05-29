@@ -32,6 +32,7 @@ const BusinessSettings = ({ currentUser, showToast }) => {
         deliveryNotePrefix: 'DN', deliveryNoteDigits: 5,
         deliveryNoteTitleColor: '#8b5cf6', deliveryNoteDividerColor: '#8b5cf6',
         deliveryNoteTerms: 'Standard delivery terms apply.', deliveryNoteNotes: '',
+        defaultWarrantyPeriod: '1 year',
         quotationTerms: 'Standard terms and conditions apply.', quotationNotes: '',
         invoiceTerms: 'Standard invoice terms and conditions apply.', invoiceNotes: '',
         purchaseOrderTerms: 'Standard purchase order terms and conditions apply.', purchaseOrderNotes: '',
@@ -58,6 +59,7 @@ const BusinessSettings = ({ currentUser, showToast }) => {
                     deliveryNoteDividerColor: details.deliveryNoteDividerColor || '#8b5cf6',
                     deliveryNoteTerms: details.deliveryNoteTerms || 'Standard delivery terms apply.',
                     deliveryNoteNotes: details.deliveryNoteNotes || '',
+                    defaultWarrantyPeriod: details.defaultWarrantyPeriod || '1 year',
                     stores: details.stores || []
                 });
             }

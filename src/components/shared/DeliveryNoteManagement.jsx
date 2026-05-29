@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FileText, Plus, X, Search, RefreshCw, Printer, Trash2, Truck, Store, MapPin, Building2, Package } from 'lucide-react';
+import { FileText, Plus, X, Search, RefreshCw, Printer, Trash2, Truck, Store, MapPin, Building2, Package, CheckCircle, Eye, Clock } from 'lucide-react';
 import api from '../../api';
 import DeliveryNoteTemplate from './DeliveryNoteTemplate';
 import './QuotationManagement.css';
@@ -19,12 +19,15 @@ const DeliveryNoteManagement = ({ currentUser, showToast }) => {
 
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [creationMode, setCreationMode] = useState('automatic');
+    const [editingDN, setEditingDN] = useState(null);
+    const [viewingDN, setViewingDN] = useState(null);
 
     const [viewDeliveryNote, setViewDeliveryNote] = useState(null);
     const printRef = useRef();
 
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
     const [dnToDelete, setDnToDelete] = useState(null);
+    const [historyDN, setHistoryDN] = useState(null);
 
     const [serialModalOpen, setSerialModalOpen] = useState(false);
     const [serialItemIndex, setSerialItemIndex] = useState(null);
@@ -36,7 +39,10 @@ const DeliveryNoteManagement = ({ currentUser, showToast }) => {
         projectId: '',
         deliveryType: 'Client',
         selectedStoreRef: '',
+        deliveryDate: new Date().toISOString().split('T')[0],
         deliveryAddress: '',
+        customerPORef: '',
+
         manualClientDetails: { title: 'Mr', organization: '', name: '', address: '', telephoneNumber: '', emailAddress: '' },
         items: [],
         terms: '',
@@ -111,20 +117,37 @@ const DeliveryNoteManagement = ({ currentUser, showToast }) => {
         }, 400);
     };
 
-    const openCreation = (mode) => {
-        setCreationMode(mode);
+    const openCreation = () => {
+        setCreationMode('automatic');
+        setEditingDN(null);
         const defaultTerms = businessData?.deliveryNoteTerms || 'Standard delivery terms apply.';
         const defaultNotes = businessData?.deliveryNoteNotes || '';
-        if (mode === 'automatic') {
-            setForm({ ...initialForm, terms: defaultTerms, notes: defaultNotes });
-        } else {
-            setForm({ ...initialForm, terms: defaultTerms, notes: defaultNotes });
-        }
+        setForm({ ...initialForm, terms: defaultTerms, notes: defaultNotes });
+        setIsCreateModalOpen(true);
+    };
+
+    const openEdit = (dn) => {
+        setCreationMode('automatic');
+        setEditingDN(dn);
+        setForm({
+            clientRef: dn.clientRef?._id || dn.clientRef || '',
+            projectId: dn.projectId?._id || dn.projectId || '',
+            deliveryType: dn.deliveryType || 'Client',
+            selectedStoreRef: dn.selectedStoreRef || '',
+            deliveryAddress: dn.deliveryAddress || '',
+            customerPORef: dn.customerPORef || '',
+            deliveryDate: dn.deliveryDate ? new Date(dn.deliveryDate).toISOString().split('T')[0] : '',
+
+            manualClientDetails: dn.manualClientDetails || { title: 'Mr', organization: '', name: '', address: '', telephoneNumber: '', emailAddress: '' },
+            items: dn.items || [],
+            terms: dn.terms || '',
+            notes: dn.notes || ''
+        });
         setIsCreateModalOpen(true);
     };
 
     const handleClientChange = (clientId) => {
-        if (clientId && creationMode === 'automatic') {
+        if (clientId) {
             const client = clients.find(c => c._id === clientId);
             if (client) {
                 const addr = client.address || '';
@@ -188,6 +211,7 @@ const DeliveryNoteManagement = ({ currentUser, showToast }) => {
                 const prod = products.find(p => p._id === value);
                 if (prod) {
                     newItems[index].manualName = prod.name;
+                    newItems[index].serialNumbers = [];
                 }
             }
             return { ...prev, items: newItems };
@@ -256,34 +280,38 @@ const DeliveryNoteManagement = ({ currentUser, showToast }) => {
 
     const handleCreate = async () => {
         try {
-            let payload = {
-                creationMethod: creationMode,
-                items: form.items,
+            const itemsWithQty = form.items.map(item => ({
+                ...item,
+                quantity: item.quantity || item.serialNumbers?.length || 0
+            }));
+            const payload = {
+                creationMethod: 'automatic',
+                items: itemsWithQty,
                 terms: form.terms,
-                notes: form.notes
+                notes: form.notes,
+                clientRef: form.clientRef || undefined,
+                projectId: form.projectId || undefined,
+                deliveryType: form.deliveryType,
+                selectedStoreRef: form.deliveryType === 'Store' ? form.selectedStoreRef : '',
+                deliveryAddress: form.deliveryAddress,
+                customerPORef: form.customerPORef || undefined,
+                deliveryDate: form.deliveryDate || undefined,
+
             };
 
-            if (creationMode === 'automatic') {
-                payload.clientRef = form.clientRef || undefined;
-                payload.projectId = form.projectId || undefined;
-                payload.deliveryType = form.deliveryType;
-                payload.selectedStoreRef = form.deliveryType === 'Store' ? form.selectedStoreRef : '';
-                payload.deliveryAddress = form.deliveryAddress;
+            let res;
+            if (editingDN) {
+                res = await api.put(`/delivery-notes/${editingDN._id}`, payload);
+                setDeliveryNotes(prev => prev.map(d => d._id === editingDN._id ? res.data.data : d));
             } else {
-                payload.deliveryType = form.deliveryType;
-                payload.selectedStoreRef = form.deliveryType === 'Store' ? form.selectedStoreRef : '';
-                payload.deliveryAddress = form.deliveryAddress;
-                payload.manualClientDetails = form.manualClientDetails;
-                if (form.clientRef) payload.clientRef = form.clientRef;
-                if (form.projectId) payload.projectId = form.projectId;
+                res = await api.post('/delivery-notes', payload);
+                setDeliveryNotes(prev => [res.data.data, ...prev]);
             }
-
-            const res = await api.post('/delivery-notes', payload);
-            setDeliveryNotes(prev => [res.data.data, ...prev]);
             setIsCreateModalOpen(false);
-            showToast?.('Delivery note created');
+            setEditingDN(null);
+            showToast?.(editingDN ? 'Delivery note updated' : 'Delivery note created');
         } catch (error) {
-            showToast?.(error.response?.data?.message || 'Creation failed', 'error');
+            showToast?.(error.response?.data?.message || 'Save failed', 'error');
         }
     };
 
@@ -381,21 +409,13 @@ const DeliveryNoteManagement = ({ currentUser, showToast }) => {
                     </div>
                 </div>
                 <div style={{ display: 'flex', gap: '8px' }}>
-                    <button onClick={() => openCreation('automatic')} style={{
+                    <button onClick={() => openCreation()} style={{
                         padding: '10px 20px', borderRadius: '12px', border: 'none',
                         background: '#8b5cf6', color: '#fff', fontWeight: 700, fontSize: '0.85rem',
                         cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px',
                         fontFamily: "'Outfit', sans-serif", transition: 'all 0.2s'
                     }}>
-                        <Plus size={18} /> Create (Automatic)
-                    </button>
-                    <button onClick={() => openCreation('manual')} style={{
-                        padding: '10px 20px', borderRadius: '12px', border: '1.5px solid #e2e8f0',
-                        background: '#fff', color: '#475569', fontWeight: 700, fontSize: '0.85rem',
-                        cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px',
-                        fontFamily: "'Outfit', sans-serif", transition: 'all 0.2s'
-                    }}>
-                        <Plus size={18} /> Create (Manual)
+                        <Plus size={18} /> Create Delivery Note
                     </button>
                 </div>
             </div>
@@ -423,6 +443,7 @@ const DeliveryNoteManagement = ({ currentUser, showToast }) => {
                         <tr>
                             <th>Delivery Note #</th>
                             <th>Client</th>
+                            <th>Status</th>
                             <th>Delivery Type</th>
                             <th>Items</th>
                             <th>Created</th>
@@ -432,7 +453,7 @@ const DeliveryNoteManagement = ({ currentUser, showToast }) => {
                     <tbody>
                         {filteredDNs.length === 0 ? (
                             <tr>
-                                <td colSpan={6} style={{ textAlign: 'center', padding: '40px', color: '#94a3b8', fontWeight: 600, fontFamily: "'Outfit', sans-serif" }}>
+                                <td colSpan={7} style={{ textAlign: 'center', padding: '40px', color: '#94a3b8', fontWeight: 600, fontFamily: "'Outfit', sans-serif" }}>
                                     No delivery notes found
                                 </td>
                             </tr>
@@ -441,6 +462,17 @@ const DeliveryNoteManagement = ({ currentUser, showToast }) => {
                                 <tr key={dn._id}>
                                     <td><strong>{dn.deliveryNoteNumber}</strong></td>
                                     <td>{getClientDisplay(dn)}</td>
+                                    <td>
+                                        <span style={{
+                                            display: 'inline-flex', alignItems: 'center', gap: '4px',
+                                            padding: '4px 10px', borderRadius: '20px', fontSize: '0.75rem',
+                                            fontWeight: 700,
+                                            background: dn.status === 'Delivered' ? '#dcfce7' : '#fef3c7',
+                                            color: dn.status === 'Delivered' ? '#166534' : '#92400e'
+                                        }}>
+                                            {dn.status === 'Delivered' ? '✓' : '○'} {dn.status || 'Draft'}
+                                        </span>
+                                    </td>
                                     <td>
                                         <span style={{
                                             display: 'inline-flex', alignItems: 'center', gap: '4px',
@@ -454,7 +486,15 @@ const DeliveryNoteManagement = ({ currentUser, showToast }) => {
                                     <td>{(dn.items || []).length} item{(dn.items || []).length !== 1 ? 's' : ''}</td>
                                     <td>{new Date(dn.createdAt).toLocaleDateString('en-GB')}</td>
                                     <td>
-                                        <div style={{ display: 'flex', gap: '6px' }}>
+                                        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                                            <button onClick={() => { setViewingDN(dn); }} style={{
+                                                padding: '6px 10px', borderRadius: '8px', border: 'none',
+                                                background: '#f1f5f9', color: '#475569', cursor: 'pointer',
+                                                display: 'inline-flex', alignItems: 'center', gap: '4px',
+                                                fontSize: '0.75rem', fontWeight: 600, fontFamily: "'Outfit', sans-serif"
+                                            }}>
+                                                <FileText size={14} /> View
+                                            </button>
                                             <button onClick={() => { setViewDeliveryNote(dn); setTimeout(handlePrint, 100); }} style={{
                                                 padding: '6px 10px', borderRadius: '8px', border: 'none',
                                                 background: '#f1f5f9', color: '#475569', cursor: 'pointer',
@@ -463,7 +503,56 @@ const DeliveryNoteManagement = ({ currentUser, showToast }) => {
                                             }}>
                                                 <Printer size={14} /> Print
                                             </button>
-                                            {isAdmin && (
+                                            <button onClick={() => setHistoryDN(dn)} style={{
+                                                padding: '6px 10px', borderRadius: '8px', border: 'none',
+                                                background: '#f1f5f9', color: '#475569', cursor: 'pointer',
+                                                display: 'inline-flex', alignItems: 'center', gap: '4px',
+                                                fontSize: '0.75rem', fontWeight: 600, fontFamily: "'Outfit', sans-serif"
+                                            }}>
+                                                <Clock size={14} /> History
+                                            </button>
+                                            {dn.status === 'Draft' && (
+                                                <>
+                                                    <button onClick={() => openEdit(dn)} style={{
+                                                        padding: '6px 10px', borderRadius: '8px', border: 'none',
+                                                        background: '#fef3c7', color: '#92400e', cursor: 'pointer',
+                                                        display: 'inline-flex', alignItems: 'center', gap: '4px',
+                                                        fontSize: '0.75rem', fontWeight: 600, fontFamily: "'Outfit', sans-serif"
+                                                    }}>
+                                                        <FileText size={14} /> Edit
+                                                    </button>
+                                                    <button onClick={async () => {
+                                                        try {
+                                                            const res = await api.put(`/delivery-notes/${dn._id}/deliver`);
+                                                            setDeliveryNotes(prev => prev.map(d => d._id === dn._id ? res.data.data : d));
+                                                            showToast?.('Delivery note delivered');
+                                                        } catch (e) {
+                                                            showToast?.(e.response?.data?.message || 'Failed to deliver', 'error');
+                                                        }
+                                                    }} style={{
+                                                        padding: '6px 10px', borderRadius: '8px', border: 'none',
+                                                        background: '#dcfce7', color: '#166534', cursor: 'pointer',
+                                                        display: 'inline-flex', alignItems: 'center', gap: '4px',
+                                                        fontSize: '0.75rem', fontWeight: 600, fontFamily: "'Outfit', sans-serif"
+                                                    }}>
+                                                        <CheckCircle size={14} /> Deliver
+                                                    </button>
+                                                </>
+                                            )}
+                                            {dn.status === 'Delivered' && (
+                                                <button onClick={() => {
+                                                    localStorage.setItem('preSelectedDN', dn._id);
+                                                    showToast?.('Delivery note selected. Go to Invoice Engine to create invoice.', 'success');
+                                                }} style={{
+                                                    padding: '6px 10px', borderRadius: '8px', border: 'none',
+                                                    background: '#e0f2fe', color: '#0369a1', cursor: 'pointer',
+                                                    display: 'inline-flex', alignItems: 'center', gap: '4px',
+                                                    fontSize: '0.75rem', fontWeight: 600, fontFamily: "'Outfit', sans-serif"
+                                                }}>
+                                                    <FileText size={14} /> Invoice
+                                                </button>
+                                            )}
+                                            {isAdmin && dn.status === 'Draft' && (
                                                 <button onClick={() => { setDnToDelete(dn); setDeleteModalOpen(true); }} style={{
                                                     padding: '6px 10px', borderRadius: '8px', border: 'none',
                                                     background: '#fef2f2', color: '#ef4444', cursor: 'pointer',
@@ -502,10 +591,10 @@ const DeliveryNoteManagement = ({ currentUser, showToast }) => {
                             <div style={modalHeader}>
                                 <div>
                                     <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0f172a', fontFamily: "'Outfit', sans-serif" }}>
-                                        {creationMode === 'automatic' ? 'New Delivery Note (Automatic)' : 'New Delivery Note (Manual)'}
+                                        {editingDN ? 'Edit Delivery Note' : 'New Delivery Note'}
                                     </div>
                                     <div style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 600, fontFamily: "'Outfit', sans-serif", marginTop: 2 }}>
-                                        {creationMode === 'automatic' ? 'Select client and items from catalog' : 'Enter client and item details manually'}
+                                        {editingDN ? `Editing ${editingDN.deliveryNoteNumber}` : 'Select client and items from catalog'}
                                     </div>
                                 </div>
                                 <button onClick={() => setIsCreateModalOpen(false)} style={{
@@ -524,48 +613,36 @@ const DeliveryNoteManagement = ({ currentUser, showToast }) => {
                                         <Truck size={16} style={{ marginRight: 6, verticalAlign: 'middle' }} />
                                         Client Information
                                     </div>
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
                                         <div>
                                             <label style={labelStyle}>Client</label>
-                                            {creationMode === 'automatic' ? (
-                                                <select value={form.clientRef} onChange={e => handleClientChange(e.target.value)} style={inputStyle}>
-                                                    <option value="">Select a client...</option>
-                                                    {clients.map(c => (
-                                                        <option key={c._id} value={c._id}>
-                                                            {c.clientType === 'Organization' ? c.firstName : `${c.firstName || ''} ${c.lastName || ''}`.trim()}
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                            ) : (
-                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                                    <input placeholder="Organization" value={form.manualClientDetails.organization}
-                                                        onChange={e => setForm(prev => ({ ...prev, manualClientDetails: { ...prev.manualClientDetails, organization: e.target.value } }))}
-                                                        style={inputStyle} />
-                                                    <input placeholder="Contact Name" value={form.manualClientDetails.name}
-                                                        onChange={e => setForm(prev => ({ ...prev, manualClientDetails: { ...prev.manualClientDetails, name: e.target.value } }))}
-                                                        style={inputStyle} />
-                                                    <input placeholder="Address" value={form.manualClientDetails.address}
-                                                        onChange={e => setForm(prev => ({ ...prev, manualClientDetails: { ...prev.manualClientDetails, address: e.target.value } }))}
-                                                        style={inputStyle} />
-                                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                                                        <input placeholder="Telephone" value={form.manualClientDetails.telephoneNumber}
-                                                            onChange={e => setForm(prev => ({ ...prev, manualClientDetails: { ...prev.manualClientDetails, telephoneNumber: e.target.value } }))}
-                                                            style={inputStyle} />
-                                                        <input placeholder="Email" value={form.manualClientDetails.emailAddress}
-                                                            onChange={e => setForm(prev => ({ ...prev, manualClientDetails: { ...prev.manualClientDetails, emailAddress: e.target.value } }))}
-                                                            style={inputStyle} />
-                                                    </div>
-                                                </div>
-                                            )}
+                                            <select value={form.clientRef} onChange={e => handleClientChange(e.target.value)} style={inputStyle}>
+                                                <option value="">Select a client...</option>
+                                                {clients.map(c => (
+                                                    <option key={c._id} value={c._id}>
+                                                        {c.clientType === 'Organization' ? c.firstName : `${c.firstName || ''} ${c.lastName || ''}`.trim()}
+                                                    </option>
+                                                ))}
+                                            </select>
                                         </div>
                                         <div>
                                             <label style={labelStyle}>Project</label>
                                             <select value={form.projectId} onChange={e => setForm(prev => ({ ...prev, projectId: e.target.value }))} style={inputStyle}>
                                                 <option value="">No project</option>
-                                                {projects.map(p => (
+                                                {projects.filter(p => !form.clientRef || p.client === form.clientRef || (p.client?._id === form.clientRef)).map(p => (
                                                     <option key={p._id} value={p._id}>{p.name || p.projectId}</option>
                                                 ))}
                                             </select>
+                                        </div>
+                                        <div>
+                                            <label style={labelStyle}>Customer PO Ref</label>
+                                            <input
+                                                type="text"
+                                                value={form.customerPORef}
+                                                onChange={e => setForm(prev => ({ ...prev, customerPORef: e.target.value }))}
+                                                placeholder="e.g. PO-2024-001"
+                                                style={inputStyle}
+                                            />
                                         </div>
                                     </div>
                                 </div>
@@ -595,6 +672,12 @@ const DeliveryNoteManagement = ({ currentUser, showToast }) => {
                                                 </select>
                                             </div>
                                         )}
+                                        <div>
+                                            <label style={labelStyle}>Delivery Date</label>
+                                            <input type="date" value={form.deliveryDate}
+                                                onChange={e => setForm(prev => ({ ...prev, deliveryDate: e.target.value }))}
+                                                style={inputStyle} />
+                                        </div>
                                         <div style={{ gridColumn: form.deliveryType === 'Store' ? '1 / -1' : undefined }}>
                                             <label style={labelStyle}>Delivery Address</label>
                                             <textarea
@@ -635,26 +718,21 @@ const DeliveryNoteManagement = ({ currentUser, showToast }) => {
                                                 <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr auto auto', gap: '10px', alignItems: 'end' }}>
                                                     <div>
                                                         <label style={labelStyle}>Product</label>
-                                                        {creationMode === 'automatic' ? (
-                                                            <select value={item.productRef} onChange={e => updateItem(i, 'productRef', e.target.value)} style={inputStyle}>
-                                                                <option value="">Select product...</option>
-                                                                {products.map(p => (
-                                                                    <option key={p._id} value={p._id}>{p.name} (Qty: {p.quantity})</option>
-                                                                ))}
-                                                            </select>
-                                                        ) : (
-                                                            <input value={item.manualName} onChange={e => updateItem(i, 'manualName', e.target.value)}
-                                                                placeholder="Product name" style={inputStyle} />
-                                                        )}
+                                                        <select value={item.productRef} onChange={e => updateItem(i, 'productRef', e.target.value)} style={inputStyle}>
+                                                            <option value="">Select product...</option>
+                                                            {products.map(p => (
+                                                                <option key={p._id} value={p._id}>{p.name} (Qty: {p.quantity})</option>
+                                                            ))}
+                                                        </select>
                                                     </div>
+                                    <div>
+                                        <label style={labelStyle}>Qty</label>
+                                        <input type="number" min="1" value={item.quantity}
+                                            onChange={e => updateItem(i, 'quantity', parseInt(e.target.value) || 1)}
+                                            style={{ ...inputStyle, background: '#fff' }} />
+                                    </div>
                                                     <div>
-                                                        <label style={labelStyle}>Qty</label>
-                                                        <input type="number" min="1" value={item.quantity}
-                                                            onChange={e => updateItem(i, 'quantity', parseInt(e.target.value) || 1)}
-                                                            style={inputStyle} />
-                                                    </div>
-                                                    <div>
-                                                        <label style={labelStyle}>Serials ({item.serialNumbers?.length || 0})</label>
+                                                        <label style={labelStyle}>Serials</label>
                                                         <button onClick={() => openSerialModal(i)} style={{
                                                             ...inputStyle, cursor: 'pointer', background: '#f1f5f9',
                                                             border: '1.5px solid #e2e8f0', display: 'flex', alignItems: 'center',
@@ -728,7 +806,7 @@ const DeliveryNoteManagement = ({ currentUser, showToast }) => {
                                     background: '#8b5cf6', color: '#fff', fontWeight: 700, fontSize: '0.85rem',
                                     cursor: 'pointer', fontFamily: "'Outfit', sans-serif", display: 'flex', alignItems: 'center', gap: '6px'
                                 }}>
-                                    <FileText size={16} /> Create Delivery Note
+                                    <FileText size={16} /> {editingDN ? 'Save Changes' : 'Create Delivery Note'}
                                 </button>
                             </div>
                         </motion.div>
@@ -759,7 +837,7 @@ const DeliveryNoteManagement = ({ currentUser, showToast }) => {
                                         Select Serial Numbers
                                     </div>
                                     <div style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 600, fontFamily: "'Outfit', sans-serif", marginTop: 2 }}>
-                                        {creationMode === 'automatic' ? 'Choose from available stock' : 'Enter serial numbers manually'}
+                                        Choose from available stock
                                     </div>
                                 </div>
                                 <button onClick={() => setSerialModalOpen(false)} style={{
@@ -772,27 +850,25 @@ const DeliveryNoteManagement = ({ currentUser, showToast }) => {
                             </div>
 
                             <div style={modalBody}>
-                                {creationMode === 'manual' && (
-                                    <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
-                                        <input
-                                            type="text"
-                                            placeholder="Type or scan serial number..."
-                                            value={manualSerialInput}
-                                            onChange={e => setManualSerialInput(e.target.value)}
-                                            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addManualSerial(); } }}
-                                            style={inputStyle}
-                                        />
-                                        <button onClick={addManualSerial} style={{
-                                            padding: '10px 16px', borderRadius: '10px', border: 'none',
-                                            background: '#8b5cf6', color: '#fff', fontWeight: 700, fontSize: '0.8rem',
-                                            cursor: 'pointer', fontFamily: "'Outfit', sans-serif", whiteSpace: 'nowrap'
-                                        }}>
-                                            Add
-                                        </button>
-                                    </div>
-                                )}
+                                <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+                                    <input
+                                        type="text"
+                                        placeholder="Type or scan serial number..."
+                                        value={manualSerialInput}
+                                        onChange={e => setManualSerialInput(e.target.value)}
+                                        onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addManualSerial(); } }}
+                                        style={inputStyle}
+                                    />
+                                    <button onClick={addManualSerial} style={{
+                                        padding: '10px 16px', borderRadius: '10px', border: 'none',
+                                        background: '#8b5cf6', color: '#fff', fontWeight: 700, fontSize: '0.8rem',
+                                        cursor: 'pointer', fontFamily: "'Outfit', sans-serif", whiteSpace: 'nowrap'
+                                    }}>
+                                        Add
+                                    </button>
+                                </div>
 
-                                {creationMode === 'automatic' && availableSerials.length > 0 ? (
+                                {availableSerials.length > 0 ? (
                                     <div>
                                         <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#64748b', marginBottom: '10px', fontFamily: "'Outfit', sans-serif" }}>
                                             {availableSerials.length} serial(s) available
@@ -818,11 +894,11 @@ const DeliveryNoteManagement = ({ currentUser, showToast }) => {
                                             })}
                                         </div>
                                     </div>
-                                ) : creationMode === 'automatic' ? (
+                                ) : (
                                     <div style={{ padding: '20px', textAlign: 'center', color: '#94a3b8', fontSize: '0.85rem', fontFamily: "'Outfit', sans-serif", fontWeight: 600 }}>
                                         No serials available for this product in stock.
                                     </div>
-                                ) : null}
+                                )}
 
                                 {/* Selected serials display */}
                                 {serialItemIndex !== null && form.items[serialItemIndex]?.serialNumbers?.length > 0 && (
@@ -913,6 +989,114 @@ const DeliveryNoteManagement = ({ currentUser, showToast }) => {
                                 }}>
                                     Delete
                                 </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* History Modal */}
+            <AnimatePresence>
+                {historyDN && (
+                    <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.5)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: '2rem 1rem' }}>
+                        <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} style={{ background: '#fff', borderRadius: '24px', padding: '2rem', width: '100%', maxWidth: 600, boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', maxHeight: '80vh', overflowY: 'auto' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                                <div>
+                                    <h2 style={{ margin: 0, fontWeight: 900, fontSize: '1.3rem' }}>Version History</h2>
+                                    <p style={{ margin: '0.25rem 0 0', fontSize: '0.8rem', color: '#64748b' }}>{historyDN.deliveryNoteNumber}</p>
+                                </div>
+                                <motion.button whileTap={{ scale: 0.9 }} onClick={() => setHistoryDN(null)} style={{ background: '#f1f5f9', border: 'none', borderRadius: '50%', width: 36, height: 36, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={20} /></motion.button>
+                            </div>
+                            <div>
+                                {(historyDN.history && historyDN.history.length > 0) ? (
+                                    historyDN.history.map((entry, i) => (
+                                        <div key={i} style={{
+                                            display: 'flex', gap: '1rem', padding: '1rem 0',
+                                            borderBottom: i < historyDN.history.length - 1 ? '1px solid #f1f5f9' : 'none'
+                                        }}>
+                                            <div style={{
+                                                width: 36, height: 36, borderRadius: '50%',
+                                                background: entry.action === 'Created' ? '#dbeafe' : entry.action === 'Delivered' ? '#dcfce7' : '#fef3c7',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+                                            }}>
+                                                <Clock size={16} color={entry.action === 'Created' ? '#2563eb' : entry.action === 'Delivered' ? '#16a34a' : '#d97706'} />
+                                            </div>
+                                            <div style={{ flex: 1 }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                                                    <strong style={{ fontSize: '0.9rem', color: '#0f172a' }}>{entry.action}</strong>
+                                                    <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>{new Date(entry.editedAt).toLocaleString('en-GB')}</span>
+                                                </div>
+                                                <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '4px' }}>{entry.changes}</div>
+                                                <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '2px' }}>
+                                                    by {entry.editedBy?.firstName || 'Unknown'} {entry.editedBy?.lastName || ''}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <div style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8' }}>No history recorded for this delivery note.</div>
+                                )}
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* View Modal — renders same format as print */}
+            <AnimatePresence>
+                {viewingDN && businessData && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        style={modalOverlay}
+                        onClick={() => setViewingDN(null)}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.95, opacity: 0, y: 12 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
+                            exit={{ scale: 0.95, opacity: 0, y: 12 }}
+                            style={{ ...modalContent, maxWidth: '850px' }}
+                            onClick={e => e.stopPropagation()}
+                        >
+                            <div style={modalHeader}>
+                                <div>
+                                    <div style={{ fontSize: '1rem', fontWeight: 800, color: '#0f172a', fontFamily: "'Outfit', sans-serif" }}>
+                                        {viewingDN.deliveryNoteNumber}
+                                    </div>
+                                    <div style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 600, fontFamily: "'Outfit', sans-serif", marginTop: 2 }}>
+                                        {viewingDN.status === 'Delivered' ? '✓ Delivered' : '○ Draft'}
+                                    </div>
+                                </div>
+                                <div style={{ display: 'flex', gap: '8px' }}>
+                                    <button onClick={() => { const p = viewingDN; setViewDeliveryNote(p); setTimeout(() => { handlePrint(); }, 100); }} style={{
+                                        padding: '8px', borderRadius: '10px', border: 'none',
+                                        background: '#f1f5f9', color: '#475569', cursor: 'pointer',
+                                        display: 'flex', alignItems: 'center'
+                                    }}>
+                                        <Printer size={18} />
+                                    </button>
+                                    <button onClick={() => setViewingDN(null)} style={{
+                                        padding: '8px', borderRadius: '10px', border: 'none',
+                                        background: '#f1f5f9', color: '#64748b', cursor: 'pointer',
+                                        display: 'flex', alignItems: 'center'
+                                    }}>
+                                        <X size={18} />
+                                    </button>
+                                </div>
+                            </div>
+                            <div style={{
+                                padding: '20px 24px', overflow: 'auto', flex: 1,
+                                background: '#f8f9fa', display: 'flex', justifyContent: 'center'
+                            }}>
+                                <div style={{
+                                    background: '#fff', width: '210mm', padding: '12mm 14mm',
+                                    boxShadow: '0 2px 20px rgba(0,0,0,0.08)', borderRadius: '4px',
+                                    boxSizing: 'border-box', fontSize: '12px', lineHeight: '1.6',
+                                    fontFamily: "'Arial', 'Helvetica Neue', sans-serif", color: '#0f172a'
+                                }}>
+                                    <DeliveryNoteTemplate deliveryNote={viewingDN} business={businessData} />
+                                </div>
                             </div>
                         </motion.div>
                     </motion.div>

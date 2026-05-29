@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FileText, Plus, X, Search, RefreshCw, Printer, AlertTriangle, ShieldAlert, CheckCircle, Users, Briefcase, Barcode, Edit3, AlertCircle, Trash2, Clock } from 'lucide-react';
+import { FileText, Plus, X, Search, RefreshCw, Printer, AlertTriangle, ShieldAlert, CheckCircle, Users, Briefcase, Barcode, Edit3, AlertCircle, Trash2, Clock, Truck } from 'lucide-react';
 import api from '../../api';
 import PriceInput from '../../utils/PriceInput';
 import InvoiceTemplate from './InvoiceTemplate';
@@ -14,12 +14,15 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
     const [stockEntries, setStockEntries] = useState([]);
     const [businessData, setBusinessData] = useState(null);
     const [projects, setProjects] = useState([]);
+    const [deliveryNotes, setDeliveryNotes] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [activeTab, setActiveTab] = useState('Active');
 
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [creationMode, setCreationMode] = useState('automatic');
+    const [selectedDeliveryNote, setSelectedDeliveryNote] = useState('');
+    const [invoiceSource, setInvoiceSource] = useState('blank'); // 'blank' or 'delivery_note'
     const [isSerialModalOpen, setIsSerialModalOpen] = useState(false);
     const [activeItemIndex, setActiveItemIndex] = useState(null);
 
@@ -50,6 +53,7 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
         paymentMethod: 'cash',
         creditPeriod: { duration: 0, unit: 'days' },
         deliveryAddress: '',
+        customerPO: '',
         manualClientDetails: { title: 'Mr', organization: '', name: '', address: '', telephoneNumber: '', emailAddress: '' },
         items: [],
         subTotal: 0,
@@ -59,7 +63,8 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
         finalTotal: 0,
         currency: 'primary',
         status: 'Unpaid',
-        invoiceDate: new Date().toISOString().split('T')[0]
+        invoiceDate: new Date().toISOString().split('T')[0],
+        deliveryNoteRef: null
     };
     const [form, setForm] = useState(initialForm);
     const [applyDiscountMode, setApplyDiscountMode] = useState(false);
@@ -80,17 +85,19 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
     const fetchData = async () => {
         setLoading(true);
         try {
-            const [invRes, cRes, pRes, bRes, prRes] = await Promise.all([
+            const [invRes, cRes, pRes, bRes, prRes, dnRes] = await Promise.all([
                 api.get('/invoices'),
                 api.get('/clients'),
                 api.get('/products'),
                 api.get('/business'),
-                api.get('/projects')
+                api.get('/projects'),
+                api.get('/delivery-notes')
             ]);
             setInvoices(invRes.data.data);
             setClients(cRes.data.data);
             setProducts(pRes.data.data);
             setProjects(prRes.data.data);
+            setDeliveryNotes(dnRes.data.data);
             if (bRes.data.data.details) setBusinessData(bRes.data.data.details);
         } catch (error) {
             showToast?.('Error fetching data', 'error');
@@ -164,12 +171,19 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
         return { ...currentForm, discountTotal, appliedTaxes: updatedTaxes, taxTotal, finalTotal };
     };
 
-    const openCreation = (mode) => {
+    const openCreation = (mode, source = 'blank', dnId = null) => {
         if (mode === 'manual' && !isAdmin) {
             showToast?.('Manual invoice creation is restricted to admin users', 'error');
             return;
         }
         setCreationMode(mode);
+        setInvoiceSource(source);
+        setSelectedDeliveryNote(dnId || '');
+
+        const preSelectedDN = localStorage.getItem('preSelectedDN');
+        const dnToLoad = dnId || preSelectedDN;
+        if (preSelectedDN) localStorage.removeItem('preSelectedDN');
+
         const initialTaxes = [];
         if (businessData?.isVatRegistered) {
             initialTaxes.push({ name: 'VAT', type: 'percentage', value: businessData.vatPercentage, amount: 0 });
@@ -189,6 +203,10 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
         setSelectedSerialsPerItem({});
         setManualSerialInput('');
         setIsCreateModalOpen(true);
+
+        if (source === 'delivery_note' && dnToLoad) {
+            setTimeout(() => handleDeliveryNoteSelect(dnToLoad), 100);
+        }
     };
 
     const handleAddItem = () => {
@@ -266,6 +284,51 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
         setForm(prev => calculateTotals({ ...prev, hasTax: checked }));
     };
 
+    const handleDeliveryNoteSelect = async (dnId) => {
+        setSelectedDeliveryNote(dnId);
+        if (!dnId) return;
+        try {
+            const res = await api.get(`/delivery-notes/${dnId}/for-invoice`);
+            const dnData = res.data.data;
+            const initialTaxes = [];
+            if (businessData?.isVatRegistered) {
+                initialTaxes.push({ name: 'VAT', type: 'percentage', value: businessData.vatPercentage, amount: 0 });
+            }
+            if (businessData?.otherTaxes?.length > 0) {
+                businessData.otherTaxes.forEach(t => {
+                    initialTaxes.push({ name: t.name, type: t.type, value: t.value, amount: 0 });
+                });
+            }
+            const subTotal = dnData.items.reduce((sum, item) => sum + item.lineTotal, 0);
+            setForm(prev => ({
+                ...prev,
+                clientRef: dnData.clientRef || '',
+                manualClientDetails: dnData.manualClientDetails || prev.manualClientDetails,
+                projectId: dnData.projectId || '',
+                deliveryAddress: dnData.deliveryAddress || '',
+                customerPO: dnData.customerPO || '',
+                items: dnData.items.map(item => ({
+                    productRef: item.productRef || '',
+                    manualName: item.manualName || '',
+                    quantity: item.quantity,
+                    unitPrice: item.unitPrice || 0,
+                    lineTotal: item.lineTotal || 0,
+                    serialNumbers: item.serialNumbers || []
+                })),
+                subTotal,
+                hasTax: initialTaxes.length > 0,
+                appliedTaxes: initialTaxes,
+                taxTotal: 0,
+                discountTotal: 0,
+                finalTotal: subTotal,
+                deliveryNoteRef: dnData.deliveryNoteId
+            }));
+            showToast?.(`Loaded from ${dnData.deliveryNoteNumber}`);
+        } catch (error) {
+            showToast?.('Failed to load delivery note', 'error');
+        }
+    };
+
     const handleClientSelect = (clientId) => {
         const selected = clients.find(c => c._id === clientId);
         setForm({
@@ -339,6 +402,7 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
             paymentMethod: inv.paymentMethod || 'cash',
             creditPeriod: inv.creditPeriod || { duration: 0, unit: 'days' },
             deliveryAddress: inv.deliveryAddress || '',
+            customerPO: inv.customerPO || '',
             manualClientDetails: inv.manualClientDetails || { title: 'Mr', organization: '', name: '', address: '', telephoneNumber: '', emailAddress: '' },
             items: inv.items.map(it => ({
                 productRef: it.productRef?._id || it.productRef || '',
@@ -479,6 +543,12 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
                             {isAdmin && (
                                 <motion.button whileTap={{ scale: 0.95 }} onClick={() => openCreation('manual')} className="im-btn im-btn-outline"><Plus size={18} /> Manual</motion.button>
                             )}
+                            <motion.button whileTap={{ scale: 0.95 }} onClick={() => openCreation('automatic', 'delivery_note')} style={{
+                                padding: '10px 18px', borderRadius: '12px', border: '1.5px solid #bbf7d0',
+                                background: '#f0fdf4', color: '#166534', fontWeight: 700, fontSize: '0.85rem',
+                                cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '8px',
+                                fontFamily: "'Outfit', sans-serif"
+                            }}><Truck size={18} /> From Delivery Note</motion.button>
                         </div>
                     </div>
                     <div className="im-table-wrap modern-table-card">
@@ -585,6 +655,31 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
                                         />
                                     </div>
                                 )}
+                                {/* DELIVERY NOTE SELECTION */}
+                                {invoiceSource === 'delivery_note' && (
+                                    <div style={{ marginBottom: '1.5rem', padding: '1.5rem', borderRadius: '16px', background: '#f0fdf4', border: '1px solid #bbf7d0' }}>
+                                        <h4 style={{ margin: '0 0 1rem 0', color: '#166534', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <Truck size={18} /> Create Invoice from Delivery Note
+                                        </h4>
+                                        <div>
+                                            <label style={labelStyle}>Select Delivery Note</label>
+                                            <select value={selectedDeliveryNote} onChange={e => handleDeliveryNoteSelect(e.target.value)} style={{ ...inputStyle, background: '#fff' }}>
+                                                <option value="">Choose a delivery note...</option>
+                                                {deliveryNotes.map(dn => (
+                                                    <option key={dn._id} value={dn._id}>
+                                                        {dn.deliveryNoteNumber} [{dn.status}] — {dn.clientRef ? (dn.clientRef.clientType === 'Organization' ? dn.clientRef.firstName : `${dn.clientRef.firstName || ''} ${dn.clientRef.lastName || ''}`.trim()) : (dn.manualClientDetails?.organization || dn.manualClientDetails?.name || 'N/A')} ({new Date(dn.createdAt).toLocaleDateString('en-GB')})
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            {form.deliveryNoteRef && (
+                                                <div style={{ marginTop: '8px', fontSize: '0.8rem', color: '#166534', fontWeight: 600 }}>
+                                                    ✓ Delivery note loaded — client, project, items, and serials have been auto-populated
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+
                                 {/* CLIENT & PROJECT INFO */}
                                 <div style={{ marginBottom: '1.5rem', padding: '1.5rem', borderRadius: '16px', background: '#f8fafc', border: '1px solid #e2e8f0' }}>
                                     <h4 style={{ margin: '0 0 1rem 0', color: '#0f172a' }}>1. Client & Project</h4>
@@ -592,7 +687,9 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
                                         <div>
                                             <label style={labelStyle}>Select Client</label>
                                             <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                                <select value={form.clientRef} onChange={e => handleClientSelect(e.target.value)} style={{ ...inputStyle, background: '#fff', flex: 1 }}>
+                                                <select value={form.clientRef} onChange={e => handleClientSelect(e.target.value)}
+                                                    disabled={!!(invoiceSource === 'delivery_note' && form.deliveryNoteRef)}
+                                                    style={{ ...inputStyle, background: (invoiceSource === 'delivery_note' && form.deliveryNoteRef) ? '#f1f5f9' : '#fff', flex: 1, cursor: (invoiceSource === 'delivery_note' && form.deliveryNoteRef) ? 'not-allowed' : 'pointer' }}>
                                                     <option value="" disabled>Select client...</option>
                                                     {clients.map(c => <option key={c._id} value={c._id}>{c.clientType === 'Organization' ? c.firstName : `${c.firstName} ${c.lastName || ''}`} ({c.clientId})</option>)}
                                                 </select>
@@ -602,7 +699,9 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
                                         <div>
                                             <label style={labelStyle}>Project <span style={{ color: '#ef4444' }}>*</span> <span style={{ color: '#94a3b8', fontWeight: 600, textTransform: 'none', fontSize: '0.7rem' }}>(Required)</span></label>
                                             <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                                <select value={form.projectId} onChange={e => setForm({ ...form, projectId: e.target.value })} style={{ ...inputStyle, background: '#fff', flex: 1, borderColor: !form.projectId ? '#fca5a5' : '#e2e8f0' }}>
+                                                <select value={form.projectId} onChange={e => setForm({ ...form, projectId: e.target.value })}
+                                                    disabled={!!(invoiceSource === 'delivery_note' && form.deliveryNoteRef)}
+                                                    style={{ ...inputStyle, background: (invoiceSource === 'delivery_note' && form.deliveryNoteRef) ? '#f1f5f9' : '#fff', flex: 1, borderColor: !form.projectId ? '#fca5a5' : '#e2e8f0', cursor: (invoiceSource === 'delivery_note' && form.deliveryNoteRef) ? 'not-allowed' : 'pointer' }}>
                                                     <option value="" disabled>Select project...</option>
                                                     {projects.filter(p => !form.clientRef || p.client === form.clientRef || (p.client?._id === form.clientRef)).map(p => <option key={p._id} value={p._id}>{p.name} ({p.projectId})</option>)}
                                                 </select>
@@ -619,10 +718,12 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
                                         <div>
                                             <label style={labelStyle}>Payment Method</label>
-                                            <select value={form.paymentMethod} onChange={e => {
-                                                const val = e.target.value;
-                                                setForm({ ...form, paymentMethod: val, status: val === 'cash' ? 'Paid' : form.status });
-                                            }} style={{ ...inputStyle, background: '#fff' }}>
+                                            <select value={form.paymentMethod}
+                                                onChange={e => {
+                                                    const val = e.target.value;
+                                                    setForm({ ...form, paymentMethod: val, status: val === 'cash' ? 'Paid' : form.status });
+                                                }}
+                                                style={{ ...inputStyle, background: '#fff' }}>
                                                 <option value="cash">Cash</option>
                                                 <option value="cheque">Cheque</option>
                                                 <option value="bank_transfer">Bank Transfer</option>
@@ -657,7 +758,18 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
                                     </div>
                                     <div style={{ marginTop: '1rem' }}>
                                         <label style={labelStyle}>Delivery Address</label>
-                                        <input value={form.deliveryAddress} onChange={e => setForm({ ...form, deliveryAddress: e.target.value })} placeholder="Auto-filled from client or enter manually" style={{ ...inputStyle, background: '#fff' }} />
+                                        <input value={form.deliveryAddress}
+                                            disabled={!!(invoiceSource === 'delivery_note' && form.deliveryNoteRef)}
+                                            onChange={e => setForm({ ...form, deliveryAddress: e.target.value })}
+                                            placeholder="Auto-filled from client or enter manually"
+                                            style={{ ...inputStyle, background: (invoiceSource === 'delivery_note' && form.deliveryNoteRef) ? '#f1f5f9' : '#fff', cursor: (invoiceSource === 'delivery_note' && form.deliveryNoteRef) ? 'not-allowed' : 'text' }} />
+                                    </div>
+                                    <div style={{ marginTop: '1rem' }}>
+                                        <label style={labelStyle}>Customer PO Reference</label>
+                                        <input value={form.customerPO}
+                                            onChange={e => setForm({ ...form, customerPO: e.target.value })}
+                                            placeholder="PO-12345"
+                                            style={{ ...inputStyle, background: '#fff' }} />
                                     </div>
                                 </div>
 
@@ -665,7 +777,9 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
                                 <div style={{ marginBottom: '1.5rem', padding: '1.5rem', borderRadius: '16px', background: '#f8fafc', border: '1px solid #e2e8f0' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                                         <h4 style={{ margin: 0, color: '#0f172a' }}>3. Products</h4>
-                                        <button type="button" onClick={handleAddItem} style={{ background: '#0f172a', color: '#fff', padding: '6px 12px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}><Plus size={14} /> Add Item</button>
+                                        <button type="button" onClick={handleAddItem}
+                                            disabled={!!(invoiceSource === 'delivery_note' && form.deliveryNoteRef)}
+                                            style={{ background: (invoiceSource === 'delivery_note' && form.deliveryNoteRef) ? '#e2e8f0' : '#0f172a', color: '#fff', padding: '6px 12px', borderRadius: '8px', border: 'none', cursor: (invoiceSource === 'delivery_note' && form.deliveryNoteRef) ? 'not-allowed' : 'pointer', fontWeight: 800, fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}><Plus size={14} /> Add Item</button>
                                     </div>
                                     <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                                         <thead>
@@ -682,32 +796,45 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
                                             {form.items.map((it, idx) => (
                                                 <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
                                                     <td style={{ padding: '0.75rem 0.5rem' }}>
-                                                        <select required value={it.productRef} onChange={e => updateItem(idx, 'productRef', e.target.value)} style={{ ...inputStyle, background: '#fff', padding: '0.6rem 1rem', fontSize: '0.85rem' }}>
+                                                        <select required value={it.productRef} onChange={e => updateItem(idx, 'productRef', e.target.value)}
+                                                            disabled={!!(invoiceSource === 'delivery_note' && form.deliveryNoteRef)}
+                                                            style={{ ...inputStyle, background: (invoiceSource === 'delivery_note' && form.deliveryNoteRef) ? '#f1f5f9' : '#fff', padding: '0.6rem 1rem', fontSize: '0.85rem', cursor: (invoiceSource === 'delivery_note' && form.deliveryNoteRef) ? 'not-allowed' : 'pointer' }}>
                                                             <option value="" disabled>Select Product...</option>
                                                             {products.map(p => <option key={p._id} value={p._id}>{p.name} [{p.productId}]</option>)}
                                                         </select>
                                                     </td>
                                                     <td style={{ padding: '0.75rem 0.5rem' }}>
-                                                        <input required type="number" min="1" value={it.quantity} onChange={e => {
-                                                            const newQty = parseInt(e.target.value) || 1;
-                                                            updateItem(idx, 'quantity', newQty);
-                                                            // Clear extra serials if qty reduced
-                                                            if (it.serialNumbers?.length > newQty) {
-                                                                updateItem(idx, 'serialNumbers', it.serialNumbers.slice(0, newQty));
-                                                            }
-                                                        }} style={{ ...inputStyle, background: '#fff', padding: '0.6rem 0.5rem', textAlign: 'center', fontSize: '0.85rem' }} />
+                                                        <input required type="number" min="1" value={it.quantity}
+                                                            disabled={!!(invoiceSource === 'delivery_note' && form.deliveryNoteRef)}
+                                                            onChange={e => {
+                                                                const newQty = parseInt(e.target.value) || 1;
+                                                                updateItem(idx, 'quantity', newQty);
+                                                                if (it.serialNumbers?.length > newQty) {
+                                                                    updateItem(idx, 'serialNumbers', it.serialNumbers.slice(0, newQty));
+                                                                }
+                                                            }}
+                                                            style={{ ...inputStyle, background: (invoiceSource === 'delivery_note' && form.deliveryNoteRef) ? '#f1f5f9' : '#fff', padding: '0.6rem 0.5rem', textAlign: 'center', fontSize: '0.85rem', cursor: (invoiceSource === 'delivery_note' && form.deliveryNoteRef) ? 'not-allowed' : 'text' }} />
                                                     </td>
                                                     <td style={{ padding: '0.75rem 0.5rem' }}>
                                                         <div style={{ position: 'relative' }}>
                                                             <span style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', fontSize: '0.75rem' }}>{businessData?.primaryCurrency?.symbol || 'Rs.'}</span>
-                                                            <PriceInput value={it.unitPrice} onChange={v => updateItem(idx, 'unitPrice', v)} disabled={creationMode === 'automatic'} style={{ ...inputStyle, background: creationMode === 'automatic' ? '#f8fafc' : '#fff', padding: '0.6rem 0.75rem 0.6rem 1.5rem', textAlign: 'right', fontSize: '0.85rem' }} required />
+                                                            <PriceInput value={it.unitPrice} onChange={v => updateItem(idx, 'unitPrice', v)} disabled={creationMode === 'automatic' && invoiceSource !== 'delivery_note'} style={{ ...inputStyle, background: (creationMode === 'automatic' && invoiceSource !== 'delivery_note') ? '#f8fafc' : '#fff', padding: '0.6rem 0.75rem 0.6px 1.5rem', textAlign: 'right', fontSize: '0.85rem' }} required />
                                                         </div>
                                                     </td>
                                                     <td style={{ padding: '0.75rem 0.5rem', textAlign: 'right', fontWeight: 800, color: '#0f172a', fontSize: '0.9rem' }}>
                                                         {it.lineTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                                                     </td>
                                                     <td style={{ padding: '0.75rem 0.5rem', textAlign: 'center' }}>
-                                                        {creationMode === 'automatic' && it.productRef && (
+                                                        {(invoiceSource === 'delivery_note' && form.deliveryNoteRef) ? (
+                                                            <span style={{
+                                                                display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
+                                                                background: '#f1f5f9', borderRadius: '8px', padding: '6px 12px',
+                                                                fontSize: '0.7rem', fontWeight: 800, color: '#475569'
+                                                            }}>
+                                                                <Barcode size={14} />
+                                                                {it.serialNumbers?.length || 0}
+                                                            </span>
+                                                        ) : (creationMode === 'automatic' && it.productRef && (
                                                             <motion.button
                                                                 type="button"
                                                                 whileHover={{ scale: 1.05 }}
@@ -730,7 +857,7 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
                                                                 <Barcode size={14} />
                                                                 {it.serialNumbers?.length || 0} / {it.quantity}
                                                             </motion.button>
-                                                        )}
+                                                        ))}
                                                         {creationMode === 'manual' && it.productRef && (
                                                             <motion.button
                                                                 type="button"
@@ -760,13 +887,17 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
                                                         )}
                                                     </td>
                                                     <td style={{ padding: '0.75rem 0.5rem', textAlign: 'right' }}>
-                                                        <motion.button whileTap={{ scale: 0.9 }} type="button" onClick={() => {
-                                                            setForm(prev => {
-                                                                const n = prev.items.filter((_, i) => i !== idx);
-                                                                const sub = n.reduce((acc, c) => acc + c.lineTotal, 0);
-                                                                return calculateTotals({ ...prev, items: n, subTotal: sub });
-                                                            });
-                                                        }} style={{ background: '#fee2e2', border: 'none', color: '#ef4444', cursor: 'pointer', width: 32, height: 32, borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={16} /></motion.button>
+                                                        {invoiceSource === 'delivery_note' && form.deliveryNoteRef ? (
+                                                            <div style={{ width: 32, height: 32 }}></div>
+                                                        ) : (
+                                                            <motion.button whileTap={{ scale: 0.9 }} type="button" onClick={() => {
+                                                                setForm(prev => {
+                                                                    const n = prev.items.filter((_, i) => i !== idx);
+                                                                    const sub = n.reduce((acc, c) => acc + c.lineTotal, 0);
+                                                                    return calculateTotals({ ...prev, items: n, subTotal: sub });
+                                                                });
+                                                            }} style={{ background: '#fee2e2', border: 'none', color: '#ef4444', cursor: 'pointer', width: 32, height: 32, borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={16} /></motion.button>
+                                                        )}
                                                     </td>
                                                 </tr>
                                             ))}
@@ -783,7 +914,9 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
                                 </div>
 
                                 {/* DISCOUNTS & TAXES */}
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '2rem' }}>
+                                <div style={{
+                                    display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '2rem'
+                                }}>
                                     <div style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                                             <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.9rem' }}>Discounts</div>
@@ -896,7 +1029,9 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
                                 {/* STATUS */}
                                 <div style={{ marginBottom: '1.5rem' }}>
                                     <label style={labelStyle}>Invoice Status</label>
-                                    <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })} disabled={form.paymentMethod === 'cash'} style={{ ...inputStyle, background: form.paymentMethod === 'cash' ? '#f1f5f9' : '#fff', maxWidth: '200px', opacity: form.paymentMethod === 'cash' ? 0.7 : 1 }}>
+                                    <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })}
+                                        disabled={form.paymentMethod === 'cash'}
+                                        style={{ ...inputStyle, background: form.paymentMethod === 'cash' ? '#f1f5f9' : '#fff', maxWidth: '200px', opacity: form.paymentMethod === 'cash' ? 0.7 : 1 }}>
                                         <option value="Unpaid">Unpaid</option>
                                         <option value="Pending">Pending</option>
                                         <option value="Paid">Paid</option>

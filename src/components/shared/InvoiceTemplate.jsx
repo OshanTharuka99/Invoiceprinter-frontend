@@ -141,6 +141,12 @@ const InvoiceTemplate = React.forwardRef(({ invoice, business }, ref) => {
                                 inv.paymentMethod === 'credit' && inv.creditPeriod?.duration > 0
                                     ? { label: 'Credit Terms', value: `${inv.creditPeriod.duration} ${inv.creditPeriod.unit}` }
                                     : null,
+                                inv.deliveryNoteRef
+                                    ? { label: 'Delivery Note', value: typeof inv.deliveryNoteRef === 'object' ? (inv.deliveryNoteRef.deliveryNoteNumber || 'DN') : inv.deliveryNoteRef }
+                                    : null,
+                                inv.customerPO
+                                    ? { label: 'PO Reference', value: inv.customerPO }
+                                    : null,
                                 { label: 'Status', value: inv.status || 'Unpaid' }
                             ].filter(Boolean).map(({ label, value, mono, large }) => (
                                 <tr key={label}>
@@ -305,11 +311,16 @@ const InvoiceTemplate = React.forwardRef(({ invoice, business }, ref) => {
             <div style={{ marginTop: '40px', display: 'flex', justifyContent: 'space-between', paddingTop: '20px' }}>
                 <div style={{ textAlign: 'center', width: '200px' }}>
                     <div style={{ borderBottom: `1px solid ${BORDER}`, marginBottom: '8px', height: '50px' }}></div>
-                    <div style={{ fontFamily: FONT, fontSize: '10px', fontWeight: '700', color: MID, textTransform: 'uppercase' }}>Authorized Signature</div>
+                    <div style={{ fontFamily: FONT, fontSize: '10px', fontWeight: '900', color: MID, textTransform: 'uppercase' }}>Authorized Signature</div>
                 </div>
                 <div style={{ textAlign: 'center', width: '200px' }}>
                     <div style={{ borderBottom: `1px solid ${BORDER}`, marginBottom: '8px', height: '50px' }}></div>
-                    <div style={{ fontFamily: FONT, fontSize: '10px', fontWeight: '700', color: MID, textTransform: 'uppercase' }}>Received By</div>
+                    <div style={{ fontFamily: FONT, fontSize: '10px', fontWeight: '900', color: MID, textTransform: 'uppercase' }}>Received By</div>
+                    <div style={{ marginTop: '24px', textAlign: 'left', fontSize: '11px', color: MID, fontFamily: FONT, lineHeight: '2' }}>
+                        <div>Name : .........................................</div>
+                        <div>ID : ...............................................</div>
+                        <div>Destination : ...............................</div>
+                    </div>
                 </div>
             </div>
 

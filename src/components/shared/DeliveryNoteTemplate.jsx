@@ -97,9 +97,12 @@ const DeliveryNoteTemplate = React.forwardRef(({ deliveryNote, business }, ref) 
                         <tbody>
                             {[
                                 { label: 'Delivery Note No', value: dn.deliveryNoteNumber, mono: true, large: true },
-                                { label: 'Date', value: fmt(dn.createdAt || new Date()) },
+                                { label: 'Date', value: fmt(dn.deliveryDate || dn.createdAt || new Date()) },
+                                { label: 'Created', value: fmt(dn.createdAt || new Date()) },
+                                dn.customerPORef ? { label: 'Customer PO Ref', value: dn.customerPORef, mono: true } : null,
+
                                 { label: 'Prepared By', value: `${dn.createdBy?.firstName || ''} ${dn.createdBy?.lastName || ''}`.trim() }
-                            ].map(({ label, value, mono, large }) => (
+                            ].filter(Boolean).map(({ label, value, mono, large }) => (
                                 <tr key={label}>
                                     <td style={{ fontFamily: FONT, padding: '3px 10px 3px 0', color: LIGHT, fontWeight: '600', fontSize: '11px', textAlign: 'right', whiteSpace: 'nowrap' }}>
                                         {label}:
@@ -221,6 +224,44 @@ const DeliveryNoteTemplate = React.forwardRef(({ deliveryNote, business }, ref) 
                     </div>
                 </div>
             )}
+
+            {/* BANK DETAILS */}
+            {(b.bankAccountNumber || b.bankName) && (
+                <div style={{ marginBottom: '18px' }}>
+                    <div style={{ ...sectionTitle, fontFamily: FONT }}>Bank Details for Transfer</div>
+                    <div style={{ fontFamily: FONT, fontSize: '12px', lineHeight: '1.85', color: DARK }}>
+                        {b.bankAccountNumber && (
+                            <div><span style={{ color: MID, fontWeight: '600', display: 'inline-block', width: '120px' }}>Account No:</span> <strong>{b.bankAccountNumber}</strong></div>
+                        )}
+                        {b.bankAccountName && (
+                            <div><span style={{ color: MID, fontWeight: '600', display: 'inline-block', width: '120px' }}>Account Name:</span> <strong>{b.bankAccountName}</strong></div>
+                        )}
+                        {b.bankName && (
+                            <div><span style={{ color: MID, fontWeight: '600', display: 'inline-block', width: '120px' }}>Bank:</span> <strong>{b.bankName}</strong></div>
+                        )}
+                        {b.branchName && (
+                            <div><span style={{ color: MID, fontWeight: '600', display: 'inline-block', width: '120px' }}>Branch:</span> <strong>{b.branchName}</strong></div>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            {/* AUTHORIZED SIGNATURES */}
+            <div style={{ marginTop: '40px', display: 'flex', justifyContent: 'space-between', paddingTop: '20px' }}>
+                <div style={{ textAlign: 'center', width: '200px' }}>
+                    <div style={{ borderBottom: `1px solid ${BORDER}`, marginBottom: '8px', height: '50px' }}></div>
+                    <div style={{ fontFamily: FONT, fontSize: '10px', fontWeight: '900', color: MID, textTransform: 'uppercase' }}>Authorized Signature</div>
+                </div>
+                <div style={{ textAlign: 'center', width: '200px' }}>
+                    <div style={{ borderBottom: `1px solid ${BORDER}`, marginBottom: '8px', height: '50px' }}></div>
+                    <div style={{ fontFamily: FONT, fontSize: '10px', fontWeight: '900', color: MID, textTransform: 'uppercase' }}>Customer Signature</div>
+                    <div style={{ marginTop: '24px', textAlign: 'left', fontSize: '11px', color: MID, fontFamily: FONT, lineHeight: '2' }}>
+                        <div>Name : .........................................</div>
+                        <div>ID : ...............................................</div>
+                        <div>Destination : ...............................</div>
+                    </div>
+                </div>
+            </div>
 
             {/* FOOTER */}
             <div className="delivery-print-footer" style={{ borderTop: `1px solid ${BORDER}`, paddingTop: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '40px', background: '#fff' }}>

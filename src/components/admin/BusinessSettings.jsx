@@ -29,6 +29,9 @@ const BusinessSettings = ({ currentUser, showToast }) => {
         invoiceTitleColor: '#0f172a', invoiceDividerColor: '#0f172a',
         purchaseOrderPrefix: 'PO', purchaseOrderDigits: 5,
         purchaseOrderTitleColor: '#0284c7', purchaseOrderDividerColor: '#0284c7',
+        deliveryNotePrefix: 'DN', deliveryNoteDigits: 5,
+        deliveryNoteTitleColor: '#8b5cf6', deliveryNoteDividerColor: '#8b5cf6',
+        deliveryNoteTerms: 'Standard delivery terms apply.', deliveryNoteNotes: '',
         quotationTerms: 'Standard terms and conditions apply.', quotationNotes: '',
         invoiceTerms: 'Standard invoice terms and conditions apply.', invoiceNotes: '',
         purchaseOrderTerms: 'Standard purchase order terms and conditions apply.', purchaseOrderNotes: '',
@@ -49,6 +52,12 @@ const BusinessSettings = ({ currentUser, showToast }) => {
                     invoiceNotes: details.invoiceNotes || '',
                     purchaseOrderTerms: details.purchaseOrderTerms || 'Standard purchase order terms and conditions apply.',
                     purchaseOrderNotes: details.purchaseOrderNotes || '',
+                    deliveryNotePrefix: details.deliveryNotePrefix || 'DN',
+                    deliveryNoteDigits: details.deliveryNoteDigits || 5,
+                    deliveryNoteTitleColor: details.deliveryNoteTitleColor || '#8b5cf6',
+                    deliveryNoteDividerColor: details.deliveryNoteDividerColor || '#8b5cf6',
+                    deliveryNoteTerms: details.deliveryNoteTerms || 'Standard delivery terms apply.',
+                    deliveryNoteNotes: details.deliveryNoteNotes || '',
                     stores: details.stores || []
                 });
             }
@@ -484,6 +493,36 @@ const BusinessSettings = ({ currentUser, showToast }) => {
                                         <div className="bs2-doc-right">
                                             <div><label>Invoice Terms & Conditions</label><textarea value={businessData.invoiceTerms} onChange={e => setBusinessData({ ...businessData, invoiceTerms: e.target.value })} disabled={!isEditMode} className={`${inpCls} bs2-ta`} placeholder="Enter standard terms..." /></div>
                                             <div><label>Default Invoice Notes</label><textarea value={businessData.invoiceNotes} onChange={e => setBusinessData({ ...businessData, invoiceNotes: e.target.value })} disabled={!isEditMode} className={`${inpCls} bs2-ta`} placeholder="Enter default notes..." /></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Delivery Note */}
+                            <div className="bs2-card">
+                                <div className="bs2-card-head">
+                                    <div className="bs2-card-head-left">
+                                        <span className="bs2-icon" style={{ background: '#8b5cf615', color: '#8b5cf6' }}><Receipt size={20} /></span>
+                                        <h3>Delivery Note Settings</h3>
+                                    </div>
+                                    <ColorPreview titleColor={businessData.deliveryNoteTitleColor} dividerColor={businessData.deliveryNoteDividerColor} title="DELIVERY NOTE" />
+                                    {isRoot && <><EditBtn /><SaveCancelBtns /></>}
+                                </div>
+                                <div className="bs2-card-body">
+                                    <div className="bs2-doc-grid">
+                                        <div className="bs2-doc-left">
+                                            <div className="bs2-grid bs2-grid-2">
+                                                <div><label>Prefix</label><input value={businessData.deliveryNotePrefix} onChange={e => setBusinessData({ ...businessData, deliveryNotePrefix: e.target.value })} disabled={!isEditMode} className={inpCls} placeholder="e.g. DN" /></div>
+                                                <div><label>Digits</label><input type="number" min="2" max="10" value={businessData.deliveryNoteDigits} onChange={e => setBusinessData({ ...businessData, deliveryNoteDigits: parseInt(e.target.value) || 5 })} disabled={!isEditMode} className={inpCls} placeholder="5" /></div>
+                                            </div>
+                                            <div className="bs2-grid bs2-grid-2" style={{ marginTop: '0.75rem' }}>
+                                                <ColorPicker label="Title Color" value={businessData.deliveryNoteTitleColor} onChange={v => setBusinessData({ ...businessData, deliveryNoteTitleColor: v })} disabled={!isEditMode} icon={Type} />
+                                                <ColorPicker label="Divider Color" value={businessData.deliveryNoteDividerColor} onChange={v => setBusinessData({ ...businessData, deliveryNoteDividerColor: v })} disabled={!isEditMode} icon={Minus} />
+                                            </div>
+                                        </div>
+                                        <div className="bs2-doc-right">
+                                            <div><label>Delivery Terms & Conditions</label><textarea value={businessData.deliveryNoteTerms} onChange={e => setBusinessData({ ...businessData, deliveryNoteTerms: e.target.value })} disabled={!isEditMode} className={`${inpCls} bs2-ta`} placeholder="Enter standard delivery terms..." /></div>
+                                            <div><label>Default Delivery Notes</label><textarea value={businessData.deliveryNoteNotes} onChange={e => setBusinessData({ ...businessData, deliveryNoteNotes: e.target.value })} disabled={!isEditMode} className={`${inpCls} bs2-ta`} placeholder="Enter default notes..." /></div>
                                         </div>
                                     </div>
                                 </div>

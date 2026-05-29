@@ -21,6 +21,7 @@ import QuotationManagement from '../components/shared/QuotationManagement';
 import InvoiceManagement from '../components/shared/InvoiceManagement';
 import WarrantyManagement from '../components/admin/WarrantyManagement';
 import PurchaseOrderManagement from '../components/shared/PurchaseOrderManagement';
+import DeliveryNoteManagement from '../components/shared/DeliveryNoteManagement';
 import UserSettings from '../components/shared/UserSettings';
 
 
@@ -59,6 +60,7 @@ const AdminPortal = () => {
         { id: 'invoices', label: 'Invoice Engine', icon: FileText },
         { id: 'warranty', label: 'Warranty Management', icon: ShieldCheck },
         { id: 'purchase_orders', label: 'Purchase Orders', icon: ScrollText },
+        { id: 'delivery_notes', label: 'Delivery Notes', icon: Truck },
     ];
 
 
@@ -138,6 +140,7 @@ const AdminPortal = () => {
             case 'invoices': return <InvoiceManagement currentUser={user} showToast={showToast} />;
             case 'warranty': return <WarrantyManagement currentUser={user} showToast={showToast} />;
             case 'purchase_orders': return <PurchaseOrderManagement currentUser={user} showToast={showToast} />;
+            case 'delivery_notes': return <DeliveryNoteManagement currentUser={user} showToast={showToast} />;
             case 'analytics': return <AdminDashboard currentUser={user} />;
             default: return <div className="admin-empty-module">Module under development...</div>;
         }

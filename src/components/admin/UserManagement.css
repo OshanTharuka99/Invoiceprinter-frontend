@@ -224,6 +224,20 @@
     font-weight: 800;
     font-size: 1rem;
     font-family: 'Outfit', sans-serif;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.user-avatar-img-wrap {
+    background: transparent !important;
+}
+
+.user-avatar-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 12px;
+    display: block;
 }
 
 .user-avatar-root {

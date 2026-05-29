@@ -4,7 +4,8 @@ import {
     Users, UserPlus, Trash2, ShieldCheck, Search, RefreshCw,
     Filter, Edit3, Crown, Shield, Activity, AlertCircle,
     CheckCircle, MinusCircle, User, LayoutDashboard, FileText,
-    TrendingUp, Mail, Phone, ChevronRight, Eye, EyeOff, ShieldAlert
+    TrendingUp, Mail, Phone, ChevronRight, Eye, EyeOff, ShieldAlert,
+    Lock, Check, X
 } from 'lucide-react';
 import api from '../../api';
 import './UserManagement.css';
@@ -30,6 +31,16 @@ const UserManagement = ({ currentUser, showToast }) => {
     });
 
     const [showAddPass, setShowAddPass] = useState(false);
+    const [editPassword, setEditPassword] = useState('');
+    const [showEditPass, setShowEditPass] = useState(false);
+
+    const editPolicy = {
+        length: editPassword.length >= 8,
+        uppercase: /[A-Z]/.test(editPassword),
+        number: /[0-9]/.test(editPassword),
+        special: /[!@#$%^&*(),.?":{}|<>]/.test(editPassword)
+    };
+    const isEditPolicyValid = Object.values(editPolicy).every(Boolean);
 
     const fetchUsers = async () => {
         setIsLoading(true);
@@ -58,11 +69,12 @@ const UserManagement = ({ currentUser, showToast }) => {
     const handleUpdateUser = async (e) => {
         e.preventDefault();
         try {
-            const upData = { ...editingUser };
+            const upData = { ...editingUser, password: editPassword || undefined };
             if (!upData.password) delete upData.password;
             const res = await api.patch(`/users/${editingUser._id}`, upData);
             setUsers(users.map(u => u._id === editingUser._id ? res.data.data.user : u));
             setEditingUser(null);
+            setEditPassword('');
             showToast('Identity updated');
         } catch (err) { showToast('Update rejected by server', 'error'); }
     };
@@ -179,8 +191,14 @@ const UserManagement = ({ currentUser, showToast }) => {
                                     <tr key={u._id} className="user-table-row">
                                         <td className="user-table-td">
                                             <div className="user-table-cell-user modern-table-cell-primary">
-                                                <div className={`user-avatar ${isTargetRoot ? 'user-avatar-root' : 'user-avatar-user'}`}>
-                                                    {isTargetRoot ? <Crown size={20} /> : (u.firstName?.[0].toUpperCase() + (u.lastName?.[0].toUpperCase() || ''))}
+                                                <div className={`user-avatar ${u.profilePicture ? 'user-avatar-img-wrap' : isTargetRoot ? 'user-avatar-root' : 'user-avatar-user'}`}>
+                                                    {u.profilePicture ? (
+                                                        <img src={u.profilePicture} alt="" className="user-avatar-img" />
+                                                    ) : isTargetRoot ? (
+                                                        <Crown size={20} />
+                                                    ) : (
+                                                        u.firstName?.[0].toUpperCase() + (u.lastName?.[0].toUpperCase() || '')
+                                                    )}
                                                 </div>
                                                 <div>
                                                     <div className="user-name">{u.firstName} {u.lastName}</div>
@@ -206,7 +224,7 @@ const UserManagement = ({ currentUser, showToast }) => {
                                         </td>
                                         <td className="user-table-actions">
                                             <div className="user-actions-wrapper modern-table-actions">
-                                                <button onClick={() => setEditingUser({ ...u, password: '' })} disabled={!canManage} className={`user-action-btn user-edit-btn modern-table-action edit ${!canManage ? 'disabled' : ''}`}><Edit3 size={14} /></button>
+                                                <button onClick={() => { setEditingUser({ ...u, password: '' }); setEditPassword(''); }} disabled={!canManage} className={`user-action-btn user-edit-btn modern-table-action edit ${!canManage ? 'disabled' : ''}`}><Edit3 size={14} /></button>
                                                 <button onClick={() => setUserToPromote(u)} disabled={!canManage} className={`user-action-btn user-promote-btn modern-table-action promote ${!canManage ? 'disabled' : ''}`}><ShieldCheck size={14} /></button>
                                                 <button onClick={() => { setUserToDelete(u); setTypedConfirmName(''); }} disabled={!canDelete} className={`user-action-btn user-delete-btn modern-table-action delete ${!canDelete ? 'disabled' : ''}`}><Trash2 size={14} /></button>
                                             </div>
@@ -364,9 +382,58 @@ const UserManagement = ({ currentUser, showToast }) => {
                                         className="user-input"
                                     />
                                 </div>
+                                {editingUser._id !== currentUser._id && (
+                                    <div className="user-form-full" style={{borderTop:'1px solid #e2e8f0',paddingTop:'1rem',marginTop:'0.5rem'}}>
+                                        <label className="user-label" style={{display:'flex',alignItems:'center',gap:'0.4rem'}}>
+                                            <Lock size={13} /> New Password <span style={{fontWeight:400,color:'#94a3b8',fontSize:'0.72rem'}}>(leave blank to keep current)</span>
+                                        </label>
+                                        <div style={{position:'relative'}}>
+                                            <input
+                                                type={showEditPass ? 'text' : 'password'}
+                                                value={editPassword}
+                                                onChange={e => setEditPassword(e.target.value)}
+                                                className="user-input"
+                                                placeholder="Set new password"
+                                                style={{paddingRight:'2.5rem'}}
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowEditPass(!showEditPass)}
+                                                style={{position:'absolute',right:'0.5rem',top:'50%',transform:'translateY(-50%)',background:'none',border:'none',cursor:'pointer',color:'#94a3b8',padding:'4px'}}
+                                            >
+                                                {showEditPass ? <EyeOff size={16} /> : <Eye size={16} />}
+                                            </button>
+                                        </div>
+                                        {editPassword.length > 0 && (
+                                            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0.3rem',marginTop:'0.5rem',background:'#f8fafc',padding:'0.5rem',borderRadius:'8px'}}>
+                                                {[
+                                                    {label:'8+ Chars', met: editPassword.length >= 8},
+                                                    {label:'Uppercase', met: /[A-Z]/.test(editPassword)},
+                                                    {label:'Number', met: /[0-9]/.test(editPassword)},
+                                                    {label:'Special (@#)', met: /[!@#$%^&*(),.?":{}|<>]/.test(editPassword)},
+                                                ].map((item,i)=>(
+                                                    <div key={i} style={{display:'flex',alignItems:'center',gap:'0.3rem',fontSize:'0.7rem',fontWeight:700,color:item.met?'#10b981':'#94a3b8'}}>
+                                                        {item.met ? <Check size={11} strokeWidth={4} /> : <X size={11} strokeWidth={4} />}
+                                                        {item.label}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                        {editPassword.length > 0 && isEditPolicyValid && (
+                                            <div style={{marginTop:'0.5rem',padding:'0.5rem',background:'#f0fdf4',borderRadius:'8px',fontSize:'0.72rem',fontWeight:600,color:'#15803d',display:'flex',alignItems:'center',gap:'0.3rem'}}>
+                                                <ShieldCheck size={12} /> User will be required to change this password on next login
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                                {editingUser._id === currentUser._id && (
+                                    <div className="user-form-full" style={{borderTop:'1px solid #e2e8f0',paddingTop:'1rem',marginTop:'0.5rem',textAlign:'center'}}>
+                                        <p style={{fontSize:'0.78rem',color:'#94a3b8',fontWeight:600}}>Use <strong>Settings → Change Password</strong> to update your own password.</p>
+                                    </div>
+                                )}
                                 <div className="user-form-actions">
                                     <button type="submit" className="user-submit-btn">Update Registry</button>
-                                    <button type="button" onClick={() => setEditingUser(null)} className="user-cancel-btn">Cancel</button>
+                                    <button type="button" onClick={() => { setEditingUser(null); setEditPassword(''); }} className="user-cancel-btn">Cancel</button>
                                 </div>
                             </form>
                         </div>

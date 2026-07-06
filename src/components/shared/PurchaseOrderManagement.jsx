@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { FileText, Plus, X, Search, RefreshCw, Printer, AlertTriangle, ShieldAlert, CheckCircle, Briefcase, Trash2, Users, Building, MapPin } from 'lucide-react';
 import api from '../../api';
 import PriceInput from '../../utils/PriceInput';
+import { calculateDocumentTotals } from '../../utils/calculateDocumentTotals';
 import PurchaseOrderTemplate from './PurchaseOrderTemplate';
 import './PurchaseOrderManagement.css';
 import '../../styles/modern-table.css';
@@ -127,23 +128,7 @@ const PurchaseOrderManagement = ({ currentUser, showToast }) => {
         }, 400);
     };
 
-    const calculateTotals = (currentForm) => {
-        const subTotal = currentForm.subTotal;
-        const discountTotal = (currentForm.appliedDiscounts || []).reduce((sum, d) => sum + (d.amount || 0), 0);
-        let taxableBase = subTotal - discountTotal;
-
-        let taxTotal = 0;
-        let updatedTaxes = [];
-        if (currentForm.hasTax && currentForm.appliedTaxes) {
-            updatedTaxes = currentForm.appliedTaxes.map(tax => {
-                const amount = tax.type === 'percentage' ? (taxableBase * tax.value) / 100 : tax.value;
-                taxTotal += amount;
-                return { ...tax, amount };
-            });
-        }
-        let finalTotal = taxableBase + taxTotal;
-        return { ...currentForm, discountTotal, appliedTaxes: updatedTaxes, taxTotal, finalTotal };
-    };
+    const calculateTotals = calculateDocumentTotals;
 
     const openCreation = (mode) => {
         setCreationMode(mode);
@@ -293,8 +278,9 @@ const PurchaseOrderManagement = ({ currentUser, showToast }) => {
                         </div>
                     </div>
 
-                    <div className="po-table-wrap modern-table-card">
-                        <table className="po-table modern-table">
+                    <div className="modern-table-card">
+                        <div className="modern-table-scroll">
+                        <table className="modern-table">
                             <thead>
                                 <tr>
                                     <th>PO Number</th>
@@ -338,7 +324,7 @@ const PurchaseOrderManagement = ({ currentUser, showToast }) => {
                                             </span>
                                         </td>
                                         <td>
-                                            <div className="po-table-actions modern-table-actions">
+                                            <div className="modern-table-actions">
                                                 <motion.button whileTap={{ scale: 0.95 }} onClick={() => setViewPO(po)} className="modern-table-action view"><Printer size={14} /></motion.button>
                                                 {isAdmin && (
                                                     <motion.button whileTap={{ scale: 0.95 }} onClick={() => { setPoToDelete(po); setDeleteModalOpen(true); }} className="modern-table-action delete"><Trash2 size={14} /></motion.button>
@@ -350,6 +336,7 @@ const PurchaseOrderManagement = ({ currentUser, showToast }) => {
                                 {filtered.length === 0 && <tr><td colSpan="7"><div className="po-empty">No purchase orders found.</div></td></tr>}
                             </tbody>
                         </table>
+                        </div>
                     </div>
                 </div>
             )}
@@ -433,7 +420,7 @@ const PurchaseOrderManagement = ({ currentUser, showToast }) => {
                                             <tr>
                                                 <th style={{ padding: '0.5rem', textAlign: 'left', fontSize: '0.75rem', color: '#64748b' }}>Item Description</th>
                                                 <th style={{ padding: '0.5rem', textAlign: 'center', fontSize: '0.75rem', color: '#64748b', width: '12%' }}>QTY</th>
-                                                <th style={{ padding: '0.5rem', textAlign: 'right', fontSize: '0.75rem', color: '#64748b', width: '18%' }}>Unit Price</th>
+                                                <th style={{ padding: '0.5rem', textAlign: 'right', fontSize: '0.75rem', color: '#64748b', width: '22%' }}>Unit Price</th>
                                                 <th style={{ padding: '0.5rem', textAlign: 'right', fontSize: '0.75rem', color: '#64748b', width: '18%' }}>Line Total</th>
                                                 <th></th>
                                             </tr>
@@ -455,7 +442,7 @@ const PurchaseOrderManagement = ({ currentUser, showToast }) => {
                                                         <input required type="number" min="1" value={it.quantity} onChange={e => updateItem(idx, 'quantity', parseInt(e.target.value) || 0)} style={{ ...inputStyle, background: '#fff', padding: '0.5rem', textAlign: 'center' }} />
                                                     </td>
                                                     <td style={{ padding: '0.5rem' }}>
-                                                        <PriceInput value={it.unitPrice} onChange={v => updateItem(idx, 'unitPrice', v)} style={{ ...inputStyle, background: '#fff', padding: '0.5rem', textAlign: 'right' }} required />
+                                                        <PriceInput value={it.unitPrice} onChange={v => updateItem(idx, 'unitPrice', v)} style={{ ...inputStyle, background: '#fff', padding: '0.5rem 0.75rem', textAlign: 'right', minWidth: '140px' }} required />
                                                     </td>
                                                     <td style={{ padding: '0.5rem', textAlign: 'right', fontWeight: 800, color: '#0f172a' }}>
                                                         {it.lineTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}

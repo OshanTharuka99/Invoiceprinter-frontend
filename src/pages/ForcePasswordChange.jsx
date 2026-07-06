@@ -13,7 +13,7 @@ import { useAuth } from '../context/AuthContext';
  * Compact layout to fit single viewport without scrolling.
  */
 const ForcePasswordChange = () => {
-    const { setUser } = useAuth();
+    const { updateUser } = useAuth();
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [showNewPassword, setShowNewPassword] = useState(false);
@@ -48,9 +48,7 @@ const ForcePasswordChange = () => {
             const res = await api.post('/users/change-password', { newPassword });
             
             if (res.data.data?.user) {
-                const updatedUser = res.data.data.user;
-                localStorage.setItem('user', JSON.stringify(updatedUser));
-                setUser(updatedUser);
+                updateUser(res.data.data.user);
             }
 
             showToast('Security updated. Redirecting...', 'success');

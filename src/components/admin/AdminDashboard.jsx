@@ -1,6 +1,8 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Users, Package, Briefcase, Truck, FileText, DollarSign, BarChart3, TrendingUp } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { motion } from 'framer-motion';
+import { Users, Package, Briefcase, Truck, FileText, DollarSign, BarChart3, Calendar, TrendingUp, CheckCircle2, Activity, PiggyBank } from 'lucide-react';
 import api from '../../api';
+import '../../styles/dashboard-shared.css';
 import './AdminDashboard.css';
 
 function AnimatedCounter({ value, duration = 800 }) {
@@ -44,6 +46,19 @@ const PERIODS = [
     { key: 'monthly', label: 'Monthly' },
     { key: 'yearly', label: 'Yearly' },
 ];
+
+const getGreeting = () => {
+    const h = new Date().getHours();
+    if (h < 12) return 'Good morning';
+    if (h < 17) return 'Good afternoon';
+    return 'Good evening';
+};
+
+const cardMotion = (i = 0) => ({
+    initial: { opacity: 0, y: 14 },
+    animate: { opacity: 1, y: 0 },
+    transition: { delay: i * 0.06, duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] },
+});
 
 const AdminDashboard = ({ currentUser }) => {
     const [loading, setLoading] = useState(true);
@@ -108,14 +123,19 @@ const AdminDashboard = ({ currentUser }) => {
 
     if (loading) {
         return (
-            <div className="ad-loading">
-                <div className="ad-spinner" />
-                <span className="ad-loading-text">Loading dashboard...</span>
+            <div className="dash-page ad-root">
+                <div className="dash-loading">
+                    <div className="dash-loading-ring" />
+                    <span className="dash-loading-text">Loading dashboard...</span>
+                </div>
             </div>
         );
     }
 
     const totalSales = invoiceStats?.totalSales ?? 0;
+    const totalProfit = invoiceStats?.totalProfit ?? 0;
+    const profitMargin = invoiceStats?.profitMargin ?? 0;
+    const totalCost = invoiceStats?.totalCost ?? 0;
     const paymentMethods = invoiceStats?.paymentMethodBreakdown ?? [];
     const statusBreakdown = invoiceStats?.statusBreakdown ?? [];
     const maxPayment = Math.max(...paymentMethods.map(p => p.total || 0), 1);
@@ -155,32 +175,89 @@ const AdminDashboard = ({ currentUser }) => {
     const today = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
     const periodLabel = PERIODS.find(p => p.key === period)?.label ?? '';
+    const paidRate = invoiceStats?.totalInvoices > 0
+        ? Math.round((statusCount('Paid') / invoiceStats.totalInvoices) * 100)
+        : 0;
 
     return (
-        <div className="ad-root">
-            <div className="ad-welcome">
-                <div className="ad-welcome-left">
-                    <h1>Dashboard</h1>
-                    <p>Welcome back, <strong>{currentUser?.firstName}</strong>. Here is your {periodLabel.toLowerCase()} business overview.</p>
-                </div>
-                <div className="ad-welcome-right">
-                    <div className="ad-period-filter">
+        <div className="dash-page ad-root">
+            <div className="dash-hero">
+                <motion.div className="dash-hero-main" {...cardMotion(0)}>
+                    <div className="dash-hero-top">
+                        <div className="dash-hero-eyebrow">{periodLabel} Business Overview</div>
+                        <div className="dash-live-badge">
+                            <span className="dash-live-dot" />
+                            Live Data
+                        </div>
+                    </div>
+                    <h1 className="dash-hero-title">{getGreeting()}, <span>{currentUser?.firstName}</span></h1>
+                    <p className="dash-hero-sub">
+                        Your business at a glance — <strong>{fmt(totalSales)}</strong> revenue, <strong>{fmt(totalProfit)}</strong> gross profit ({profitMargin}% margin) across <strong>{invoiceStats?.totalInvoices ?? 0}</strong> invoices.
+                    </p>
+                    <div className="dash-hero-chips">
+                        <span className="dash-hero-chip"><DollarSign size={12} /> {fmt(totalSales)} revenue</span>
+                        <span className="dash-hero-chip"><PiggyBank size={12} /> {fmt(totalProfit)} profit</span>
+                        <span className="dash-hero-chip"><Activity size={12} /> {profitMargin}% margin</span>
+                    </div>
+                </motion.div>
+                <div className="dash-hero-actions">
+                    <div className="dash-period-group">
                         {PERIODS.map(p => (
                             <button
                                 key={p.key}
                                 onClick={() => setPeriod(p.key)}
-                                className={`ad-period-btn ${period === p.key ? 'ad-period-btn--active' : ''}`}
+                                className={`dash-period-btn ${period === p.key ? 'dash-period-btn--active' : ''}`}
                             >
                                 {p.label}
                             </button>
                         ))}
                     </div>
-                    <div className="ad-welcome-date">{today}</div>
+                    <div className="dash-date-pill">
+                        <Calendar size={14} />
+                        {today}
+                    </div>
                 </div>
             </div>
 
+            <div className="dash-kpi-strip">
+                {[
+                    { label: 'Total Revenue', value: fmt(totalSales), meta: `${periodLabel} sales`, icon: DollarSign, accent: '#059669', bg: '#ecfdf5' },
+                    { label: 'Gross Profit', value: fmt(totalProfit), meta: `${profitMargin}% margin`, icon: PiggyBank, accent: '#0891b2', bg: '#ecfeff' },
+                    { label: 'Total Cost', value: fmt(totalCost), meta: 'Buy price (COGS)', icon: TrendingUp, accent: '#d97706', bg: '#fffbeb' },
+                    { label: 'Invoices', value: invoiceStats?.totalInvoices ?? 0, meta: `${statusCount('Paid')} paid`, icon: FileText, accent: '#6366f1', bg: '#eef2ff' },
+                ].map((kpi, i) => {
+                    const Icon = kpi.icon;
+                    return (
+                        <motion.div
+                            key={kpi.label}
+                            className="dash-kpi-card"
+                            style={{ '--kpi-accent': kpi.accent, '--kpi-bg': kpi.bg }}
+                            {...cardMotion(i + 1)}
+                        >
+                            <div className="dash-kpi-top">
+                                <span className="dash-kpi-label">{kpi.label}</span>
+                                <div className="dash-kpi-icon"><Icon size={16} /></div>
+                            </div>
+                            <div className="dash-kpi-value">{typeof kpi.value === 'number' ? <AnimatedCounter value={kpi.value} /> : kpi.value}</div>
+                            <div className="dash-kpi-meta">{kpi.meta}</div>
+                        </motion.div>
+                    );
+                })}
+            </div>
+
             {org && (
-                <div className="ad-org-card">
+                <>
+                    <div className="dash-section">
+                        <div className="dash-section-left">
+                            <div className="dash-section-line" />
+                            <div>
+                                <h2 className="dash-section-title">Organization Profile</h2>
+                                <p className="dash-section-sub">Registered business details & contact information</p>
+                            </div>
+                        </div>
+                        <span className="dash-verified-badge"><CheckCircle2 size={11} /> Verified</span>
+                    </div>
+                    <motion.div className="ad-org-card dash-card" {...cardMotion(5)}>
                     <div className="ad-org-top">
                         {org.quotationLogo && (
                             <div className="ad-org-logo">
@@ -230,53 +307,52 @@ const AdminDashboard = ({ currentUser }) => {
                             </div>
                         )}
                     </div>
-                </div>
+                </motion.div>
+                </>
             )}
 
+            <div className="dash-section">
+                <div className="dash-section-left">
+                    <div className="dash-section-line" />
+                    <div>
+                        <h2 className="dash-section-title">Business Registry</h2>
+                        <p className="dash-section-sub">Core entities across your organization</p>
+                    </div>
+                </div>
+                <span className="dash-section-badge">{stats.users + stats.clients + stats.products + stats.projects + stats.suppliers} Total Records</span>
+            </div>
+
             <div className="ad-stats-grid">
-                <div className="ad-stat-card" style={{ '--i': 0 }}>
-                    <div className="ad-stat-icon ad-stat-icon--red"><Users size={20} /></div>
-                    <div className="ad-stat-info">
-                        <div className="ad-stat-value"><AnimatedCounter value={stats.users} /></div>
-                        <div className="ad-stat-label">Users</div>
-                    </div>
-                </div>
+                {[
+                    { value: stats.users, label: 'Users', icon: Users, variant: 'red', i: 0 },
+                    { value: stats.clients, label: 'Clients', icon: Users, variant: 'black', i: 1 },
+                    { value: stats.products, label: 'Products', icon: Package, variant: 'red', i: 2 },
+                    { value: stats.projects, label: 'Projects', icon: Briefcase, variant: 'black', i: 3 },
+                    { value: stats.suppliers, label: 'Suppliers', icon: Truck, variant: 'white', i: 4 },
+                ].map(({ value, label, icon: Icon, variant, i }) => (
+                    <motion.div key={label} className="ad-stat-card dash-card" style={{ '--i': i }} {...cardMotion(6 + i)}>
+                        <div className={`ad-stat-icon ad-stat-icon--${variant}`}><Icon size={20} /></div>
+                        <div className="ad-stat-info">
+                            <div className="ad-stat-value"><AnimatedCounter value={value} /></div>
+                            <div className="ad-stat-label">{label}</div>
+                        </div>
+                    </motion.div>
+                ))}
+            </div>
 
-                <div className="ad-stat-card" style={{ '--i': 1 }}>
-                    <div className="ad-stat-icon ad-stat-icon--black"><Users size={20} /></div>
-                    <div className="ad-stat-info">
-                        <div className="ad-stat-value"><AnimatedCounter value={stats.clients} /></div>
-                        <div className="ad-stat-label">Clients</div>
+            <div className="dash-section">
+                <div className="dash-section-left">
+                    <div className="dash-section-line" />
+                    <div>
+                        <h2 className="dash-section-title">Financial Analytics</h2>
+                        <p className="dash-section-sub">Revenue breakdown & invoice status distribution</p>
                     </div>
                 </div>
-
-                <div className="ad-stat-card" style={{ '--i': 2 }}>
-                    <div className="ad-stat-icon ad-stat-icon--red"><Package size={20} /></div>
-                    <div className="ad-stat-info">
-                        <div className="ad-stat-value"><AnimatedCounter value={stats.products} /></div>
-                        <div className="ad-stat-label">Products</div>
-                    </div>
-                </div>
-
-                <div className="ad-stat-card" style={{ '--i': 3 }}>
-                    <div className="ad-stat-icon ad-stat-icon--black"><Briefcase size={20} /></div>
-                    <div className="ad-stat-info">
-                        <div className="ad-stat-value"><AnimatedCounter value={stats.projects} /></div>
-                        <div className="ad-stat-label">Projects</div>
-                    </div>
-                </div>
-
-                <div className="ad-stat-card" style={{ '--i': 4 }}>
-                    <div className="ad-stat-icon ad-stat-icon--white"><Truck size={20} /></div>
-                    <div className="ad-stat-info">
-                        <div className="ad-stat-value"><AnimatedCounter value={stats.suppliers} /></div>
-                        <div className="ad-stat-label">Suppliers</div>
-                    </div>
-                </div>
+                <span className="dash-section-badge">{periodLabel} Period</span>
             </div>
 
             <div className="ad-mid-grid">
-                <div className="ad-finance-card">
+                <motion.div className="ad-finance-card dash-card" {...cardMotion(11)}>
                     <div className="ad-finance-header">
                         <div className="ad-finance-header-left">
                             <div className="ad-finance-header-icon"><DollarSign size={14} /></div>
@@ -286,6 +362,29 @@ const AdminDashboard = ({ currentUser }) => {
                     <div className="ad-finance-total">
                         <span className="ad-finance-total-label">Total Revenue</span>
                         {fmt(totalSales)}
+                        <div className="ad-finance-profit-row">
+                            <div className="ad-finance-profit-item">
+                                <span className="ad-finance-profit-label">Gross Profit</span>
+                                <span className="ad-finance-profit-value ad-finance-profit-value--profit">{fmt(totalProfit)}</span>
+                            </div>
+                            <div className="ad-finance-profit-item">
+                                <span className="ad-finance-profit-label">Cost (Buy)</span>
+                                <span className="ad-finance-profit-value">{fmt(totalCost)}</span>
+                            </div>
+                            <div className="ad-finance-profit-item">
+                                <span className="ad-finance-profit-label">Margin</span>
+                                <span className="ad-finance-profit-value ad-finance-profit-value--margin">{profitMargin}%</span>
+                            </div>
+                        </div>
+                        <div className="dash-rate-bar">
+                            <div className="dash-rate-bar-header">
+                                <span className="dash-rate-bar-label">Collection Rate</span>
+                                <span className="dash-rate-bar-value">{paidRate}%</span>
+                            </div>
+                            <div className="dash-rate-track">
+                                <div className="dash-rate-fill" style={{ width: `${paidRate}%`, '--rate-from': '#059669', '--rate-to': '#34d399', '--rate-glow': 'rgba(52,211,153,0.4)' }} />
+                            </div>
+                        </div>
                     </div>
                     <div className="ad-finance-rows">
                         <div className="ad-finance-row">
@@ -333,9 +432,9 @@ const AdminDashboard = ({ currentUser }) => {
                         </div>
                         <MiniBar value={paymentCount('credit')} total={invoiceStats?.totalInvoices} color="#f59e0b" />
                     </div>
-                </div>
+                </motion.div>
 
-                <div className="ad-status-card">
+                <motion.div className="ad-status-card dash-card" {...cardMotion(12)}>
                     <div className="ad-status-header">
                         <h3>Invoice Status</h3>
                     </div>
@@ -413,10 +512,20 @@ const AdminDashboard = ({ currentUser }) => {
                             </div>
                         </div>
                     </div>
+                </motion.div>
+            </div>
+
+            <div className="dash-section">
+                <div className="dash-section-left">
+                    <div className="dash-section-line" />
+                    <div>
+                        <h2 className="dash-section-title">Recent Activity</h2>
+                        <p className="dash-section-sub">Latest invoices & payment method analysis</p>
+                    </div>
                 </div>
             </div>
 
-            <div className="ad-chart-card">
+            <motion.div className="ad-chart-card dash-card" {...cardMotion(13)}>
                 <div className="ad-chart-header">
                     <div className="ad-chart-header-left">
                         <div className="ad-chart-icon"><BarChart3 size={14} /></div>
@@ -446,9 +555,9 @@ const AdminDashboard = ({ currentUser }) => {
                         );
                     })}
                 </div>
-            </div>
+            </motion.div>
 
-            <div className="ad-recent-card">
+            <motion.div className="ad-recent-card dash-card" {...cardMotion(14)}>
                 <div className="ad-recent-header">
                     <div className="ad-recent-header-left">
                         <h3>Recent Invoices</h3>
@@ -456,13 +565,13 @@ const AdminDashboard = ({ currentUser }) => {
                     <span className="ad-recent-badge">{invoiceStats?.totalInvoices ?? 0} Total</span>
                 </div>
                 {recentInvoices.length === 0 ? (
-                    <div className="ad-recent-empty">
-                        <div className="ad-recent-empty-icon"><FileText size={28} /></div>
+                    <div className="dash-empty">
+                        <div className="dash-empty-icon"><FileText size={32} /></div>
                         No invoices recorded yet
                     </div>
                 ) : (
-                    <div className="ad-recent-table-wrap">
-                    <table className="ad-recent-table">
+                    <div className="ad-recent-table-wrap modern-table-scroll">
+                    <table className="modern-table">
                         <thead>
                             <tr>
                                 <th>Invoice</th>
@@ -487,7 +596,7 @@ const AdminDashboard = ({ currentUser }) => {
                                         </span></td>
                                         <td><span className="ad-recent-table-amount">{fmt(inv.finalTotal)}</span></td>
                                         <td>
-                                            <span className={`ad-status-pill ad-status-pill--${status.toLowerCase()}`}>
+                                            <span className={`modern-table-status ${status.toLowerCase() === 'paid' ? 'paid' : status.toLowerCase() === 'cancelled' ? 'cancelled' : status.toLowerCase() === 'unpaid' ? 'unpaid' : 'pending'}`}>
                                                 {status}
                                             </span>
                                         </td>
@@ -498,7 +607,7 @@ const AdminDashboard = ({ currentUser }) => {
                     </table>
                     </div>
                 )}
-            </div>
+            </motion.div>
         </div>
     );
 };

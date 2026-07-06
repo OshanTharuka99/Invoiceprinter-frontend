@@ -319,8 +319,9 @@ const ProductManagement = ({ currentUser, showToast }) => {
                     <button className="pm-btn pm-btn-primary" onClick={()=>openCatModal()}><Plus size={16}/>New Category</button>
                   </div>
                 </div>
-                <div className="pm-table-wrap modern-table-card">
-                  <table className="pm-table modern-table">
+                <div className="modern-table-card">
+                  <div className="modern-table-scroll">
+                  <table className="modern-table">
                     <thead>
                       <tr>
                         <th>Name</th>
@@ -337,7 +338,7 @@ const ProductManagement = ({ currentUser, showToast }) => {
                             <td style={{fontWeight:700, color:'#0f172a', fontSize:'0.9rem'}}>{c.name}</td>
                             <td><span className="pm-badge pm-badge-code">{c.code}</span></td>
                             <td style={{color:'var(--pm-text-2)',fontWeight:600}}>{c.parentCategory?.name||'—'}</td>
-                            <td><div className="pm-table-actions modern-table-actions">
+                            <td><div className="modern-table-actions">
                               <button className="pm-btn pm-btn-edit modern-table-action edit" onClick={()=>openCatModal(c)}><Edit2 size={14} /></button>
                               {isAdmin&&<button className="pm-btn pm-btn-danger modern-table-action delete" onClick={()=>deleteCat(c._id)}><Trash2 size={14} /></button>}
                             </div></td>
@@ -346,6 +347,7 @@ const ProductManagement = ({ currentUser, showToast }) => {
                       }
                     </tbody>
                   </table>
+                  </div>
                 </div>
               </div>
             </motion.div>
@@ -370,8 +372,9 @@ const ProductManagement = ({ currentUser, showToast }) => {
                     <button className="pm-btn pm-btn-primary" onClick={()=>openProdModal()}><Plus size={16}/>Add Product</button>
                   </div>
                 </div>
-                <div className="pm-table-wrap modern-table-card">
-                  <table className="pm-table modern-table">
+                <div className="modern-table-card">
+                  <div className="modern-table-scroll">
+                  <table className="modern-table">
                     <thead><tr>
                       <th>Product</th><th>Category</th>
                       <th className="text-right">Price</th><th className="text-center">Stock</th><th className="text-center" style={{width:'220px'}}>Actions</th>
@@ -408,11 +411,11 @@ const ProductManagement = ({ currentUser, showToast }) => {
                               </span>
                             </td>
                             <td>
-                              <div className="pm-table-actions modern-table-actions">
-                                <button className="pm-btn pm-btn-view modern-table-action view" onClick={()=>openView(p)}><FileText size={14} /></button>
-                                <button className="pm-btn pm-btn-stock modern-table-action stock" title="Add Stock" onClick={()=>openStockModal(p)}><Plus size={14} /></button>
-                                <button className="pm-btn pm-btn-edit modern-table-action edit" onClick={()=>openProdModal(p)}><Edit2 size={14} /></button>
-                                {isAdmin&&<button className="pm-btn pm-btn-danger modern-table-action delete" onClick={()=>deleteProd(p._id)}><Trash2 size={14} /></button>}
+                              <div className="modern-table-actions">
+                                <button type="button" className="modern-table-action view" title="View" onClick={()=>openView(p)}><FileText size={15} strokeWidth={2.25} /></button>
+                                <button type="button" className="modern-table-action stock" title="Add Stock" onClick={()=>openStockModal(p)}><Plus size={16} color="#047857" strokeWidth={2.75} /></button>
+                                <button type="button" className="modern-table-action edit" title="Edit" onClick={()=>openProdModal(p)}><Edit2 size={15} strokeWidth={2.25} /></button>
+                                {isAdmin&&<button type="button" className="modern-table-action delete" title="Delete" onClick={()=>deleteProd(p._id)}><Trash2 size={15} strokeWidth={2.25} /></button>}
                               </div>
                             </td>
                           </tr>
@@ -420,6 +423,7 @@ const ProductManagement = ({ currentUser, showToast }) => {
                       }
                     </tbody>
                   </table>
+                  </div>
                 </div>
               </div>
             </motion.div>
@@ -498,7 +502,7 @@ const ProductManagement = ({ currentUser, showToast }) => {
                 </div>
               )}
               <div style={{marginTop:'1.5rem',display:'flex',gap:'0.75rem'}}>
-                <button className="pm-btn pm-btn-stock pm-btn-full" onClick={()=>{setViewProd(null);openStockModal(viewProd);}}><Plus size={15}/>Add Stock</button>
+                <button className="pm-btn pm-btn-stock pm-btn-full" onClick={()=>{setViewProd(null);openStockModal(viewProd);}}><Plus size={15} strokeWidth={2.5}/>Add Stock</button>
                 <button className="pm-btn pm-btn-outline pm-btn-full" onClick={()=>setViewProd(null)}>Close</button>
               </div>
             </motion.div>
@@ -630,11 +634,11 @@ const ProductManagement = ({ currentUser, showToast }) => {
                   )}
                 </div>
                 <div className="pm-form-row pm-form-row-2">
-                  <div><label className="pm-label">Selling Price *</label><PriceInput value={parseFloat(prodForm.price) || 0} onChange={v => setProdForm({...prodForm, price: v.toString()})} className="pm-input" required placeholder="0.00" /></div>
+                  <div><label className="pm-label">Selling Price *{sym(prodForm.currencyType) ? ` (${sym(prodForm.currencyType)})` : ''}</label><PriceInput value={parseFloat(prodForm.price) || 0} onChange={v => setProdForm({...prodForm, price: v.toString()})} className="pm-input" required placeholder="0.00" /></div>
                   <div><label className="pm-label">Currency</label>
                     <select className="pm-input pm-select-input" value={prodForm.currencyType} onChange={e=>setProdForm({...prodForm,currencyType:e.target.value})}>
-                      <option value="primary">Primary</option>
-                      <option value="secondary">Secondary</option>
+                      <option value="primary">Primary{sym('primary') ? ` (${sym('primary')})` : ''}</option>
+                      <option value="secondary">Secondary{sym('secondary') ? ` (${sym('secondary')})` : ''}</option>
                     </select>
                   </div>
                 </div>

@@ -81,83 +81,54 @@ const SupplierManagement = ({ currentUser, showToast }) => {
     const withBank = vendors.filter(v => v.bankDetails?.bankName).length;
 
     return (
-        <div className="sm-root">
-            {/* Header Section */}
-            <div className="sm-header-top">
-                <div>
-                    <h1 className="sm-header-title">Vendor Management</h1>
-                    <p className="sm-header-sub">Centrally manage supply chain entities and archival.</p>
-                </div>
-                <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => openModal()}
-                    className="sm-btn-gradient">
-                    <Plus size={18} /> New Vendor
-                </motion.button>
-            </div>
-
-            {/* Stats Cards */}
-            <div className="sm-stats">
+        <div className="pm-root">
+            <div className="pm-stats">
                 {[
-                    { label: 'Total Vendors', value: vendors.length, icon: Building2, color: '#3b82f6', bg: '#eff6ff' },
-                    { label: 'With Bank Details', value: withBank, icon: CheckCircle2, color: '#10b981', bg: '#ecfdf5' },
-                    { label: 'Pending Archival', value: vendors.length - withBank, icon: CreditCard, color: '#f59e0b', bg: '#fffbeb' },
-                    { label: 'Contacted Vendors', value: vendors.filter(v => v.telephoneNumber || v.emailAddress).length, icon: Users, color: '#8b5cf6', bg: '#f5f3ff' }
-                ].map((stat, idx) => (
-                    <motion.div
-                        key={idx}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: idx * 0.1 }}
-                        className="sm-stat-card">
-                        <div className="sm-stat-icon-wrap" style={{ background: stat.bg }}>
-                            <stat.icon size={22} color={stat.color} />
-                        </div>
+                    { label: 'Total Vendors', value: vendors.length, icon: Building2, variant: 'blue' },
+                    { label: 'With Bank Details', value: withBank, icon: CheckCircle2, variant: 'green' },
+                    { label: 'Pending Archival', value: vendors.length - withBank, icon: CreditCard, variant: 'amber' },
+                    { label: 'Contacted Vendors', value: vendors.filter(v => v.telephoneNumber || v.emailAddress).length, icon: Users, variant: 'indigo' },
+                ].map((stat, idx) => {
+                    const Icon = stat.icon;
+                    return (
+                        <motion.div key={idx} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.06 }} className={`pm-stat-card ${stat.variant}`}>
+                            <div className={`pm-stat-icon ${stat.variant}`}><Icon size={22} /></div>
+                            <div className="pm-stat-body">
+                                <div className="pm-stat-value">{stat.value}</div>
+                                <div className="pm-stat-label">{stat.label}</div>
+                            </div>
+                        </motion.div>
+                    );
+                })}
+            </div>
+
+            <div className="pm-card">
+                <div className="pm-card-header">
+                    <div className="pm-card-title">
+                        <div className="pm-card-icon blue"><Truck size={22} /></div>
                         <div>
-                            <div className="sm-stat-label">{stat.label}</div>
-                            <div className="sm-stat-value">{stat.value}</div>
+                            <h3>Vendor Management</h3>
+                            <div className="pm-card-subtitle">Centrally manage supply chain entities and archival.</div>
                         </div>
-                    </motion.div>
-                ))}
-            </div>
+                    </div>
+                    <div className="pm-card-actions">
+                        <div className="pm-search-wrap">
+                            <Search size={14} className="pm-search-icon" />
+                            <input type="text" placeholder="Search vendors by name or ID..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pm-search-input" />
+                        </div>
+                        <motion.button whileTap={{ scale: 0.95 }} onClick={fetchData} className="pm-btn pm-btn-outline"><RefreshCw size={16} /></motion.button>
+                        <motion.button whileTap={{ scale: 0.95 }} onClick={() => openModal()} className="pm-btn pm-btn-primary"><Plus size={16} /> New Vendor</motion.button>
+                    </div>
+                </div>
 
-            {/* Search Bar */}
-            <div className="sm-search-bar">
-                <div className="sm-search-wrap">
-                    <Search size={18} className="sm-search-icon" />
-                    <input
-                        type="text"
-                        placeholder="Search vendors by name or ID..."
-                        value={searchTerm}
-                        onChange={e => setSearchTerm(e.target.value)}
-                        className="sm-search-input"
-                    />
-                </div>
-                <motion.button
-                    whileTap={{ scale: 0.95 }}
-                    onClick={fetchData}
-                    className="sm-btn-refresh">
-                    <RefreshCw size={18} color="#64748b" />
-                </motion.button>
-            </div>
-
-            {/* Content */}
-            {loading ? (
-                <div className="sm-loading">
-                    <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
-                        <RefreshCw size={32} color="#64748b" />
-                    </motion.div>
-                </div>
-            ) : filtered.length === 0 ? (
-                <div className="sm-empty">
-                    <Truck size={64} color="#cbd5e1" className="sm-empty-icon" />
-                    <h3 className="sm-empty-title">No vendors found</h3>
-                    <p className="sm-empty-sub">{searchTerm ? 'Try adjusting your search terms' : 'Create your first vendor to get started'}</p>
-                </div>
-            ) : (
-                <div className="sm-table-wrap modern-table-card">
-                    <table className="sm-table modern-table">
+                {loading ? (
+                    <div className="pm-loading"><RefreshCw className="animate-spin" size={20} /> Loading...</div>
+                ) : filtered.length === 0 ? (
+                    <div className="pm-empty">No vendors found{searchTerm ? ' — try adjusting your search' : ''}</div>
+                ) : (
+                    <div className="modern-table-card">
+                    <div className="modern-table-scroll">
+                    <table className="modern-table">
                         <thead>
                             <tr>
                                 <th>Vendor</th>
@@ -202,7 +173,7 @@ const SupplierManagement = ({ currentUser, showToast }) => {
                                         )}
                                     </td>
                                     <td>
-                                        <div className="sm-table-actions modern-table-actions">
+                                        <div className="modern-table-actions">
                                             <motion.button whileTap={{ scale: 0.95 }} onClick={() => setViewVendor(v)} className="modern-table-action view"><FileText size={14} /></motion.button>
                                             <motion.button whileTap={{ scale: 0.95 }} onClick={() => openModal(v)} className="modern-table-action edit"><Edit2 size={14} /></motion.button>
                                             <motion.button whileTap={{ scale: 0.95 }} onClick={() => deleteVendor(v._id)} className="modern-table-action delete"><Trash2 size={14} /></motion.button>
@@ -212,8 +183,10 @@ const SupplierManagement = ({ currentUser, showToast }) => {
                             ))}
                         </tbody>
                     </table>
+                    </div>
                 </div>
-            )}
+                )}
+            </div>
 
             {/* View Modal */}
             <AnimatePresence>

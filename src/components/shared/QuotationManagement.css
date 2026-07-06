@@ -112,15 +112,7 @@
 .qm-select { padding:0.6rem 1rem; border-radius:10px; border:1.5px solid var(--qm-border); font-size:0.85rem; font-weight:700; color:var(--qm-t2); background:#f9fafb; outline:none; cursor:pointer; transition:all 0.2s; }
 .qm-select:focus { border-color:var(--qm-focus); background:#fff; }
 
-.qm-table-wrap { overflow-x:auto; }
-.qm-table { width:100%; border-collapse:collapse; text-align:left; min-width:680px; }
-.qm-table thead tr { background:#f9fafb; }
-.qm-table th { padding:0.85rem 1.25rem; color:var(--qm-t3); font-weight:700; text-transform:uppercase; font-size:0.68rem; letter-spacing:0.07em; white-space:nowrap; border-bottom:1px solid var(--qm-border); }
-.qm-table td { padding:1rem 1.25rem; font-size:0.875rem; color:var(--qm-t1); border-bottom:1px solid #f3f4f6; vertical-align:middle; }
-.qm-table tbody tr:last-child td { border-bottom:none; }
-.qm-table tbody tr { transition:background 0.15s; }
-.qm-table tbody tr:hover { background:#fafbfc; }
-.qm-table-actions { display:flex; gap:5px; justify-content:flex-end; flex-wrap:nowrap; }
+/* Table styles: see styles/modern-table.css */
 
 .qm-badge { display:inline-flex; align-items:center; gap:4px; padding:3px 10px; border-radius:20px; font-weight:700; font-size:0.7rem; white-space:nowrap; }
 .qm-badge-id     { background:var(--qm-yellow-s); color:var(--qm-yellow); border:1px solid #fde68a; font-family:monospace; letter-spacing:0.04em; }

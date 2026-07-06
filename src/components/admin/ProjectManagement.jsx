@@ -81,125 +81,50 @@ const ProjectManagement = ({ currentUser, showToast }) => {
     const totalValue = projects.reduce((sum, p) => sum + (p.value || 0), 0);
 
     return (
-        <div style={{ maxWidth: 1400, margin: '0 auto', padding: '1.5rem' }}>
-            {/* Header Section */}
-            <div style={{ marginBottom: '2rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem', flexWrap: 'wrap', gap: '1.5rem' }}>
-                    <div>
-                        <h1 style={{ margin: 0, fontSize: '1.875rem', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.025em' }}>Project Portfolio</h1>
-                        <p style={{ margin: '0.5rem 0 0', fontSize: '0.9rem', color: '#64748b', fontWeight: 500 }}>Manage and monitor organizational project tracking</p>
-                    </div>
-                    <motion.button
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={() => openModal()}
-                        style={{
-                            background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
-                            color: '#fff',
-                            border: 'none',
-                            borderRadius: '16px',
-                            padding: '0.875rem 1.75rem',
-                            fontWeight: 700,
-                            fontSize: '0.875rem',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.625rem',
-                            boxShadow: '0 4px 12px rgba(15, 23, 42, 0.35)',
-                            transition: 'all 0.2s ease'
-                        }}>
-                        <Plus size={18} /> New Project
-                    </motion.button>
-                </div>
-
-                {/* Stats Cards */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.25rem', marginBottom: '2rem' }}>
-                    {[
-                        { label: 'Total Projects', value: projects.length, icon: FolderKanban, color: '#3b82f6', bg: '#eff6ff' },
-                        { label: 'Active Projects', value: activeProjects, icon: CheckCircle2, color: '#10b981', bg: '#ecfdf5' },
-                        { label: 'Portfolio Value', value: `$${totalValue.toLocaleString()}`, icon: DollarSign, color: '#f59e0b', bg: '#fffbeb' },
-                        { label: 'Clients', value: clients.length, icon: Building2, color: '#8b5cf6', bg: '#f5f3ff' }
-                    ].map((stat, idx) => (
-                        <motion.div
-                            key={idx}
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: idx * 0.1 }}
-                            style={{
-                                background: '#fff',
-                                borderRadius: '20px',
-                                padding: '1.5rem',
-                                border: '1px solid #e2e8f0',
-                                boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '1rem'
-                            }}>
-                            <div style={{ background: stat.bg, padding: '12px', borderRadius: '14px', display: 'flex' }}>
-                                <stat.icon size={22} color={stat.color} />
-                            </div>
-                            <div>
-                                <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{stat.label}</div>
-                                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#0f172a', marginTop: '0.25rem' }}>{stat.value}</div>
+        <div className="pm-root">
+            <div className="pm-stats">
+                {[
+                    { label: 'Total Projects', value: projects.length, icon: FolderKanban, variant: 'blue' },
+                    { label: 'Active Projects', value: activeProjects, icon: CheckCircle2, variant: 'green' },
+                    { label: 'Portfolio Value', value: `Rs. ${totalValue.toLocaleString()}`, icon: DollarSign, variant: 'amber', isText: true },
+                    { label: 'Clients', value: clients.length, icon: Building2, variant: 'indigo' },
+                ].map((stat, idx) => {
+                    const Icon = stat.icon;
+                    return (
+                        <motion.div key={idx} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.06 }} className={`pm-stat-card ${stat.variant}`}>
+                            <div className={`pm-stat-icon ${stat.variant}`}><Icon size={22} /></div>
+                            <div className="pm-stat-body">
+                                <div className="pm-stat-value" style={stat.isText ? { fontSize: '1.25rem' } : undefined}>{stat.value}</div>
+                                <div className="pm-stat-label">{stat.label}</div>
                             </div>
                         </motion.div>
-                    ))}
-                </div>
-
-                {/* Search Bar */}
-                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                    <div style={{ position: 'relative', flex: 1, maxWidth: 400 }}>
-                        <Search size={18} style={{ position: 'absolute', left: '1.25rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
-                        <input
-                            type="text"
-                            placeholder="Search projects by name or ID..."
-                            value={searchTerm}
-                            onChange={e => setSearchTerm(e.target.value)}
-                            style={{
-                                width: '100%',
-                                background: '#fff',
-                                border: '1.5px solid #e2e8f0',
-                                borderRadius: '14px',
-                                padding: '0.875rem 1rem 0.875rem 3rem',
-                                fontSize: '0.875rem',
-                                color: '#0f172a',
-                                outline: 'none',
-                                fontWeight: 500,
-                                transition: 'all 0.2s',
-                                boxSizing: 'border-box'
-                            }}
-                        />
-                    </div>
-                    <motion.button
-                        whileTap={{ scale: 0.95 }}
-                        onClick={fetchData}
-                        style={{
-                            background: '#f8fafc',
-                            border: '1.5px solid #e2e8f0',
-                            borderRadius: '14px',
-                            padding: '0.875rem',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center'
-                        }}>
-                        <RefreshCw size={18} color="#64748b" />
-                    </motion.button>
-                </div>
+                    );
+                })}
             </div>
 
-            {/* Content */}
+            <div className="pm-card">
+                <div className="pm-card-header">
+                    <div className="pm-card-title">
+                        <div className="pm-card-icon indigo"><Briefcase size={22} /></div>
+                        <div>
+                            <h3>Project Portfolio</h3>
+                            <div className="pm-card-subtitle">Manage and monitor organizational project tracking.</div>
+                        </div>
+                    </div>
+                    <div className="pm-card-actions">
+                        <div className="pm-search-wrap">
+                            <Search size={14} className="pm-search-icon" />
+                            <input type="text" placeholder="Search projects by name or ID..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pm-search-input" />
+                        </div>
+                        <motion.button whileTap={{ scale: 0.95 }} onClick={fetchData} className="pm-btn pm-btn-outline"><RefreshCw size={16} /></motion.button>
+                        <motion.button whileTap={{ scale: 0.95 }} onClick={() => openModal()} className="pm-btn pm-btn-primary"><Plus size={16} /> New Project</motion.button>
+                    </div>
+                </div>
+
             {loading ? (
-                <div style={{ display: 'flex', justifyContent: 'center', padding: '4rem' }}>
-                    <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
-                        <RefreshCw size={32} color="#64748b" />
-                    </motion.div>
-                </div>
+                <div className="pm-loading"><RefreshCw className="animate-spin" size={20} /> Loading...</div>
             ) : filtered.length === 0 ? (
-                <div style={{ background: '#fff', borderRadius: '24px', padding: '4rem 2rem', textAlign: 'center', border: '1px solid #e2e8f0' }}>
-                    <FolderKanban size={64} color="#cbd5e1" style={{ marginBottom: '1.5rem' }} />
-                    <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700, color: '#475569' }}>No projects found</h3>
-                    <p style={{ margin: '0.5rem 0 0', color: '#94a3b8', fontSize: '0.875rem' }}>{searchTerm ? 'Try adjusting your search terms' : 'Create your first project to get started'}</p>
-                </div>
+                <div className="pm-empty">No projects found{searchTerm ? ' — try adjusting your search' : ''}</div>
             ) : (
                 <div className="modern-table-card">
                     <div className="modern-table-scroll">
@@ -309,10 +234,11 @@ const ProjectManagement = ({ currentUser, showToast }) => {
                     </div>
                     <div className="modern-table-footer">
                         <span className="footer-info">Showing {filtered.length} of {projects.length} projects</span>
-                        <span className="footer-total">Total Value: <span className="total-value">${totalValue.toLocaleString()}</span></span>
+                        <span className="footer-total">Total Value: <span className="total-value">Rs. {totalValue.toLocaleString()}</span></span>
                     </div>
                 </div>
             )}
+            </div>
 
             {/* View Modal */}
             <AnimatePresence>

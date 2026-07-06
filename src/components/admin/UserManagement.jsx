@@ -113,71 +113,73 @@ const UserManagement = ({ currentUser, showToast }) => {
     });
 
     return (
-        <div className="user-management">
-            {/* Stats Grid */}
-            <div className="user-stats-grid">
+        <div className="pm-root">
+            <div className="pm-stats">
                 {[
-                    { label: 'Total Users', value: users.length, icon: Users, color: '#6366f1' },
-                    { label: 'Admin Users', value: users.filter(u => u.role !== 'user').length, icon: Shield, color: '#3b82f6' },
-                    { label: 'Operational', value: users.length, icon: Activity, color: '#22c55e' }
-                ].map((stat, i) => (
-                    <div key={i} className="user-stat-card">
-                        <div className="user-stat-header">
-                            <span className="user-stat-label">{stat.label}</span>
-                            <div className="user-stat-icon" style={{ background: stat.color + '10', color: stat.color }}>
-                                <stat.icon size={22} />
+                    { label: 'Total Users', value: users.length, icon: Users, variant: 'indigo' },
+                    { label: 'Admin Users', value: users.filter(u => u.role !== 'user').length, icon: Shield, variant: 'blue' },
+                    { label: 'Operational', value: users.length, icon: Activity, variant: 'green' },
+                ].map((stat, i) => {
+                    const Icon = stat.icon;
+                    return (
+                        <div key={i} className={`pm-stat-card ${stat.variant}`}>
+                            <div className={`pm-stat-icon ${stat.variant}`}><Icon size={22} /></div>
+                            <div className="pm-stat-body">
+                                <div className="pm-stat-value">{stat.value}</div>
+                                <div className="pm-stat-label">{stat.label}</div>
                             </div>
                         </div>
-                        <div className="user-stat-value">{stat.value}</div>
-                    </div>
-                ))}
+                    );
+                })}
             </div>
 
-            {/* Table Container */}
-            <div className="user-table-container">
-                {/* Controls */}
-                <div className="user-table-controls">
-                    <div className="user-search-wrapper">
-                        <Search size={18} className="user-search-icon" />
-                        <input
-                            type="text"
-                            placeholder="Search team..."
-                            value={searchTerm}
-                            onChange={e => setSearchTerm(e.target.value)}
-                            className="user-search-input"
-                        />
+            <div className="pm-card">
+                <div className="pm-card-header">
+                    <div className="pm-card-title">
+                        <div className="pm-card-icon indigo"><Users size={22} /></div>
+                        <div>
+                            <h3>User Management</h3>
+                            <div className="pm-card-subtitle">Manage personnel, roles, and access clearance.</div>
+                        </div>
                     </div>
-                    <div className="user-filters">
-                        <select value={roleFilter} onChange={e => setRoleFilter(e.target.value)} className="user-filter-select">
+                    <div className="pm-card-actions">
+                        <div className="pm-search-wrap">
+                            <Search size={14} className="pm-search-icon" />
+                            <input type="text" placeholder="Search team..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pm-search-input" />
+                        </div>
+                        <select value={roleFilter} onChange={e => setRoleFilter(e.target.value)} className="pm-filter-select">
                             <option value="all">All Roles</option>
                             <option value="user">Users</option>
                             <option value="admin">Admins</option>
                         </select>
-                        <select value={sexFilter} onChange={e => setSexFilter(e.target.value)} className="user-filter-select">
+                        <select value={sexFilter} onChange={e => setSexFilter(e.target.value)} className="pm-filter-select">
                             <option value="all">All Genders</option>
                             <option value="male">Male</option>
                             <option value="female">Female</option>
                         </select>
-                        <select value={designationFilter} onChange={e => setDesignationFilter(e.target.value)} className="user-filter-select">
+                        <select value={designationFilter} onChange={e => setDesignationFilter(e.target.value)} className="pm-filter-select">
                             <option value="all">Positions</option>
                             {uniqueDesignations.map(d => <option key={d} value={d}>{d}</option>)}
                         </select>
-                        <button onClick={() => setAddUserModal(true)} className="user-add-btn">
-                            <UserPlus size={18} /> Add
+                        <button onClick={() => setAddUserModal(true)} className="pm-btn pm-btn-primary">
+                            <UserPlus size={16} /> Add User
                         </button>
                     </div>
                 </div>
 
-                {/* Table */}
-                <div className="user-table-wrapper modern-table-card">
-                    <table className="user-table modern-table">
-                        <thead className="user-table-head">
+                {isLoading ? (
+                    <div className="pm-loading"><RefreshCw className="animate-spin" size={20} /> Loading...</div>
+                ) : (
+                    <div className="modern-table-card">
+                    <div className="modern-table-scroll">
+                    <table className="modern-table">
+                        <thead>
                             <tr>
-                                <th className="user-table-th">Personnel</th>
-                                <th className="user-table-th">Position</th>
-                                <th className="user-table-th">Contact</th>
-                                <th className="user-table-th text-center">Status</th>
-                                <th className="user-table-th text-center" style={{ width: '180px' }}>Actions</th>
+                                <th>Personnel</th>
+                                <th>Position</th>
+                                <th>Contact</th>
+                                <th className="text-center">Status</th>
+                                <th className="text-center" style={{ width: '180px' }}>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -188,8 +190,8 @@ const UserManagement = ({ currentUser, showToast }) => {
                                 const canDelete = canManage && u._id !== currentUser._id;
 
                                 return (
-                                    <tr key={u._id} className="user-table-row">
-                                        <td className="user-table-td">
+                                    <tr key={u._id}>
+                                        <td>
                                             <div className="user-table-cell-user modern-table-cell-primary">
                                                 <div className={`user-avatar ${u.profilePicture ? 'user-avatar-img-wrap' : isTargetRoot ? 'user-avatar-root' : 'user-avatar-user'}`}>
                                                     {u.profilePicture ? (
@@ -234,7 +236,9 @@ const UserManagement = ({ currentUser, showToast }) => {
                             })}
                         </tbody>
                     </table>
+                    </div>
                 </div>
+                )}
             </div>
 
             <AnimatePresence>

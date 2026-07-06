@@ -71,29 +71,57 @@ const ClientManagement = ({ currentUser, showToast }) => {
         return <UserCircle2 size={16} color="#10b981" />;
     }
 
+    const personCount = clients.filter(c => c.clientType === 'Person').length;
+    const orgCount = clients.filter(c => c.clientType !== 'Person').length;
+
     return (
-        <div style={{ maxWidth: 1400, margin: '0 auto' }}>
-            {loading ? ( <div style={{ display: 'flex', justifyContent: 'center', padding: '4rem' }}><RefreshCw className="animate-spin" color="#64748b" /></div> ) : (
-                <div style={cardStyle}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                            <div style={{ background: '#3b82f615', color: '#3b82f6', padding: '10px', borderRadius: '12px' }}><Users size={24} /></div> 
-                            <div>
-                                <h3 style={{ margin: 0, fontWeight: 900 }}>Client Directory</h3>
-                                <p style={{ margin: '0.2rem 0 0', fontSize: '0.85rem', color: '#64748b' }}>Manage all business entities securely.</p>
+        <div className="pm-root">
+            {loading ? (
+                <div className="pm-loading"><RefreshCw className="animate-spin" size={20} /> Loading...</div>
+            ) : (
+                <>
+                    <div className="pm-stats">
+                        <div className="pm-stat-card blue">
+                            <div className="pm-stat-icon blue"><Users size={22} /></div>
+                            <div className="pm-stat-body">
+                                <div className="pm-stat-value">{clients.length}</div>
+                                <div className="pm-stat-label">Total Clients</div>
                             </div>
                         </div>
-                        <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-                            <div style={{ position: 'relative' }}>
-                                <Search size={16} title="Locate account" style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
-                                <input type="text" title="Enter search parameters" placeholder="Search accounts..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} style={{ padding: '0.8rem 1rem 0.8rem 2.5rem', borderRadius: '12px', border: '1px solid #e2e8f0', width: 240, outline: 'none' }} />
+                        <div className="pm-stat-card green">
+                            <div className="pm-stat-icon green"><UserCircle2 size={22} /></div>
+                            <div className="pm-stat-body">
+                                <div className="pm-stat-value">{personCount}</div>
+                                <div className="pm-stat-label">Individuals</div>
                             </div>
-                            <motion.button whileTap={{ scale: 0.95 }} title="Add a new Client" onClick={() => openModal()} style={{ background: '#0f172a', color: '#fff', border: 'none', borderRadius: '12px', padding: '0.8rem 1.5rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Plus size={18} /> Add Client</motion.button>
+                        </div>
+                        <div className="pm-stat-card indigo">
+                            <div className="pm-stat-icon indigo"><Building2 size={22} /></div>
+                            <div className="pm-stat-body">
+                                <div className="pm-stat-value">{orgCount}</div>
+                                <div className="pm-stat-label">Organizations</div>
+                            </div>
                         </div>
                     </div>
-
-                    <div className="modern-table-card">
-                        <div className="modern-table-scroll">
+                    <div className="pm-card">
+                        <div className="pm-card-header">
+                            <div className="pm-card-title">
+                                <div className="pm-card-icon blue"><Users size={22} /></div>
+                                <div>
+                                    <h3>Client Directory</h3>
+                                    <div className="pm-card-subtitle">Manage all business entities securely.</div>
+                                </div>
+                            </div>
+                            <div className="pm-card-actions">
+                                <div className="pm-search-wrap">
+                                    <Search size={14} className="pm-search-icon" />
+                                    <input type="text" placeholder="Search accounts..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pm-search-input" />
+                                </div>
+                                <motion.button whileTap={{ scale: 0.95 }} onClick={() => openModal()} className="pm-btn pm-btn-primary"><Plus size={16} /> Add Client</motion.button>
+                            </div>
+                        </div>
+                        <div className="modern-table-card">
+                            <div className="modern-table-scroll">
                             <table className="modern-table">
                                 <thead>
                                     <tr>
@@ -148,6 +176,7 @@ const ClientManagement = ({ currentUser, showToast }) => {
                         </div>
                     </div>
                 </div>
+                </>
             )}
 
             {/* VIEW MODAL */}

@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { FileText, Plus, X, Search, RefreshCw, Printer, AlertTriangle, ShieldAlert, CheckCircle, Users, Briefcase, Barcode } from 'lucide-react';
 import api from '../../api';
 import PriceInput from '../../utils/PriceInput';
+import { calculateDocumentTotals } from '../../utils/calculateDocumentTotals';
 import InvoiceTemplate from './InvoiceTemplate';
 import './PromainvoiceManagemnt.css';
 import '../../styles/modern-table.css';
@@ -136,22 +137,7 @@ const PromainvoiceManagemnt = ({ currentUser, showToast }) => {
         setTimeout(() => { windowPrint.print(); windowPrint.close(); }, 400);
     };
 
-    const calculateTotals = (currentForm) => {
-        const subTotal = currentForm.subTotal;
-        const discountTotal = (currentForm.appliedDiscounts || []).reduce((sum, d) => sum + (d.amount || 0), 0);
-        let taxableBase = subTotal - discountTotal;
-        let taxTotal = 0;
-        let updatedTaxes = [];
-        if (currentForm.hasTax && currentForm.appliedTaxes) {
-            updatedTaxes = currentForm.appliedTaxes.map(tax => {
-                const amount = tax.type === 'percentage' ? (taxableBase * tax.value) / 100 : tax.value;
-                taxTotal += amount;
-                return { ...tax, amount };
-            });
-        }
-        let finalTotal = taxableBase + taxTotal;
-        return { ...currentForm, discountTotal, appliedTaxes: updatedTaxes, taxTotal, finalTotal };
-    };
+    const calculateTotals = calculateDocumentTotals;
 
     const openCreation = (mode) => {
         if (mode === 'manual' && !isAdmin) {
@@ -406,8 +392,9 @@ const PromainvoiceManagemnt = ({ currentUser, showToast }) => {
                             )}
                         </div>
                     </div>
-                    <div className="im-table-wrap modern-table-card">
-                        <table className="im-table modern-table">
+                    <div className="modern-table-card">
+                        <div className="modern-table-scroll">
+                        <table className="modern-table">
                             <thead>
                                 <tr>
                                     <th>Invoice ID</th>
@@ -444,7 +431,7 @@ const PromainvoiceManagemnt = ({ currentUser, showToast }) => {
                                             <span onClick={() => openStatusModal(inv)} className={`im-badge${inv.status === 'Paid' ? ' im-badge-paid' : inv.status === 'Pending' ? ' im-badge-pending' : ' im-badge-unpaid'}`} style={{ cursor: inv.paymentMethod === 'cash' ? 'default' : 'pointer', transition: 'all 0.2s' }} title={inv.paymentMethod === 'cash' ? 'Cash invoices cannot change status' : 'Click to update status'}>{inv.status}</span>
                                         </td>
                                         <td>
-                                            <div className="im-table-actions modern-table-actions">
+                                            <div className="modern-table-actions">
                                                 <motion.button whileTap={{ scale: 0.95 }} onClick={() => setViewInvoice(inv)} className="modern-table-action view"><Printer size={14} /></motion.button>
                                                 <motion.button whileTap={{ scale: 0.95 }} onClick={() => openDeleteModal(inv)} className="modern-table-action delete"><Trash2 size={14} /></motion.button>
                                             </div>
@@ -454,6 +441,7 @@ const PromainvoiceManagemnt = ({ currentUser, showToast }) => {
                                 {filtered.length === 0 && <tr><td colSpan="6"><div className="im-empty">No invoices in registry.</div></td></tr>}
                             </tbody>
                         </table>
+                        </div>
                     </div>
                 </div>
             )}
@@ -561,7 +549,7 @@ const PromainvoiceManagemnt = ({ currentUser, showToast }) => {
                                             <tr style={{ borderBottom: '1.5px solid #e2e8f0' }}>
                                                 <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left', fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Item/Module</th>
                                                 <th style={{ padding: '0.75rem 0.5rem', textAlign: 'center', fontSize: '0.75rem', color: '#64748b', width: '8%', textTransform: 'uppercase' }}>QTY</th>
-                                                <th style={{ padding: '0.75rem 0.5rem', textAlign: 'right', fontSize: '0.75rem', color: '#64748b', width: '15%', textTransform: 'uppercase' }}>Unit Price</th>
+                                                <th style={{ padding: '0.75rem 0.5rem', textAlign: 'right', fontSize: '0.75rem', color: '#64748b', width: '22%', textTransform: 'uppercase' }}>Unit Price</th>
                                                 <th style={{ padding: '0.75rem 0.5rem', textAlign: 'right', fontSize: '0.75rem', color: '#64748b', width: '15%', textTransform: 'uppercase' }}>Line Total</th>
                                                 <th style={{ padding: '0.75rem 0.5rem', textAlign: 'center', fontSize: '0.75rem', color: '#64748b', width: '18%', textTransform: 'uppercase' }}>Serials</th>
                                                 <th style={{ width: '50px' }}></th>
@@ -589,7 +577,7 @@ const PromainvoiceManagemnt = ({ currentUser, showToast }) => {
                                                     <td style={{ padding: '0.75rem 0.5rem' }}>
                                                         <div style={{ position: 'relative' }}>
                                                             <span style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', fontSize: '0.75rem' }}>{businessData?.primaryCurrency?.symbol || 'Rs.'}</span>
-                                                            <PriceInput value={it.unitPrice} onChange={v => updateItem(idx, 'unitPrice', v)} disabled={creationMode === 'automatic'} style={{ ...inputStyle, background: creationMode === 'automatic' ? '#f8fafc' : '#fff', padding: '0.6rem 0.75rem 0.6rem 1.5rem', textAlign: 'right', fontSize: '0.85rem' }} required />
+                                                            <PriceInput value={it.unitPrice} onChange={v => updateItem(idx, 'unitPrice', v)} disabled={creationMode === 'automatic'} style={{ ...inputStyle, background: creationMode === 'automatic' ? '#f8fafc' : '#fff', padding: '0.6rem 0.75rem 0.6rem 2rem', textAlign: 'right', fontSize: '0.85rem', minWidth: '140px' }} required />
                                                         </div>
                                                     </td>
                                                     <td style={{ padding: '0.75rem 0.5rem', textAlign: 'right', fontWeight: 800, color: '#0f172a', fontSize: '0.9rem' }}>

@@ -166,46 +166,9 @@
     box-shadow: 0 8px 24px rgba(220, 38, 38, 0.3);
 }
 
-/* Table */
+/* Table styles: see styles/modern-table.css */
 .user-table-wrapper {
     overflow-x: auto;
-}
-
-.user-table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-.user-table-head {
-    border-bottom: 1px solid #f1f5f9;
-    background: #f8fafc;
-}
-
-.user-table-th {
-    padding: 1.25rem 2.5rem;
-    text-align: left;
-    color: #64748b;
-    font-size: 0.8rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.user-table-th-right {
-    text-align: right;
-}
-
-.user-table-row {
-    border-bottom: 1px solid #f1f5f9;
-    transition: background 0.2s ease;
-}
-
-.user-table-row:hover {
-    background: #f8fafc;
-}
-
-.user-table-td {
-    padding: 1.25rem 2.5rem;
 }
 
 .user-table-cell-user {

@@ -1,154 +1,14 @@
-/* ═══════════════════════════════════════════════════════
-   Admin Dashboard  —  Premium Enterprise Overview
-   ═══════════════════════════════════════════════════════ */
+/* Admin Dashboard — extends dashboard-shared.css */
 
 .ad-root {
-    padding: 2rem 2.25rem;
-    background:
-        radial-gradient(ellipse at 20% 0%, rgba(220,38,38,0.03) 0%, transparent 60%),
-        radial-gradient(ellipse at 80% 10%, rgba(15,23,42,0.02) 0%, transparent 50%),
-        #f6f8fc;
+    /* padding/background from .dash-page */
 }
 
-/* ── Loading ─────────────────────────────────────────── */
-.ad-loading {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 60vh;
-    gap: 1rem;
-}
-
-.ad-spinner {
-    width: 32px;
-    height: 32px;
-    border: 3px solid #e2e8f0;
-    border-top-color: #dc2626;
-    border-radius: 50%;
-    animation: ad-spin 0.6s cubic-bezier(0.6, 0, 0.4, 1) infinite;
-}
-
-@keyframes ad-spin {
-    to { transform: rotate(360deg); }
-}
-
-.ad-loading-text {
-    font-size: 0.85rem;
-    color: #94a3b8;
-    font-weight: 500;
-    letter-spacing: 0.02em;
-}
-
-/* ── Welcome Header ──────────────────────────────────── */
-.ad-welcome {
-    margin-bottom: 2rem;
-    display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
-}
-
-.ad-welcome-left {
-    position: relative;
-}
-
-.ad-welcome-left h1 {
-    font-size: 1.55rem;
-    font-weight: 800;
-    color: #0f172a;
-    letter-spacing: -0.03em;
-    margin: 0;
-    background: linear-gradient(135deg, #0f172a 60%, #dc2626);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-}
-
-.ad-welcome-left h1::after {
-    content: '';
-    position: absolute;
-    bottom: -6px;
-    left: 0;
-    width: 40px;
-    height: 3px;
-    background: linear-gradient(90deg, #dc2626, #0f172a);
-    border-radius: 2px;
-}
-
-.ad-welcome-left p {
-    font-size: 0.82rem;
-    color: #64748b;
-    margin: 0.8rem 0 0;
-    font-weight: 400;
-    letter-spacing: 0.01em;
-}
-
-.ad-welcome-right {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-}
-
-.ad-period-filter {
-    display: flex;
-    background: #ffffff;
-    border: 1px solid #e2e8f0;
-    border-radius: 10px;
-    padding: 3px;
-    gap: 2px;
-}
-
-.ad-period-btn {
-    padding: 0.4rem 0.85rem;
-    border: none;
-    border-radius: 8px;
-    background: transparent;
-    color: #64748b;
-    font-size: 0.72rem;
-    font-weight: 600;
-    font-family: 'Outfit', sans-serif;
-    cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    letter-spacing: 0.02em;
-    white-space: nowrap;
-}
-
-.ad-period-btn:hover {
-    color: #0f172a;
-    background: #f1f5f9;
-}
-
-.ad-period-btn--active {
-    background: #ffffff;
-    color: #dc2626;
-    border: 1px solid #e2e8f0;
-}
-
-.ad-period-btn--active:hover {
-    background: #ffffff;
-    color: #b91c1c;
-}
-
-.ad-welcome-date {
-    font-size: 0.72rem;
-    color: #64748b;
-    font-weight: 500;
-    background: #ffffff;
-    padding: 0.5rem 1.1rem;
-    border-radius: 10px;
-    border: 1px solid #e2e8f0;
-    white-space: nowrap;
-}
-
-/* ── Organization Card ───────────────────────────────── */
+/* Organization Card */
 .ad-org-card {
-    background: #ffffff;
-    border: 1px solid #e2e8f0;
-    border-radius: 16px;
-    padding: 1.25rem 1.5rem;
-    margin-bottom: 1.5rem;
+    margin-bottom: var(--dash-gap-section, 2.25rem);
     position: relative;
     overflow: hidden;
-    animation: ad-card-in 0.4s cubic-bezier(0.4, 0, 0.2, 1) backwards;
 }
 
 .ad-org-card::before {
@@ -158,30 +18,31 @@
     left: 0;
     width: 100%;
     height: 3px;
-    background: linear-gradient(90deg, #dc2626 0%, #dc2626 20%, #0f172a 20%, #0f172a 40%, transparent 40%);
-    border-radius: 16px 16px 0 0;
+    background: linear-gradient(90deg, #6366f1, #0f172a);
+    border-radius: 20px 20px 0 0;
 }
 
 .ad-org-top {
     display: flex;
     align-items: center;
-    gap: 1rem;
-    margin-bottom: 1rem;
-    padding-bottom: 1rem;
+    gap: 1.15rem;
+    margin-bottom: 1.15rem;
+    padding-bottom: 1.15rem;
     border-bottom: 1px solid #f1f5f9;
 }
 
 .ad-org-logo {
-    width: 52px;
-    height: 52px;
-    border-radius: 12px;
+    width: 58px;
+    height: 58px;
+    border-radius: 14px;
     overflow: hidden;
     flex-shrink: 0;
-    background: #f8fafc;
+    background: linear-gradient(135deg, #f8fafc, #f1f5f9);
     border: 1px solid #e2e8f0;
     display: flex;
     align-items: center;
     justify-content: center;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
 }
 
 .ad-org-logo img {
@@ -219,14 +80,18 @@
 .ad-org-field {
     display: flex;
     flex-direction: column;
-    gap: 2px;
-    padding: 0.35rem 0.5rem;
-    border-radius: 8px;
-    transition: background 0.2s;
+    gap: 3px;
+    padding: 0.55rem 0.7rem;
+    border-radius: 10px;
+    background: #f8fafc;
+    border: 1px solid #f1f5f9;
+    transition: all 0.2s ease;
 }
 
 .ad-org-field:hover {
-    background: #fafbfc;
+    background: #fff;
+    border-color: #e2e8f0;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
 }
 
 .ad-org-field-label {
@@ -251,7 +116,7 @@
 }
 
 .ad-org-field-value--vat {
-    color: #dc2626;
+    color: #6366f1;
     font-weight: 700;
 }
 
@@ -259,23 +124,22 @@
 .ad-stats-grid {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
-    gap: 1rem;
-    margin-bottom: 1.75rem;
+    gap: 1.35rem;
+    margin-bottom: var(--dash-gap-section, 2.25rem);
 }
 
 .ad-stat-card {
-    background: #ffffff;
-    border: 1px solid #e2e8f0;
-    border-radius: 16px;
-    padding: 1.2rem 1.2rem;
+    padding: 1.2rem;
     display: flex;
     align-items: center;
     gap: 1rem;
     position: relative;
     overflow: hidden;
-    animation: ad-card-in 0.5s cubic-bezier(0.4, 0, 0.2, 1) backwards;
-    animation-delay: calc(var(--i, 0) * 0.08s);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.ad-stat-card:hover {
+    transform: translateY(-2px);
 }
 
 .ad-stat-card::before {
@@ -290,11 +154,11 @@
     transition: opacity 0.3s ease;
 }
 
-.ad-stat-card:nth-child(1)::before { background: #dc2626; }
+.ad-stat-card:nth-child(1)::before { background: #6366f1; }
 .ad-stat-card:nth-child(2)::before { background: #0f172a; }
-.ad-stat-card:nth-child(3)::before { background: #dc2626; }
+.ad-stat-card:nth-child(3)::before { background: #0891b2; }
 .ad-stat-card:nth-child(4)::before { background: #0f172a; }
-.ad-stat-card:nth-child(5)::before { background: linear-gradient(90deg, #0f172a, #dc2626); }
+.ad-stat-card:nth-child(5)::before { background: linear-gradient(90deg, #0f172a, #6366f1); }
 
 .ad-stat-card::after {
     content: '';
@@ -309,35 +173,19 @@
     transition: all 0.5s ease;
 }
 
-.ad-stat-card:nth-child(1)::after { background: #dc2626; }
+.ad-stat-card:nth-child(1)::after { background: #6366f1; }
 .ad-stat-card:nth-child(2)::after { background: #0f172a; }
-.ad-stat-card:nth-child(3)::after { background: #dc2626; }
+.ad-stat-card:nth-child(3)::after { background: #0891b2; }
 .ad-stat-card:nth-child(4)::after { background: #0f172a; }
-.ad-stat-card:nth-child(5)::after { background: linear-gradient(135deg, #dc2626, #0f172a); }
-
-.ad-stat-card:hover {
-    border-color: #cbd5e1;
-    background: #fafbfc;
-}
+.ad-stat-card:nth-child(5)::after { background: linear-gradient(135deg, #6366f1, #0f172a); }
 
 .ad-stat-card:hover::before {
     opacity: 1;
 }
 
 .ad-stat-card:hover::after {
-    opacity: 0.04;
-    transform: scale(1.15);
-}
-
-@keyframes ad-card-in {
-    from {
-        opacity: 0;
-        transform: translateY(16px) scale(0.97);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-    }
+    opacity: 0.05;
+    transform: scale(1.1);
 }
 
 .ad-stat-icon {
@@ -358,9 +206,9 @@
 }
 
 .ad-stat-icon--red {
-    background: linear-gradient(135deg, #fef2f2, #fee2e2);
-    color: #dc2626;
-    border: 1px solid #fecaca;
+    background: linear-gradient(135deg, #eef2ff, #e0e7ff);
+    color: #6366f1;
+    border: 1px solid #c7d2fe;
 }
 
 .ad-stat-icon--black {
@@ -405,16 +253,12 @@
 .ad-mid-grid {
     display: grid;
     grid-template-columns: 1.3fr 0.7fr;
-    gap: 1.25rem;
-    margin-bottom: 1.75rem;
+    gap: 1.5rem;
+    margin-bottom: var(--dash-gap-section, 2.25rem);
 }
 
-/* ── Finance Card ────────────────────────────────────── */
+/* Finance Card */
 .ad-finance-card {
-    background: #ffffff;
-    border: 1px solid #e2e8f0;
-    border-radius: 16px;
-    padding: 1.4rem 1.5rem;
     position: relative;
     overflow: hidden;
 }
@@ -426,7 +270,7 @@
     left: 0;
     width: 100%;
     height: 3px;
-    background: linear-gradient(90deg, #dc2626 0%, #dc2626 30%, #0f172a 30%, #0f172a 60%, transparent 60%);
+    background: linear-gradient(90deg, #059669 0%, #059669 30%, #0f172a 30%, #0f172a 60%, transparent 60%);
     border-radius: 16px 16px 0 0;
 }
 
@@ -438,7 +282,7 @@
     width: 200px;
     height: 200px;
     border-radius: 50%;
-    background: radial-gradient(circle, rgba(220,38,38,0.02) 0%, transparent 70%);
+    background: radial-gradient(circle, rgba(5, 150, 105, 0.04) 0%, transparent 70%);
     pointer-events: none;
 }
 
@@ -469,30 +313,30 @@
 .ad-finance-header-icon {
     width: 28px;
     height: 28px;
-    background: linear-gradient(135deg, #fef2f2, #fee2e2);
-    border: 1px solid #fecaca;
+    background: linear-gradient(135deg, #ecfdf5, #d1fae5);
+    border: 1px solid #a7f3d0;
     border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #dc2626;
+    color: #059669;
 }
 
 .ad-finance-total {
-    font-size: 1.9rem;
+    font-size: 2rem;
     font-weight: 800;
     color: #0f172a;
-    letter-spacing: -0.03em;
-    margin-bottom: 1.1rem;
-    padding: 0.9rem 1rem;
-    border-radius: 12px;
+    letter-spacing: -0.04em;
+    margin-bottom: 1.15rem;
+    padding: 1.1rem 1.15rem;
+    border-radius: 14px;
     display: flex;
     flex-direction: column;
-    gap: 0.2rem;
+    gap: 0.35rem;
     position: relative;
     z-index: 1;
-    background: #fafbfc;
-    border: 1px solid #f1f5f9;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border: 1px solid #e8edf3;
 }
 
 .ad-finance-total-label {
@@ -501,6 +345,44 @@
     color: #94a3b8;
     text-transform: uppercase;
     letter-spacing: 0.1em;
+}
+
+.ad-finance-profit-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.65rem;
+    margin-top: 0.5rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid #e8edf3;
+}
+
+.ad-finance-profit-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.ad-finance-profit-label {
+    font-size: 0.58rem;
+    font-weight: 700;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+}
+
+.ad-finance-profit-value {
+    font-size: 0.9rem;
+    font-weight: 800;
+    color: #0f172a;
+    font-variant-numeric: tabular-nums;
+}
+
+.ad-finance-profit-value--profit {
+    color: #0891b2;
+}
+
+.ad-finance-profit-value--margin {
+    color: #059669;
 }
 
 .ad-finance-rows {
@@ -574,12 +456,8 @@
     font-weight: 500;
 }
 
-/* ── Status Card ─────────────────────────────────────── */
+/* Status Card */
 .ad-status-card {
-    background: #ffffff;
-    border: 1px solid #e2e8f0;
-    border-radius: 16px;
-    padding: 1.4rem 1.5rem;
     position: relative;
     overflow: hidden;
 }
@@ -591,7 +469,7 @@
     left: 0;
     width: 100%;
     height: 3px;
-    background: linear-gradient(90deg, #0f172a 0%, #0f172a 40%, #dc2626 40%, #dc2626 70%, transparent 70%);
+    background: linear-gradient(90deg, #0f172a 0%, #0f172a 40%, #6366f1 40%, #6366f1 70%, transparent 70%);
     border-radius: 16px 16px 0 0;
 }
 
@@ -626,12 +504,13 @@
 }
 
 .ad-donut {
-    width: 105px;
-    height: 105px;
+    width: 112px;
+    height: 112px;
     border-radius: 50%;
     position: relative;
     animation: ad-donut-in 0.8s cubic-bezier(0.4, 0, 0.2, 1) backwards;
     border: 1px solid #f1f5f9;
+    box-shadow: 0 0 0 6px #f8fafc, 0 8px 24px rgba(15, 23, 42, 0.08);
 }
 
 @keyframes ad-donut-in {
@@ -774,15 +653,11 @@
     font-weight: 500;
 }
 
-/* ── Horizontal Bar Chart ────────────────────────────── */
+/* Horizontal Bar Chart */
 .ad-chart-card {
-    background: #ffffff;
-    border: 1px solid #e2e8f0;
-    border-radius: 16px;
-    padding: 1.4rem 1.5rem;
     position: relative;
     overflow: hidden;
-    margin-bottom: 1.75rem;
+    margin-bottom: var(--dash-gap-section, 2.25rem);
 }
 
 .ad-chart-card::before {
@@ -792,7 +667,7 @@
     left: 0;
     width: 100%;
     height: 3px;
-    background: linear-gradient(90deg, #dc2626 0%, #dc2626 15%, #0f172a 15%, #0f172a 30%, transparent 30%);
+    background: linear-gradient(90deg, #6366f1 0%, #6366f1 15%, #0f172a 15%, #0f172a 30%, transparent 30%);
     border-radius: 16px 16px 0 0;
 }
 
@@ -855,12 +730,12 @@
 }
 
 .ad-hbar-track {
-    height: 24px;
-    background: #f1f5f9;
-    border-radius: 8px;
+    height: 28px;
+    background: linear-gradient(180deg, #f8fafc, #f1f5f9);
+    border-radius: 10px;
     overflow: hidden;
     position: relative;
-    border: 1px solid #e2e8f0;
+    border: 1px solid #e8edf3;
 }
 
 .ad-hbar-fill {
@@ -902,12 +777,8 @@
     margin-left: 0.2rem;
 }
 
-/* ── Recent Invoices ─────────────────────────────────── */
+/* Recent Invoices */
 .ad-recent-card {
-    background: #ffffff;
-    border: 1px solid #e2e8f0;
-    border-radius: 16px;
-    padding: 1.4rem 1.5rem;
     position: relative;
     overflow: hidden;
 }
@@ -919,7 +790,7 @@
     left: 0;
     width: 100%;
     height: 3px;
-    background: linear-gradient(90deg, #dc2626 0%, #dc2626 20%, #0f172a 20%, #0f172a 40%, transparent 40%);
+    background: linear-gradient(90deg, #0f172a 0%, #0f172a 20%, #6366f1 20%, #6366f1 40%, transparent 40%);
     border-radius: 16px 16px 0 0;
 }
 
@@ -951,82 +822,19 @@
     font-size: 0.63rem;
     color: #475569;
     background: #f1f5f9;
-    padding: 0.25rem 0.75rem;
-    border-radius: 20px;
-    font-weight: 600;
-    transition: all 0.2s ease;
+    padding: 0.3rem 0.85rem;
+    border-radius: 999px;
+    font-weight: 700;
     border: 1px solid #e2e8f0;
-}
-
-.ad-recent-badge:hover {
-    background: #e2e8f0;
 }
 
 .ad-recent-table-wrap {
     overflow-x: auto;
+    border-radius: 14px;
+    border: 1px solid #f1f5f9;
 }
 
-.ad-recent-table {
-    width: 100%;
-    border-collapse: collapse;
-    min-width: 480px;
-}
-
-.ad-recent-table thead {
-    position: relative;
-}
-
-.ad-recent-table th {
-    text-align: left;
-    font-size: 0.6rem;
-    font-weight: 700;
-    color: #64748b;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    padding: 0.65rem 0.5rem 0.65rem 0.5rem;
-    border-bottom: 1px solid #e2e8f0;
-    background: #fafbfc;
-}
-
-.ad-recent-table th:first-child {
-    border-radius: 8px 0 0 8px;
-    padding-left: 1rem;
-}
-
-.ad-recent-table th:last-child {
-    border-radius: 0 8px 8px 0;
-    padding-right: 1rem;
-}
-
-.ad-recent-table td {
-    padding: 0.7rem 0.5rem 0.7rem 0.5rem;
-    font-size: 0.78rem;
-    color: #0f172a;
-    border-bottom: 1px solid #f1f5f9;
-    font-weight: 500;
-    transition: color 0.15s ease;
-}
-
-.ad-recent-table td:first-child {
-    padding-left: 1rem;
-}
-
-.ad-recent-table td:last-child {
-    padding-right: 1rem;
-}
-
-.ad-recent-table tbody tr {
-    transition: all 0.2s ease;
-    cursor: default;
-}
-
-.ad-recent-table tbody tr:hover {
-    background: #f8fafc;
-}
-
-.ad-recent-table tbody tr:last-child td {
-    border-bottom: none;
-}
+/* Table cell helpers — shared table styles in styles/modern-table.css */
 
 .ad-recent-table-num {
     font-weight: 700;
@@ -1075,19 +883,6 @@
     color: #d97706;
 }
 
-.ad-recent-empty {
-    text-align: center;
-    padding: 3rem 0;
-    color: #94a3b8;
-    font-size: 0.82rem;
-    font-weight: 500;
-}
-
-.ad-recent-empty-icon {
-    margin-bottom: 0.5rem;
-    opacity: 0.3;
-}
-
 /* ── Mini Progress Bar ───────────────────────────────── */
 .ad-minibar-track {
     height: 3px;
@@ -1118,16 +913,14 @@
 }
 
 @media (max-width: 768px) {
-    .ad-root {
-        padding: 1.25rem;
-    }
     .ad-welcome {
         flex-direction: column;
         align-items: flex-start;
         gap: 0.75rem;
     }
-    .ad-welcome-right {
-        flex-wrap: wrap;
+    .dash-hero-actions {
+        width: 100%;
+        justify-content: flex-start;
     }
     .ad-stats-grid {
         grid-template-columns: repeat(2, 1fr);

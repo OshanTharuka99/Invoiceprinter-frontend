@@ -130,74 +130,71 @@ const WarrantyManagement = ({ currentUser, showToast }) => {
     };
 
     return (
-        <div className="wm-root">
-            {/* STATS */}
-            <div className="wm-stats">
-                <div className="wm-stat-card green">
-                    <div className="wm-stat-icon green"><Shield size={24} /></div>
-                    <div className="wm-stat-body">
-                        <div className="wm-stat-value">{stats.active}</div>
-                        <div className="wm-stat-label">Active Warranties</div>
+        <div className="pm-root">
+            <div className="pm-stats">
+                <div className="pm-stat-card green">
+                    <div className="pm-stat-icon green"><Shield size={22} /></div>
+                    <div className="pm-stat-body">
+                        <div className="pm-stat-value">{stats.active}</div>
+                        <div className="pm-stat-label">Active Warranties</div>
                     </div>
                 </div>
-                <div className="wm-stat-card red">
-                    <div className="wm-stat-icon red"><Calendar size={24} /></div>
-                    <div className="wm-stat-body">
-                        <div className="wm-stat-value">{stats.expired}</div>
-                        <div className="wm-stat-label">Expired Warranties</div>
+                <div className="pm-stat-card red">
+                    <div className="pm-stat-icon red"><Calendar size={22} /></div>
+                    <div className="pm-stat-body">
+                        <div className="pm-stat-value">{stats.expired}</div>
+                        <div className="pm-stat-label">Expired Warranties</div>
                     </div>
                 </div>
-                <div className="wm-stat-card indigo">
-                    <div className="wm-stat-icon indigo"><Package size={24} /></div>
-                    <div className="wm-stat-body">
-                        <div className="wm-stat-value">{stats.total}</div>
-                        <div className="wm-stat-label">Total Registry</div>
+                <div className="pm-stat-card indigo">
+                    <div className="pm-stat-icon indigo"><Package size={22} /></div>
+                    <div className="pm-stat-body">
+                        <div className="pm-stat-value">{stats.total}</div>
+                        <div className="pm-stat-label">Total Registry</div>
                     </div>
                 </div>
             </div>
 
-            {/* MAIN CARD */}
-            <div className="wm-card">
-                <div className="wm-card-header">
-                    <div className="wm-card-title">
-                        <div className="wm-card-icon green"><Shield size={20} /></div>
+            <div className="pm-card">
+                <div className="pm-card-header">
+                    <div className="pm-card-title">
+                        <div className="pm-card-icon green"><Shield size={22} /></div>
                         <div>
                             <h3>Warranty Registry</h3>
-                            <div className="wm-card-subtitle">Track active and expired warranties for all products</div>
+                            <div className="pm-card-subtitle">Track active and expired warranties for all products</div>
                         </div>
                     </div>
-                    <div className="wm-card-actions">
-                        <motion.button whileTap={{ scale: 0.95 }} onClick={fetchData} className="wm-btn wm-btn-primary"><RefreshCw size={16} /> Refresh</motion.button>
+                    <div className="pm-card-actions">
+                        <motion.button whileTap={{ scale: 0.95 }} onClick={fetchData} className="pm-btn pm-btn-outline"><RefreshCw size={16} /></motion.button>
                     </div>
                 </div>
 
-                <div style={{ padding: '1.5rem' }}>
-                    {/* FILTERS */}
-                    <div className="wm-filters">
-                        <div className="wm-search-wrap">
-                            <Search size={16} className="wm-search-icon" />
-                            <input type="text" placeholder="Search serial, invoice, product, client..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="wm-search-input" />
-                        </div>
-                        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="wm-select">
-                            <option value="all">All Status</option>
-                            <option value="active">Active</option>
-                            <option value="expired">Expired</option>
-                        </select>
-                        <select value={clientFilter} onChange={e => setClientFilter(e.target.value)} className="wm-select">
-                            <option value="">All Clients</option>
-                            {clients.map(c => <option key={c._id} value={c._id}>{c.firstName} {c.lastName}</option>)}
-                        </select>
-                        <select value={projectFilter} onChange={e => setProjectFilter(e.target.value)} className="wm-select">
-                            <option value="">All Projects</option>
-                            {projects.map(p => <option key={p._id} value={p._id}>{p.name}</option>)}
-                        </select>
+                <div className="pm-filters-row">
+                    <div className="pm-search-wrap">
+                        <Search size={14} className="pm-search-icon" />
+                        <input type="text" placeholder="Search serial, invoice, product, client..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pm-search-input" />
                     </div>
+                    <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="pm-filter-select">
+                        <option value="all">All Status</option>
+                        <option value="active">Active</option>
+                        <option value="expired">Expired</option>
+                    </select>
+                    <select value={clientFilter} onChange={e => setClientFilter(e.target.value)} className="pm-filter-select">
+                        <option value="">All Clients</option>
+                        {clients.map(c => <option key={c._id} value={c._id}>{c.firstName} {c.lastName}</option>)}
+                    </select>
+                    <select value={projectFilter} onChange={e => setProjectFilter(e.target.value)} className="pm-filter-select">
+                        <option value="">All Projects</option>
+                        {projects.map(p => <option key={p._id} value={p._id}>{p.name}</option>)}
+                    </select>
+                </div>
 
-                    {loading ? (
-                        <div className="wm-loading"><RefreshCw className="animate-spin" color="var(--wm-t3)" /> Loading warranties...</div>
-                    ) : (
-                        <div className="wm-table-wrap">
-                            <table className="wm-table">
+                {loading ? (
+                    <div className="pm-loading"><RefreshCw className="animate-spin" size={20} /> Loading warranties...</div>
+                ) : (
+                    <div className="modern-table-card">
+                        <div className="modern-table-scroll">
+                            <table className="modern-table">
                                 <thead>
                                     <tr>
                                         <th>Serial No</th>
@@ -254,9 +251,9 @@ const WarrantyManagement = ({ currentUser, showToast }) => {
                                                 </td>
                                                 {isAdmin && (
                                                     <td>
-                                                        <div style={{ display: 'flex', gap: '0.4rem' }}>
+                                                        <div className="modern-table-actions">
                                                             <button
-                                                                className="wm-action-btn wm-action-edit"
+                                                                className="modern-table-action edit"
                                                                 title="Edit Serial Number"
                                                                 onClick={async () => {
                                                                     setEditSerialModal(w); setNewSerial(''); setSerialReason('');
@@ -276,7 +273,7 @@ const WarrantyManagement = ({ currentUser, showToast }) => {
                                                                 <Edit3 size={13} />
                                                             </button>
                                                             <button
-                                                                className="wm-action-btn wm-action-void"
+                                                                className="modern-table-action delete"
                                                                 title="Void Warranty"
                                                                 onClick={() => setVoidModal(w)}
                                                             >
@@ -288,12 +285,12 @@ const WarrantyManagement = ({ currentUser, showToast }) => {
                                             </tr>
                                         );
                                     })}
-                                    {filtered.length === 0 && <tr><td colSpan={isAdmin ? 10 : 9}><div className="wm-empty">No warranties found in registry</div></td></tr>}
+                                    {filtered.length === 0 && <tr><td colSpan={isAdmin ? 10 : 9}><div className="pm-empty">No warranties found in registry</div></td></tr>}
                                 </tbody>
                             </table>
                         </div>
-                    )}
-                </div>
+                    </div>
+                )}
             </div>
 
             {/* EDIT SERIAL MODAL */}

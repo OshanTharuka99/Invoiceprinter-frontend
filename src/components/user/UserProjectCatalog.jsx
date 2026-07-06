@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Search, RefreshCw, Briefcase, ChevronRight } from 'lucide-react';
+import { Search, RefreshCw, Briefcase, FolderKanban, CheckCircle2 } from 'lucide-react';
 import api from '../../api';
+import '../../styles/modern-table.css';
 
 const UserProjectCatalog = () => {
     const [projects, setProjects] = useState([]);
@@ -13,8 +14,8 @@ const UserProjectCatalog = () => {
         try {
             const res = await api.get('/projects');
             setProjects(res.data.data);
-        } catch (error) {
-            console.error("Failed database read");
+        } catch {
+            console.error('Failed database read');
         } finally {
             setLoading(false);
         }
@@ -27,50 +28,77 @@ const UserProjectCatalog = () => {
         p.projectId.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    const cardStyle = { background: '#fff', border: '1px solid #e2e8f0', borderRadius: '24px', padding: '2.5rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' };
+    const activeCount = projects.filter(p => p.startDate && new Date(p.startDate) <= new Date()).length;
 
     return (
-        <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-            {loading ? (
-                <div style={{ display: 'flex', justifyContent: 'center', padding: '4rem' }}><RefreshCw className="animate-spin" color="#64748b" /></div>
-            ) : (
-                <div style={cardStyle}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
+        <div className="pm-root">
+            <div className="pm-stats">
+                <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="pm-stat-card indigo">
+                    <div className="pm-stat-icon indigo"><FolderKanban size={22} /></div>
+                    <div className="pm-stat-body">
+                        <div className="pm-stat-value">{projects.length}</div>
+                        <div className="pm-stat-label">Total Projects</div>
+                    </div>
+                </motion.div>
+                <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.06 }} className="pm-stat-card green">
+                    <div className="pm-stat-icon green"><CheckCircle2 size={22} /></div>
+                    <div className="pm-stat-body">
+                        <div className="pm-stat-value">{activeCount}</div>
+                        <div className="pm-stat-label">Active</div>
+                    </div>
+                </motion.div>
+            </div>
+
+            <div className="pm-card">
+                <div className="pm-card-header">
+                    <div className="pm-card-title">
+                        <div className="pm-card-icon indigo"><Briefcase size={22} /></div>
                         <div>
-                            <h1 style={{ margin: 0, fontSize: '1.875rem', fontWeight: 800, color: '#0f172a' }}>Global Portfolios</h1>
-                            <p style={{ margin: '0.35rem 0 0', color: '#64748b', fontSize: '0.9rem' }}>Read-only view of assigned project blueprints. Escalation required for structural modification.</p>
-                        </div>
-                        <div style={{ position: 'relative' }}>
-                            <Search size={16} title="Secure Lookup" style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
-                            <input type="text" placeholder="Lookup Blueprint..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} style={{ padding: '0.8rem 1rem 0.8rem 2.5rem', borderRadius: '12px', border: '1px solid #e2e8f0', width: 280, outline: 'none', fontFamily: "'Outfit', sans-serif" }} />
+                            <h3>Global Portfolios</h3>
+                            <div className="pm-card-subtitle">Read-only view of assigned project blueprints.</div>
                         </div>
                     </div>
-
-                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                        <thead>
-                            <tr style={{ borderBottom: '2px solid #f1f5f9' }}>
-                                <th style={{ padding: '1rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.8rem' }}>Node Identifier</th>
-                                <th style={{ padding: '1rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.8rem' }}>Blueprint Name</th>
-                                <th style={{ padding: '1rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.8rem' }}>Origin Client</th>
-                                <th style={{ padding: '1rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.8rem' }}>Lifecycle Tracker</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {filtered.map(p => (
-                                <tr key={p._id} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.2s', cursor: 'default' }} onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                                    <td style={{ padding: '1rem', fontWeight: 800, color: '#f59e0b', fontSize: '0.9rem' }}>{p.projectId}</td>
-                                    <td style={{ padding: '1rem', fontWeight: 700, color: '#0f172a' }}>{p.name}</td>
-                                    <td style={{ padding: '1rem', color: '#64748b', fontSize: '0.9rem' }}>{p.client?.firstName} {p.client?.lastName}</td>
-                                    <td style={{ padding: '1rem', fontSize: '0.8rem', color: '#059669', fontWeight: 700 }}>
-                                        {p.startDate ? `Active Since: ${new Date(p.startDate).toLocaleDateString()}` : 'Awaiting Kickoff Protocol'}
-                                    </td>
-                                </tr>
-                            ))}
-                            {filtered.length === 0 && <tr><td colSpan="4" style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8' }}>Zero records match current matrix.</td></tr>}
-                        </tbody>
-                    </table>
+                    <div className="pm-card-actions">
+                        <div className="pm-search-wrap">
+                            <Search size={14} className="pm-search-icon" />
+                            <input type="text" placeholder="Lookup blueprint..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pm-search-input" />
+                        </div>
+                        <motion.button whileTap={{ scale: 0.95 }} onClick={fetchData} className="pm-btn pm-btn-outline"><RefreshCw size={16} /></motion.button>
+                    </div>
                 </div>
-            )}
+
+                {loading ? (
+                    <div className="pm-loading"><RefreshCw className="animate-spin" size={20} /> Loading...</div>
+                ) : (
+                    <div className="modern-table-card">
+                        <div className="modern-table-scroll">
+                            <table className="modern-table">
+                                <thead>
+                                    <tr>
+                                        <th>Node Identifier</th>
+                                        <th>Blueprint Name</th>
+                                        <th>Origin Client</th>
+                                        <th>Lifecycle Tracker</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {filtered.map(p => (
+                                        <tr key={p._id}>
+                                            <td><span className="modern-table-cell-subtitle amber">{p.projectId}</span></td>
+                                            <td><span className="modern-table-cell-title">{p.name}</span></td>
+                                            <td><span className="modern-table-cell-info muted">{p.client?.firstName} {p.client?.lastName}</span></td>
+                                            <td><span className="modern-table-cell-value green" style={{ fontSize: '0.8rem' }}>
+                                                {p.startDate ? `Active Since: ${new Date(p.startDate).toLocaleDateString()}` : 'Awaiting Kickoff Protocol'}
+                                            </span></td>
+                                        </tr>
+                                    ))}
+                                    {filtered.length === 0 && <tr><td colSpan="4" className="modern-table-empty">Zero records match current matrix.</td></tr>}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                )}
+            </div>
         </div>
     );
 };

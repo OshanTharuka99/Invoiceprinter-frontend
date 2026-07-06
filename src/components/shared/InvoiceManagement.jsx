@@ -1,11 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FileText, Plus, X, Search, RefreshCw, Printer, AlertTriangle, ShieldAlert, CheckCircle, Users, Briefcase, Barcode, Edit3, AlertCircle, Trash2, Clock, Truck } from 'lucide-react';
+import { FileText, Plus, X, Search, RefreshCw, Printer, AlertTriangle, ShieldAlert, CheckCircle, Barcode, Edit3, AlertCircle, Trash2, Clock, Truck } from 'lucide-react';
 import api from '../../api';
 import PriceInput from '../../utils/PriceInput';
+import { calculateDocumentTotals } from '../../utils/calculateDocumentTotals';
 import InvoiceTemplate from './InvoiceTemplate';
 import './InvoiceManagement.css';
 import '../../styles/modern-table.css';
+
+const NEW_CLIENT_OPTION = '__new_client__';
+const NEW_PROJECT_OPTION = '__new_project__';
 
 const InvoiceManagement = ({ currentUser, showToast }) => {
     const [invoices, setInvoices] = useState([]);
@@ -154,22 +158,7 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
         setTimeout(() => { windowPrint.print(); windowPrint.close(); }, 400);
     };
 
-    const calculateTotals = (currentForm) => {
-        const subTotal = currentForm.subTotal;
-        const discountTotal = (currentForm.appliedDiscounts || []).reduce((sum, d) => sum + (d.amount || 0), 0);
-        let taxableBase = subTotal - discountTotal;
-        let taxTotal = 0;
-        let updatedTaxes = [];
-        if (currentForm.hasTax && currentForm.appliedTaxes) {
-            updatedTaxes = currentForm.appliedTaxes.map(tax => {
-                const amount = tax.type === 'percentage' ? (taxableBase * tax.value) / 100 : tax.value;
-                taxTotal += amount;
-                return { ...tax, amount };
-            });
-        }
-        let finalTotal = taxableBase + taxTotal;
-        return { ...currentForm, discountTotal, appliedTaxes: updatedTaxes, taxTotal, finalTotal };
-    };
+    const calculateTotals = calculateDocumentTotals;
 
     const openCreation = (mode, source = 'blank', dnId = null) => {
         if (mode === 'manual' && !isAdmin) {
@@ -346,23 +335,55 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
         });
     };
 
+    const handleClientSelectChange = (value) => {
+        if (value === NEW_CLIENT_OPTION) {
+            setIsNewClientModalOpen(true);
+            return;
+        }
+        handleClientSelect(value);
+    };
+
+    const handleProjectSelectChange = (value) => {
+        if (value === NEW_PROJECT_OPTION) {
+            if (!form.clientRef) {
+                showToast?.('Please select a client before adding a new project', 'error');
+                return;
+            }
+            setNewProjectForm(prev => ({ ...prev, client: form.clientRef }));
+            setIsNewProjectModalOpen(true);
+            return;
+        }
+        setForm({ ...form, projectId: value });
+    };
+
+    const isClientProjectLocked = !!(invoiceSource === 'delivery_note' && form.deliveryNoteRef);
+    const filteredProjectsForClient = projects.filter(
+        p => !form.clientRef || p.client === form.clientRef || p.client?._id === form.clientRef
+    );
+
     const submitInvoice = async (e) => {
         e.preventDefault();
         if (form.items.length === 0) return showToast?.('Insert at least 1 item', 'error');
         if (!form.paymentMethod) return showToast?.('Select payment method', 'error');
         if (!form.projectId) return showToast?.('A project must be selected before generating an invoice', 'error');
 
-        // Validate mandatory serial numbers
+        // Validate serial numbers must exactly match item quantity
         for (const item of form.items) {
-            if (item.productRef) {
-                const prod = products.find(p => p._id === item.productRef);
-                if (prod?.hasSerialNumbers) {
-                    const assignedCount = item.serialNumbers?.length || 0;
-                    if (assignedCount < item.quantity) {
-                        return showToast?.(`Serial numbers required for "${prod.name}" (${assignedCount}/${item.quantity} assigned)`, 'error');
-                    }
-                }
+            const mismatch = getSerialMismatch(item);
+            if (mismatch) {
+                return showToast?.(
+                    `Serial count must match quantity for "${mismatch.label}" (${mismatch.serialCount}/${mismatch.quantity} assigned)`,
+                    'error'
+                );
             }
+        }
+
+        const uniqueCheckFailed = form.items.some(item => {
+            const serials = (item.serialNumbers || []).map(s => s.toUpperCase());
+            return serials.length > 0 && new Set(serials).size !== serials.length;
+        });
+        if (uniqueCheckFailed) {
+            return showToast?.('Duplicate serial numbers found in the same item', 'error');
         }
 
         // Enforce Paid status on frontend for cash payments before submit
@@ -487,20 +508,22 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
     };
 
     const confirmDelete = async () => {
+        if (!deleteReason.trim()) return showToast?.('Deletion reason is required', 'error');
+
         try {
             if (isAdmin) {
-                await api.delete(`/invoices/${invoiceToDelete._id}`);
+                await api.delete(`/invoices/${invoiceToDelete._id}`, { data: { reason: deleteReason.trim() } });
                 showToast?.('Invoice deleted', 'success');
             } else {
-                if (!deleteReason.trim()) return showToast?.('Reason is required', 'error');
-                await api.post(`/invoices/${invoiceToDelete._id}/request-delete`, { reason: deleteReason });
+                await api.post(`/invoices/${invoiceToDelete._id}/request-delete`, { reason: deleteReason.trim() });
                 showToast?.('Deletion request sent', 'success');
             }
             setDeleteModalOpen(false);
             setInvoiceToDelete(null);
+            setDeleteReason('');
             fetchData();
         } catch (err) {
-            showToast?.('Delete failed', 'error');
+            showToast?.(err.response?.data?.message || 'Delete failed', 'error');
         }
     };
 
@@ -515,6 +538,53 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
 
     const labelStyle = { display: 'block', fontSize: '0.75rem', fontWeight: 900, color: '#64748b', marginBottom: '0.6rem', textTransform: 'uppercase' };
     const inputStyle = { width: '100%', background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: '12px', padding: '0.8rem 1.25rem', color: '#0f172a', outline: 'none', fontWeight: 600, boxSizing: 'border-box' };
+
+    const getItemLabel = (item) => {
+        if (item.manualName) return item.manualName;
+        const prod = products.find(p => p._id === item.productRef);
+        return prod?.name || 'Unnamed Item';
+    };
+
+    const productRequiresSerials = (productRef) => {
+        if (!productRef) return false;
+        const prod = products.find(p => p._id === productRef);
+        if (prod?.availableSerials?.length > 0) return true;
+        return stockEntries.some(e => e.product === productRef && e.hasSerialNumbers);
+    };
+
+    const getSerialMismatch = (item) => {
+        const qty = Number(item.quantity) || 0;
+        const serialCount = item.serialNumbers?.length || 0;
+        const requiresSerials = item.productRef ? productRequiresSerials(item.productRef) : false;
+
+        if (!requiresSerials && serialCount === 0) return null;
+        if (serialCount === qty) return null;
+
+        return {
+            label: getItemLabel(item),
+            quantity: qty,
+            serialCount,
+        };
+    };
+
+    const serialReviewItems = form.items
+        .map((item, index) => {
+            const requiresSerials = item.productRef ? productRequiresSerials(item.productRef) : false;
+            const serials = item.serialNumbers || [];
+            if (!requiresSerials && serials.length === 0) return null;
+
+            return {
+                index,
+                label: getItemLabel(item),
+                quantity: item.quantity,
+                serials,
+                requiresSerials,
+                isComplete: serials.length === item.quantity,
+            };
+        })
+        .filter(Boolean);
+
+    const hasSerialMismatch = form.items.some(item => getSerialMismatch(item));
 
     return (
         <div className="im-root">
@@ -551,8 +621,9 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
                             }}><Truck size={18} /> From Delivery Note</motion.button>
                         </div>
                     </div>
-                    <div className="im-table-wrap modern-table-card">
-                        <table className="im-table modern-table">
+                    <div className="modern-table-card">
+                        <div className="modern-table-scroll">
+                        <table className="modern-table">
                             <thead>
                                 <tr>
                                     <th>Invoice ID</th>
@@ -594,7 +665,7 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
                                             >{inv.status}</span>
                                         </td>
                                         <td>
-                                            <div className="im-table-actions modern-table-actions">
+                                            <div className="modern-table-actions">
                                                 <motion.button whileTap={{ scale: 0.95 }} onClick={() => setViewInvoice(inv)} className="modern-table-action view"><Printer size={14} /></motion.button>
                                                 {isAdmin && (
                                                     <motion.button whileTap={{ scale: 0.95 }} onClick={() => setHistoryInvoice(inv)} className="modern-table-action history" title="View Status History"><Clock size={14} /></motion.button>
@@ -612,6 +683,7 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
                                 {filtered.length === 0 && <tr><td colSpan="6"><div className="im-empty">No invoices in registry.</div></td></tr>}
                             </tbody>
                         </table>
+                        </div>
                     </div>
                 </div>
             )}
@@ -686,27 +758,55 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                                         <div>
                                             <label style={labelStyle}>Select Client</label>
-                                            <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                                <select value={form.clientRef} onChange={e => handleClientSelect(e.target.value)}
-                                                    disabled={!!(invoiceSource === 'delivery_note' && form.deliveryNoteRef)}
-                                                    style={{ ...inputStyle, background: (invoiceSource === 'delivery_note' && form.deliveryNoteRef) ? '#f1f5f9' : '#fff', flex: 1, cursor: (invoiceSource === 'delivery_note' && form.deliveryNoteRef) ? 'not-allowed' : 'pointer' }}>
-                                                    <option value="" disabled>Select client...</option>
-                                                    {clients.map(c => <option key={c._id} value={c._id}>{c.clientType === 'Organization' ? c.firstName : `${c.firstName} ${c.lastName || ''}`} ({c.clientId})</option>)}
-                                                </select>
-                                                <motion.button type="button" whileTap={{ scale: 0.95 }} onClick={() => setIsNewClientModalOpen(true)} style={{ background: '#10b981', color: '#fff', border: 'none', borderRadius: '12px', padding: '0 1rem', cursor: 'pointer', display: 'flex', alignItems: 'center' }} title="Add New Client"><Users size={18} /></motion.button>
-                                            </div>
+                                            <select
+                                                value={form.clientRef}
+                                                onChange={e => handleClientSelectChange(e.target.value)}
+                                                disabled={isClientProjectLocked}
+                                                style={{ ...inputStyle, background: isClientProjectLocked ? '#f1f5f9' : '#fff', cursor: isClientProjectLocked ? 'not-allowed' : 'pointer' }}
+                                            >
+                                                <option value="" disabled>Select client...</option>
+                                                {clients.map(c => (
+                                                    <option key={c._id} value={c._id}>
+                                                        {c.clientType === 'Organization' ? c.firstName : `${c.firstName} ${c.lastName || ''}`} ({c.clientId})
+                                                    </option>
+                                                ))}
+                                                {!isClientProjectLocked && (
+                                                    <>
+                                                        <option disabled>────────────────────</option>
+                                                        <option value={NEW_CLIENT_OPTION}>+ Add New Client...</option>
+                                                    </>
+                                                )}
+                                            </select>
+                                            {!isClientProjectLocked && (
+                                                <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '0.35rem', fontWeight: 600 }}>
+                                                    Scroll to the bottom of the list and select &quot;+ Add New Client...&quot;
+                                                </div>
+                                            )}
                                         </div>
                                         <div>
                                             <label style={labelStyle}>Project <span style={{ color: '#ef4444' }}>*</span> <span style={{ color: '#94a3b8', fontWeight: 600, textTransform: 'none', fontSize: '0.7rem' }}>(Required)</span></label>
-                                            <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                                <select value={form.projectId} onChange={e => setForm({ ...form, projectId: e.target.value })}
-                                                    disabled={!!(invoiceSource === 'delivery_note' && form.deliveryNoteRef)}
-                                                    style={{ ...inputStyle, background: (invoiceSource === 'delivery_note' && form.deliveryNoteRef) ? '#f1f5f9' : '#fff', flex: 1, borderColor: !form.projectId ? '#fca5a5' : '#e2e8f0', cursor: (invoiceSource === 'delivery_note' && form.deliveryNoteRef) ? 'not-allowed' : 'pointer' }}>
-                                                    <option value="" disabled>Select project...</option>
-                                                    {projects.filter(p => !form.clientRef || p.client === form.clientRef || (p.client?._id === form.clientRef)).map(p => <option key={p._id} value={p._id}>{p.name} ({p.projectId})</option>)}
-                                                </select>
-                                                <motion.button type="button" whileTap={{ scale: 0.95 }} onClick={() => setIsNewProjectModalOpen(true)} style={{ background: '#10b981', color: '#fff', border: 'none', borderRadius: '12px', padding: '0 1rem', cursor: 'pointer', display: 'flex', alignItems: 'center' }} title="Add New Project"><Briefcase size={18} /></motion.button>
-                                            </div>
+                                            <select
+                                                value={form.projectId}
+                                                onChange={e => handleProjectSelectChange(e.target.value)}
+                                                disabled={isClientProjectLocked}
+                                                style={{ ...inputStyle, background: isClientProjectLocked ? '#f1f5f9' : '#fff', borderColor: !form.projectId ? '#fca5a5' : '#e2e8f0', cursor: isClientProjectLocked ? 'not-allowed' : 'pointer' }}
+                                            >
+                                                <option value="" disabled>Select project...</option>
+                                                {filteredProjectsForClient.map(p => (
+                                                    <option key={p._id} value={p._id}>{p.name} ({p.projectId})</option>
+                                                ))}
+                                                {!isClientProjectLocked && (
+                                                    <>
+                                                        <option disabled>────────────────────</option>
+                                                        <option value={NEW_PROJECT_OPTION}>+ Add New Project...</option>
+                                                    </>
+                                                )}
+                                            </select>
+                                            {!isClientProjectLocked && (
+                                                <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '0.35rem', fontWeight: 600 }}>
+                                                    Scroll to the bottom of the list and select &quot;+ Add New Project...&quot;
+                                                </div>
+                                            )}
                                             {!form.projectId && <div style={{ fontSize: '0.7rem', color: '#ef4444', marginTop: '0.3rem', fontWeight: 700 }}>⚠ Select a project to enable invoice generation</div>}
                                         </div>
                                     </div>
@@ -786,7 +886,7 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
                                             <tr style={{ borderBottom: '1.5px solid #e2e8f0' }}>
                                                 <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left', fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Item/Module</th>
                                                 <th style={{ padding: '0.75rem 0.5rem', textAlign: 'center', fontSize: '0.75rem', color: '#64748b', width: '8%', textTransform: 'uppercase' }}>QTY</th>
-                                                <th style={{ padding: '0.75rem 0.5rem', textAlign: 'right', fontSize: '0.75rem', color: '#64748b', width: '15%', textTransform: 'uppercase' }}>Unit Price</th>
+                                                <th style={{ padding: '0.75rem 0.5rem', textAlign: 'right', fontSize: '0.75rem', color: '#64748b', width: '22%', textTransform: 'uppercase' }}>Unit Price</th>
                                                 <th style={{ padding: '0.75rem 0.5rem', textAlign: 'right', fontSize: '0.75rem', color: '#64748b', width: '15%', textTransform: 'uppercase' }}>Line Total</th>
                                                 <th style={{ padding: '0.75rem 0.5rem', textAlign: 'center', fontSize: '0.75rem', color: '#64748b', width: '18%', textTransform: 'uppercase' }}>Serials</th>
                                                 <th style={{ width: '50px' }}></th>
@@ -818,7 +918,7 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
                                                     <td style={{ padding: '0.75rem 0.5rem' }}>
                                                         <div style={{ position: 'relative' }}>
                                                             <span style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', fontSize: '0.75rem' }}>{businessData?.primaryCurrency?.symbol || 'Rs.'}</span>
-                                                            <PriceInput value={it.unitPrice} onChange={v => updateItem(idx, 'unitPrice', v)} disabled={creationMode === 'automatic' && invoiceSource !== 'delivery_note'} style={{ ...inputStyle, background: (creationMode === 'automatic' && invoiceSource !== 'delivery_note') ? '#f8fafc' : '#fff', padding: '0.6rem 0.75rem 0.6px 1.5rem', textAlign: 'right', fontSize: '0.85rem' }} required />
+                                                            <PriceInput value={it.unitPrice} onChange={v => updateItem(idx, 'unitPrice', v)} disabled={creationMode === 'automatic' && invoiceSource !== 'delivery_note'} style={{ ...inputStyle, background: (creationMode === 'automatic' && invoiceSource !== 'delivery_note') ? '#f8fafc' : '#fff', padding: '0.6rem 0.75rem 0.6rem 2rem', textAlign: 'right', fontSize: '0.85rem', minWidth: '140px' }} required />
                                                         </div>
                                                     </td>
                                                     <td style={{ padding: '0.75rem 0.5rem', textAlign: 'right', fontWeight: 800, color: '#0f172a', fontSize: '0.9rem' }}>
@@ -1039,13 +1139,114 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
                                     {form.paymentMethod === 'cash' && <div style={{ fontSize: '0.7rem', color: '#10b981', marginTop: '0.3rem', fontWeight: 700 }}>✓ Cash invoices are automatically Paid</div>}
                                 </div>
 
+                                {/* SERIAL NUMBER REVIEW */}
+                                {serialReviewItems.length > 0 && (
+                                    <div style={{ marginBottom: '1.5rem', padding: '1.25rem 1.5rem', borderRadius: '16px', background: '#f8fafc', border: '1.5px solid #e2e8f0' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1rem' }}>
+                                            <Barcode size={18} color="#0f172a" />
+                                            <div>
+                                                <div style={{ fontWeight: 900, color: '#0f172a', fontSize: '0.9rem' }}>Serial Number Review</div>
+                                                <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>
+                                                    Double-check selected serial numbers before generating the invoice
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {serialReviewItems.map((row) => (
+                                            <div
+                                                key={row.index}
+                                                style={{
+                                                    marginBottom: row.index === serialReviewItems.length - 1 ? 0 : '0.85rem',
+                                                    padding: '1rem',
+                                                    background: '#fff',
+                                                    borderRadius: '12px',
+                                                    border: `1.5px solid ${row.isComplete ? '#bbf7d0' : '#fde68a'}`,
+                                                }}
+                                            >
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
+                                                    <div>
+                                                        <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.88rem' }}>{row.label}</div>
+                                                        <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600, marginTop: '0.2rem' }}>
+                                                            Qty: {row.quantity} · Selected: {row.serials.length}
+                                                        </div>
+                                                    </div>
+                                                    <span style={{
+                                                        fontSize: '0.68rem',
+                                                        fontWeight: 800,
+                                                        padding: '0.3rem 0.65rem',
+                                                        borderRadius: '999px',
+                                                        background: row.isComplete ? '#ecfdf5' : '#fffbeb',
+                                                        color: row.isComplete ? '#059669' : '#d97706',
+                                                        border: `1px solid ${row.isComplete ? '#a7f3d0' : '#fde68a'}`,
+                                                        whiteSpace: 'nowrap',
+                                                    }}>
+                                                        {row.isComplete ? '✓ Complete' : `⚠ ${row.serials.length}/${row.quantity} — must match exactly`}
+                                                    </span>
+                                                </div>
+                                                {row.serials.length > 0 ? (
+                                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.45rem' }}>
+                                                        {row.serials.map((sn) => (
+                                                            <span
+                                                                key={sn}
+                                                                style={{
+                                                                    fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+                                                                    fontSize: '0.78rem',
+                                                                    fontWeight: 700,
+                                                                    color: '#0f172a',
+                                                                    background: '#f1f5f9',
+                                                                    border: '1px solid #e2e8f0',
+                                                                    borderRadius: '8px',
+                                                                    padding: '0.35rem 0.65rem',
+                                                                }}
+                                                            >
+                                                                {sn}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                ) : (
+                                                    <div style={{ fontSize: '0.78rem', color: '#ef4444', fontWeight: 700 }}>
+                                                        No serial numbers selected yet
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+
                                 {/* FINAL TOTAL */}
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.5rem', background: '#0f172a', borderRadius: '16px', color: '#fff', marginBottom: '2rem' }}>
                                     <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '2px', fontWeight: 900, color: '#94a3b8' }}>Final Total</div>
                                     <div style={{ fontSize: '2rem', fontWeight: 900, letterSpacing: '-1px' }}>{form.finalTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
                                 </div>
 
-                                <motion.button whileTap={{ scale: 0.98 }} type="submit" style={{ background: '#10b981', color: '#fff', border: 'none', borderRadius: '12px', padding: '1rem', width: '100%', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', fontSize: '1rem' }}><CheckCircle size={20} /> Create Invoice</motion.button>
+                                <motion.button
+                                    whileTap={{ scale: hasSerialMismatch ? 1 : 0.98 }}
+                                    type="submit"
+                                    disabled={hasSerialMismatch}
+                                    style={{
+                                        background: hasSerialMismatch ? '#94a3b8' : '#10b981',
+                                        color: '#fff',
+                                        border: 'none',
+                                        borderRadius: '12px',
+                                        padding: '1rem',
+                                        width: '100%',
+                                        fontWeight: 800,
+                                        cursor: hasSerialMismatch ? 'not-allowed' : 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: '0.5rem',
+                                        fontSize: '1rem',
+                                        opacity: hasSerialMismatch ? 0.85 : 1,
+                                    }}
+                                >
+                                    <CheckCircle size={20} />
+                                    {hasSerialMismatch ? 'Assign All Serial Numbers First' : 'Create Invoice'}
+                                </motion.button>
+                                {hasSerialMismatch && (
+                                    <div style={{ fontSize: '0.75rem', color: '#ef4444', marginTop: '0.75rem', fontWeight: 700, textAlign: 'center' }}>
+                                        Each serial-tracked item must have serial numbers exactly equal to its quantity
+                                    </div>
+                                )}
                             </form>
                         </motion.div>
                     </div>
@@ -1235,20 +1436,31 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
                             {isAdmin ? (
                                 <>
                                     <ShieldAlert size={48} color="#ef4444" style={{ marginBottom: '1rem', margin: '0 auto' }} />
-                                    <h3 style={{ margin: 0, fontWeight: 800, fontSize: '1.25rem', color: '#0f172a' }}>Authorize Direct Nullification?</h3>
-                                    <p style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '2rem' }}>Executing this will permanently destroy this invoice.</p>
+                                    <h3 style={{ margin: 0, fontWeight: 800, fontSize: '1.25rem', color: '#0f172a' }}>Delete Invoice?</h3>
+                                    <p style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '1.25rem' }}>
+                                        This will cancel the invoice and restore stock. The deletion reason will be saved in status history.
+                                    </p>
                                 </>
                             ) : (
                                 <>
                                     <AlertTriangle size={48} color="#f59e0b" style={{ marginBottom: '1rem', margin: '0 auto' }} />
-                                    <h3 style={{ margin: 0, fontWeight: 800, fontSize: '1.25rem', color: '#0f172a' }}>Propose Deletion Request</h3>
-                                    <p style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '1.5rem' }}>Provide reason for Security Approval.</p>
-                                    <textarea placeholder="State explicit reason..." value={deleteReason} onChange={e => setDeleteReason(e.target.value)} required style={{ ...inputStyle, height: 100, resize: 'none', marginBottom: '2rem', textAlign: 'left' }} />
+                                    <h3 style={{ margin: 0, fontWeight: 800, fontSize: '1.25rem', color: '#0f172a' }}>Request Invoice Deletion</h3>
+                                    <p style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '1.25rem' }}>
+                                        Provide a reason for admin approval.
+                                    </p>
                                 </>
                             )}
+                            <label style={{ ...labelStyle, textAlign: 'left' }}>Deletion Reason / Command *</label>
+                            <textarea
+                                placeholder="e.g. Wrong client selected, duplicate invoice, customer cancelled order..."
+                                value={deleteReason}
+                                onChange={e => setDeleteReason(e.target.value)}
+                                required
+                                style={{ ...inputStyle, height: 100, resize: 'none', marginBottom: '1.5rem', textAlign: 'left' }}
+                            />
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                                <motion.button whileTap={{ scale: 0.95 }} onClick={() => setDeleteModalOpen(false)} style={{ background: '#f8fafc', color: '#64748b', border: 'none', borderRadius: '12px', padding: '0.8rem', fontWeight: 800, cursor: 'pointer' }}>Abort</motion.button>
-                                <motion.button whileTap={{ scale: 0.95 }} onClick={confirmDelete} style={{ background: isAdmin ? '#ef4444' : '#f59e0b', color: '#fff', border: 'none', borderRadius: '12px', padding: '0.8rem', fontWeight: 800, cursor: 'pointer' }}>Proceed</motion.button>
+                                <motion.button whileTap={{ scale: 0.95 }} onClick={() => { setDeleteModalOpen(false); setDeleteReason(''); }} style={{ background: '#f8fafc', color: '#64748b', border: 'none', borderRadius: '12px', padding: '0.8rem', fontWeight: 800, cursor: 'pointer' }}>Cancel</motion.button>
+                                <motion.button whileTap={{ scale: 0.95 }} onClick={confirmDelete} disabled={!deleteReason.trim()} style={{ background: isAdmin ? '#ef4444' : '#f59e0b', color: '#fff', border: 'none', borderRadius: '12px', padding: '0.8rem', fontWeight: 800, cursor: deleteReason.trim() ? 'pointer' : 'not-allowed', opacity: deleteReason.trim() ? 1 : 0.6 }}>{isAdmin ? 'Delete Invoice' : 'Submit Request'}</motion.button>
                             </div>
                         </motion.div>
                     </div>

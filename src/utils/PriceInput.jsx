@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import './PriceInput.css';
 
 export const formatNumberWithCommas = (value) => {
     if (value === '' || value === null || value === undefined) return '';
@@ -14,10 +15,22 @@ export const parseNumberFromCommas = (str) => {
     return isNaN(parsed) ? 0 : parsed;
 };
 
-const PriceInput = ({ value, onChange, disabled, style, placeholder, required, className }) => {
+const DECIMAL_PATTERN = /^\d*\.?\d{0,2}$/;
+
+const PriceInput = ({
+    value,
+    onChange,
+    disabled,
+    style,
+    placeholder,
+    required,
+    className,
+    debounceMs = 500,
+}) => {
     const [displayText, setDisplayText] = useState('');
     const [isFocused, setIsFocused] = useState(false);
     const ref = useRef(null);
+    const debounceRef = useRef(null);
 
     useEffect(() => {
         if (!isFocused) {
@@ -25,25 +38,50 @@ const PriceInput = ({ value, onChange, disabled, style, placeholder, required, c
         }
     }, [value, isFocused]);
 
+    useEffect(() => () => clearTimeout(debounceRef.current), []);
+
+    const notifyChange = (raw) => {
+        if (raw === '' || raw === '.') {
+            onChange(0);
+            return;
+        }
+        const parsed = parseFloat(raw);
+        if (!isNaN(parsed)) onChange(parsed);
+    };
+
     const handleChange = (e) => {
         const raw = e.target.value.replace(/,/g, '');
-        if (raw === '' || /^\d*\.?\d*$/.test(raw)) {
-            setDisplayText(raw);
-            const parsed = raw === '' ? 0 : parseFloat(raw);
-            if (!isNaN(parsed)) onChange(parsed);
-        }
+        if (raw !== '' && !DECIMAL_PATTERN.test(raw)) return;
+
+        setDisplayText(raw);
+
+        clearTimeout(debounceRef.current);
+        debounceRef.current = setTimeout(() => notifyChange(raw), debounceMs);
     };
 
     const handleFocus = () => {
         setIsFocused(true);
-        const raw = value !== null && value !== undefined && value !== '' ? value.toString() : '';
+        const num = Number(value);
+        const raw = !value && value !== 0 ? '' : (num === 0 ? '' : String(value).replace(/,/g, ''));
         setDisplayText(raw);
-        setTimeout(() => ref.current?.select(), 0);
+
+        requestAnimationFrame(() => {
+            const el = ref.current;
+            if (!el) return;
+            const pos = el.value.length;
+            el.setSelectionRange(pos, pos);
+        });
     };
 
     const handleBlur = () => {
         setIsFocused(false);
-        setDisplayText(formatNumberWithCommas(value));
+        clearTimeout(debounceRef.current);
+
+        const raw = displayText.replace(/,/g, '');
+        notifyChange(raw);
+
+        const parsed = parseNumberFromCommas(raw);
+        setDisplayText(formatNumberWithCommas(parsed));
     };
 
     return (
@@ -51,7 +89,7 @@ const PriceInput = ({ value, onChange, disabled, style, placeholder, required, c
             ref={ref}
             type="text"
             inputMode="decimal"
-            className={className}
+            className={`price-input ${className || ''}`.trim()}
             value={displayText}
             onChange={handleChange}
             onFocus={handleFocus}

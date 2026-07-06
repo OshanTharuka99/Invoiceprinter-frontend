@@ -3,7 +3,8 @@
    ============================================ */
 
 /* Table Container Card */
-.modern-table-card {
+.modern-table-card,
+.modern-table-wrapper {
     background: #fff;
     border-radius: 24px;
     border: 1px solid #e2e8f0;
@@ -13,6 +14,12 @@
 
 .modern-table-scroll {
     overflow-x: auto;
+}
+
+.modern-table-scroll .modern-table,
+.modern-table-card .modern-table,
+.modern-table-wrapper .modern-table {
+    min-width: 680px;
 }
 
 /* Base Table */
@@ -161,13 +168,25 @@
 .modern-table-action {
     width: 36px;
     height: 36px;
+    min-width: 36px;
+    min-height: 36px;
+    padding: 0;
     border-radius: 10px;
     border: 1.5px solid;
     cursor: pointer;
-    display: flex;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
+    overflow: visible;
+    line-height: 0;
     transition: all 0.2s ease;
+}
+
+.modern-table-action svg {
+    display: block;
+    flex-shrink: 0;
+    pointer-events: none;
 }
 
 .modern-table-action:active {
@@ -206,13 +225,19 @@
 
 .modern-table-action.stock {
     background: #ecfdf5;
-    border-color: #d1fae5;
-    color: #16a34a;
+    border-color: #bbf7d0;
+    color: #047857;
 }
 
 .modern-table-action.stock:hover {
     background: #d1fae5;
-    color: #15803d;
+    border-color: #86efac;
+    color: #065f46;
+}
+
+.modern-table-action.stock svg {
+    color: #047857;
+    stroke: #047857;
 }
 
 .modern-table-action.print {
@@ -223,6 +248,16 @@
 
 .modern-table-action.print:hover {
     background: #f1f5f9;
+}
+
+.modern-table-action.history {
+    background: #f5f3ff;
+    border-color: #ede9fe;
+    color: #7c3aed;
+}
+
+.modern-table-action.history:hover {
+    background: #ede9fe;
 }
 
 .modern-table-action.promote {

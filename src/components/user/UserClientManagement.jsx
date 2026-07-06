@@ -72,64 +72,104 @@ const UserClientManagement = ({ showToast }) => {
         c.clientId.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    const cardStyle = { background: '#fff', border: '1px solid #e2e8f0', borderRadius: '24px', padding: '2.5rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' };
+    const personCount = clients.filter(c => c.clientType === 'Person').length;
+    const companyCount = clients.filter(c => c.clientType === 'Company').length;
+
     const labelStyle = { display: 'block', fontSize: '0.75rem', fontWeight: 900, color: '#64748b', marginBottom: '0.6rem', textTransform: 'uppercase' };
     const inputStyle = { width: '100%', background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: '12px', padding: '0.9rem 1.25rem', color: '#0f172a', outline: 'none', fontWeight: 600, boxSizing: 'border-box' };
-    const btnStyle = { background: '#0f172a', color: '#fff', border: 'none', borderRadius: '12px', padding: '0.8rem 1.5rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' };
 
     return (
-        <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-            {loading ? (
-                <div style={{ display: 'flex', justifyContent: 'center', padding: '4rem' }}><RefreshCw className="animate-spin" color="#64748b" /></div>
-            ) : (
-                <div style={cardStyle}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
+        <div className="pm-root">
+            <div className="pm-stats">
+                <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="pm-stat-card indigo">
+                    <div className="pm-stat-icon indigo"><Users size={22} /></div>
+                    <div className="pm-stat-body">
+                        <div className="pm-stat-value">{clients.length}</div>
+                        <div className="pm-stat-label">Total Clients</div>
+                    </div>
+                </motion.div>
+                <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.06 }} className="pm-stat-card blue">
+                    <div className="pm-stat-icon blue"><Users size={22} /></div>
+                    <div className="pm-stat-body">
+                        <div className="pm-stat-value">{personCount}</div>
+                        <div className="pm-stat-label">Individuals</div>
+                    </div>
+                </motion.div>
+                <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }} className="pm-stat-card amber">
+                    <div className="pm-stat-icon amber"><Users size={22} /></div>
+                    <div className="pm-stat-body">
+                        <div className="pm-stat-value">{companyCount}</div>
+                        <div className="pm-stat-label">Companies</div>
+                    </div>
+                </motion.div>
+            </div>
+
+            <div className="pm-card">
+                <div className="pm-card-header">
+                    <div className="pm-card-title">
+                        <div className="pm-card-icon indigo"><Users size={22} /></div>
                         <div>
-                            <h1 style={{ margin: 0, fontSize: '1.875rem', fontWeight: 800, color: '#0f172a' }}>Client Directory</h1>
-                            <p style={{ margin: '0.35rem 0 0', color: '#64748b', fontSize: '0.9rem' }}>Read-Only visibility with dynamic override proposal systems.</p>
-                        </div>
-                        <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-                            <div style={{ position: 'relative' }}>
-                                <Search size={16} title="Locate Entity" style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
-                                <input type="text" placeholder="Search clients..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} style={{ padding: '0.8rem 1rem 0.8rem 2.5rem', borderRadius: '12px', border: '1px solid #e2e8f0', width: 280, outline: 'none', fontFamily: "'Outfit', sans-serif" }} />
-                            </div>
-                            <motion.button whileTap={{ scale: 0.95 }} title="Add Client" onClick={openCreateModal} style={btnStyle}><Plus size={18} /> Add Client</motion.button>
+                            <h3>Client Directory</h3>
+                            <div className="pm-card-subtitle">Read-only visibility with dynamic override proposal systems.</div>
                         </div>
                     </div>
+                    <div className="pm-card-actions">
+                        <div className="pm-search-wrap">
+                            <Search size={14} className="pm-search-icon" />
+                            <input type="text" placeholder="Search clients..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pm-search-input" />
+                        </div>
+                        <motion.button whileTap={{ scale: 0.95 }} onClick={fetchClients} className="pm-btn pm-btn-outline"><RefreshCw size={16} /></motion.button>
+                        <motion.button whileTap={{ scale: 0.95 }} onClick={openCreateModal} className="pm-btn pm-btn-primary"><Plus size={16} /> Add Client</motion.button>
+                    </div>
+                </div>
 
-                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                {loading ? (
+                    <div className="pm-loading"><RefreshCw className="animate-spin" size={20} /> Loading...</div>
+                ) : (
+                    <div className="modern-table-card">
+                        <div className="modern-table-scroll">
+                        <table className="modern-table">
                         <thead>
-                            <tr style={{ borderBottom: '2px solid #f1f5f9' }}>
-                                <th style={{ padding: '1rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.8rem' }}>Identifier</th>
-                                <th style={{ padding: '1rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.8rem' }}>Client Type</th>
-                                <th style={{ padding: '1rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.8rem' }}>Contact Details</th>
-                                <th style={{ padding: '1rem', textAlign: 'right' }}>Actions</th>
+                            <tr>
+                                <th>Identifier</th>
+                                <th>Client Type</th>
+                                <th>Contact Details</th>
+                                <th className="text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             {filtered.map(c => (
-                                <tr key={c._id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                                    <td style={{ padding: '1rem' }}>
-                                        <div style={{ fontWeight: 800, color: '#0f172a' }}>{c.firstName} {c.lastName}</div>
-                                        <div style={{ fontSize: '0.8rem', color: '#3b82f6', fontWeight: 700 }}>{c.clientId}</div>
+                                <tr key={c._id}>
+                                    <td>
+                                        <div className="modern-table-cell-primary">
+                                            <div>
+                                                <div className="modern-table-cell-title">{c.firstName} {c.lastName}</div>
+                                                <span className="modern-table-cell-subtitle blue">{c.clientId}</span>
+                                            </div>
+                                        </div>
                                     </td>
-                                    <td style={{ padding: '1rem' }}>
-                                        <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569', background: '#f1f5f9', padding: '4px 8px', borderRadius: '6px' }}>{c.clientType}</span>
+                                    <td>
+                                        <span className="modern-table-type">{c.clientType}</span>
                                     </td>
-                                    <td style={{ padding: '1rem', fontSize: '0.85rem', color: '#475569' }}>
-                                        {c.telephoneNumber && <div>📞 {c.telephoneNumber}</div>}
-                                        {c.emailAddress && <div>📧 {c.emailAddress}</div>}
+                                    <td>
+                                        <div className="modern-table-cell-info">
+                                            {c.telephoneNumber && <span>{c.telephoneNumber}</span>}
+                                            {c.emailAddress && <span>{c.emailAddress}</span>}
+                                            {!c.telephoneNumber && !c.emailAddress && <span className="muted">—</span>}
+                                        </div>
                                     </td>
-                                    <td style={{ padding: '1rem', textAlign: 'right' }}>
-                                        <motion.button whileTap={{ scale: 0.9 }} onClick={() => openEditModal(c)} style={{ background: '#fdf2f8', color: '#db2777', border: '1px solid #fce7f3', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', fontWeight: 700, fontSize: '0.8rem' }}>Suggest Edit</motion.button>
+                                    <td className="text-right">
+                                        <motion.button whileTap={{ scale: 0.9 }} onClick={() => openEditModal(c)} style={{ background: '#eff6ff', color: '#2563eb', border: '1.5px solid #dbeafe', padding: '8px 14px', borderRadius: '10px', cursor: 'pointer', fontWeight: 700, fontSize: '0.8rem' }}>Suggest Edit</motion.button>
                                     </td>
                                 </tr>
                             ))}
-                            {filtered.length === 0 && <tr><td colSpan="4" style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8' }}>No entities map to current parameters.</td></tr>}
+                            {filtered.length === 0 && <tr><td colSpan="4" className="modern-table-empty">No entities map to current parameters.</td></tr>}
                         </tbody>
-                    </table>
-                </div>
-            )}
+                        </table>
+                        </div>
+                    </div>
+                )}
+            </div>
 
             {/* CREATE MODAL */}
             <AnimatePresence>

@@ -134,15 +134,7 @@
 .pm-select:focus { border-color:var(--pm-focus); background:#fff; }
 
 /* ── Table ───────────────────────────────────────────── */
-.pm-table-wrap { overflow-x:auto; }
-.pm-table { width:100%; border-collapse:collapse; text-align:left; min-width:680px; }
-.pm-table thead tr { background:#f9fafb; }
-.pm-table th { padding:0.85rem 1.25rem; color:var(--pm-t3); font-weight:700; text-transform:uppercase; font-size:0.68rem; letter-spacing:0.07em; white-space:nowrap; border-bottom:1px solid var(--pm-border); }
-.pm-table td { padding:1rem 1.25rem; font-size:0.875rem; color:var(--pm-t1); border-bottom:1px solid #f3f4f6; vertical-align:middle; }
-.pm-table tbody tr:last-child td { border-bottom:none; }
-.pm-table tbody tr { transition:background 0.15s; }
-.pm-table tbody tr:hover { background:#fafbfc; }
-.pm-table-actions { display:flex; gap:5px; justify-content:flex-end; flex-wrap:nowrap; }
+/* Table styles: see styles/modern-table.css */
 
 /* ── Project Cards (Grid View) ───────────────────────── */
 .pm-grid {

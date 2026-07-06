@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { FileText, Plus, X, Search, RefreshCw, Printer, AlertTriangle, ShieldAlert, CheckCircle, Briefcase, Trash2 } from 'lucide-react';
 import api from '../../api';
 import PriceInput from '../../utils/PriceInput';
+import { calculateDocumentTotals } from '../../utils/calculateDocumentTotals';
 import QuotationTemplate from './QuotationTemplate';
 import './QuotationManagement.css';
 import '../../styles/modern-table.css';
@@ -126,23 +127,7 @@ const QuotationManagement = ({ currentUser, showToast }) => {
         }, 400);
     };
 
-    const calculateTotals = (currentForm) => {
-        const subTotal = currentForm.subTotal;
-        const discountTotal = (currentForm.appliedDiscounts || []).reduce((sum, d) => sum + (d.amount || 0), 0);
-        let taxableBase = subTotal - discountTotal;
-
-        let taxTotal = 0;
-        let updatedTaxes = [];
-        if (currentForm.hasTax && currentForm.appliedTaxes) {
-            updatedTaxes = currentForm.appliedTaxes.map(tax => {
-                const amount = tax.type === 'percentage' ? (taxableBase * tax.value) / 100 : tax.value;
-                taxTotal += amount;
-                return { ...tax, amount };
-            });
-        }
-        let finalTotal = taxableBase + taxTotal;
-        return { ...currentForm, discountTotal, appliedTaxes: updatedTaxes, taxTotal, finalTotal };
-    };
+    const calculateTotals = calculateDocumentTotals;
 
     const openCreation = (mode) => {
         setCreationMode(mode);
@@ -272,8 +257,9 @@ const QuotationManagement = ({ currentUser, showToast }) => {
                         </div>
                     </div>
 
-                    <div className="qm-table-wrap modern-table-card">
-                        <table className="qm-table modern-table">
+                    <div className="modern-table-card">
+                        <div className="modern-table-scroll">
+                        <table className="modern-table">
                             <thead>
                                 <tr>
                                     <th>Identifier</th>
@@ -315,7 +301,7 @@ const QuotationManagement = ({ currentUser, showToast }) => {
                                             </span>
                                         </td>
                                         <td>
-                                            <div className="qm-table-actions modern-table-actions">
+                                            <div className="modern-table-actions">
                                                 <motion.button whileTap={{ scale: 0.95 }} onClick={() => setViewQuotation(q)} className="modern-table-action view"><Printer size={14} /></motion.button>
                                                 <motion.button whileTap={{ scale: 0.95 }} onClick={() => openDeleteModal(q)} className="modern-table-action delete"><Trash2 size={14} /></motion.button>
                                             </div>
@@ -325,6 +311,7 @@ const QuotationManagement = ({ currentUser, showToast }) => {
                                 {filtered.length === 0 && <tr><td colSpan="6"><div className="qm-empty">No templates in active registry</div></td></tr>}
                             </tbody>
                         </table>
+                        </div>
                     </div>
                 </div>
             )}
@@ -521,7 +508,7 @@ const QuotationManagement = ({ currentUser, showToast }) => {
                                                     <tr>
                                                         <th style={{ padding: '0.5rem', textAlign: 'left', fontSize: '0.75rem', color: '#64748b' }}>Item/Module</th>
                                                         <th style={{ padding: '0.5rem', textAlign: 'center', fontSize: '0.75rem', color: '#64748b', width: '10%' }}>QTY</th>
-                                                        <th style={{ padding: '0.5rem', textAlign: 'right', fontSize: '0.75rem', color: '#64748b', width: '15%' }}>Unit Price</th>
+                                                        <th style={{ padding: '0.5rem', textAlign: 'right', fontSize: '0.75rem', color: '#64748b', width: '22%' }}>Unit Price</th>
                                                         <th style={{ padding: '0.5rem', textAlign: 'right', fontSize: '0.75rem', color: '#64748b', width: '15%' }}>Line Total</th>
                                                         <th></th>
                                                     </tr>
@@ -543,7 +530,7 @@ const QuotationManagement = ({ currentUser, showToast }) => {
                                                                 <input required type="number" min="1" value={it.quantity} onChange={e => updateItem(idx, 'quantity', parseInt(e.target.value) || 0)} style={{ ...inputStyle, background: '#fff', padding: '0.5rem', textAlign: 'center' }} />
                                                             </td>
                                                             <td style={{ padding: '0.5rem' }}>
-                                                                <PriceInput value={it.unitPrice} onChange={v => updateItem(idx, 'unitPrice', v)} disabled={creationMode === 'automatic'} style={{ ...inputStyle, background: creationMode === 'automatic' ? '#f1f5f9' : '#fff', padding: '0.5rem', textAlign: 'right' }} required />
+                                                                <PriceInput value={it.unitPrice} onChange={v => updateItem(idx, 'unitPrice', v)} disabled={creationMode === 'automatic'} style={{ ...inputStyle, background: creationMode === 'automatic' ? '#f1f5f9' : '#fff', padding: '0.5rem 0.75rem', textAlign: 'right', minWidth: '140px' }} required />
                                                             </td>
                                                             <td style={{ padding: '0.5rem', textAlign: 'right', fontWeight: 800, color: '#0f172a' }}>
                                                                 {it.lineTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}

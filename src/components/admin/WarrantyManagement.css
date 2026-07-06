@@ -122,14 +122,8 @@
 .wm-select:focus { border-color:var(--wm-focus); }
 
 /* ── Table ───────────────────────────────────────────── */
-.wm-table-wrap { overflow-x:auto; }
-.wm-table { width:100%; border-collapse:collapse; text-align:left; min-width:900px; }
-.wm-table thead tr { background:#f9fafb; }
-.wm-table th { padding:0.85rem 1.25rem; color:var(--wm-t3); font-weight:700; text-transform:uppercase; font-size:0.68rem; letter-spacing:0.07em; white-space:nowrap; border-bottom:1px solid var(--wm-border); }
-.wm-table td { padding:1rem 1.25rem; font-size:0.875rem; color:var(--wm-t1); border-bottom:1px solid #f3f4f6; vertical-align:middle; }
-.wm-table tbody tr:last-child td { border-bottom:none; }
-.wm-table tbody tr { transition:background 0.15s; }
-.wm-table tbody tr:hover { background:#fafbfc; }
+/* Table styles: see styles/modern-table.css */
+.wm-table-scroll .modern-table { min-width: 900px; }
 
 /* ── Badges ──────────────────────────────────────────── */
 .wm-badge { display:inline-flex; align-items:center; gap:4px; padding:3px 10px; border-radius:20px; font-weight:700; font-size:0.7rem; white-space:nowrap; }

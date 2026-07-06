@@ -342,6 +342,9 @@ const DeliveryNoteManagement = ({ currentUser, showToast }) => {
         (getClientDisplay(dn) || '').toLowerCase().includes(searchTerm.toLowerCase())
     );
 
+    const deliveredCount = deliveryNotes.filter(dn => dn.status === 'Delivered').length;
+    const draftCount = deliveryNotes.filter(dn => dn.status === 'Draft' || !dn.status).length;
+
     const modalOverlay = {
         position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
         background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)',
@@ -382,16 +385,14 @@ const DeliveryNoteManagement = ({ currentUser, showToast }) => {
 
     if (loading) {
         return (
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '300px', color: '#94a3b8', fontFamily: "'Outfit', sans-serif", fontWeight: 600 }}>
-                <RefreshCw size={20} style={{ marginRight: 8, animation: 'spin 1s linear infinite' }} />
-                Loading delivery notes...
+            <div className="pm-root">
+                <div className="pm-loading"><RefreshCw className="animate-spin" size={20} /> Loading delivery notes...</div>
             </div>
         );
     }
 
     return (
-        <div>
-            {/* Hidden print template */}
+        <div className="pm-root">
             <div style={{ display: 'none' }}>
                 <div ref={printRef}>
                     {viewDeliveryNote && businessData && (
@@ -400,44 +401,50 @@ const DeliveryNoteManagement = ({ currentUser, showToast }) => {
                 </div>
             </div>
 
-            {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-                <div>
-                    <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0f172a', fontFamily: "'Outfit', sans-serif" }}>Delivery Note Engine</div>
-                    <div style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 600, fontFamily: "'Outfit', sans-serif", marginTop: 4 }}>
-                        {deliveryNotes.length} record{deliveryNotes.length !== 1 ? 's' : ''}
+            <div className="pm-stats">
+                <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="pm-stat-card indigo">
+                    <div className="pm-stat-icon indigo"><Truck size={22} /></div>
+                    <div className="pm-stat-body">
+                        <div className="pm-stat-value">{deliveryNotes.length}</div>
+                        <div className="pm-stat-label">Total Notes</div>
+                    </div>
+                </motion.div>
+                <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.06 }} className="pm-stat-card green">
+                    <div className="pm-stat-icon green"><CheckCircle size={22} /></div>
+                    <div className="pm-stat-body">
+                        <div className="pm-stat-value">{deliveredCount}</div>
+                        <div className="pm-stat-label">Delivered</div>
+                    </div>
+                </motion.div>
+                <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }} className="pm-stat-card amber">
+                    <div className="pm-stat-icon amber"><FileText size={22} /></div>
+                    <div className="pm-stat-body">
+                        <div className="pm-stat-value">{draftCount}</div>
+                        <div className="pm-stat-label">Draft</div>
+                    </div>
+                </motion.div>
+            </div>
+
+            <div className="pm-card">
+                <div className="pm-card-header">
+                    <div className="pm-card-title">
+                        <div className="pm-card-icon indigo"><Truck size={22} /></div>
+                        <div>
+                            <h3>Delivery Note Engine</h3>
+                            <div className="pm-card-subtitle">Create, deliver, and track delivery notes with stock integration.</div>
+                        </div>
+                    </div>
+                    <div className="pm-card-actions">
+                        <div className="pm-search-wrap">
+                            <Search size={14} className="pm-search-icon" />
+                            <input type="text" placeholder="Search by number or client..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pm-search-input" />
+                        </div>
+                        <motion.button whileTap={{ scale: 0.95 }} onClick={() => openCreation()} className="pm-btn pm-btn-primary"><Plus size={16} /> Create Delivery Note</motion.button>
                     </div>
                 </div>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                    <button onClick={() => openCreation()} style={{
-                        padding: '10px 20px', borderRadius: '12px', border: 'none',
-                        background: '#8b5cf6', color: '#fff', fontWeight: 700, fontSize: '0.85rem',
-                        cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px',
-                        fontFamily: "'Outfit', sans-serif", transition: 'all 0.2s'
-                    }}>
-                        <Plus size={18} /> Create Delivery Note
-                    </button>
-                </div>
-            </div>
 
-            {/* Search */}
-            <div style={{ marginBottom: '20px', position: 'relative' }}>
-                <Search size={18} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
-                <input
-                    type="text"
-                    placeholder="Search by number or client..."
-                    value={searchTerm}
-                    onChange={e => setSearchTerm(e.target.value)}
-                    style={{
-                        width: '100%', padding: '12px 14px 12px 44px', borderRadius: '12px',
-                        border: '1.5px solid #e2e8f0', fontSize: '0.9rem', fontFamily: "'Outfit', sans-serif",
-                        outline: 'none', boxSizing: 'border-box'
-                    }}
-                />
-            </div>
-
-            {/* Table */}
-            <div className="modern-table-wrapper">
+            <div className="modern-table-card">
+                <div className="modern-table-scroll">
                 <table className="modern-table">
                     <thead>
                         <tr>
@@ -453,9 +460,7 @@ const DeliveryNoteManagement = ({ currentUser, showToast }) => {
                     <tbody>
                         {filteredDNs.length === 0 ? (
                             <tr>
-                                <td colSpan={7} style={{ textAlign: 'center', padding: '40px', color: '#94a3b8', fontWeight: 600, fontFamily: "'Outfit', sans-serif" }}>
-                                    No delivery notes found
-                                </td>
+                                <td colSpan={7} className="modern-table-empty">No delivery notes found</td>
                             </tr>
                         ) : (
                             filteredDNs.map((dn, i) => (
@@ -569,6 +574,8 @@ const DeliveryNoteManagement = ({ currentUser, showToast }) => {
                         )}
                     </tbody>
                 </table>
+                </div>
+            </div>
             </div>
 
             {/* Create Modal */}

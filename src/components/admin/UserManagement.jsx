@@ -8,6 +8,7 @@ import {
     Lock, Check, X
 } from 'lucide-react';
 import api from '../../api';
+import useSubmitGuard from '../../utils/useSubmitGuard';
 import './UserManagement.css';
 import '../../styles/modern-table.css';
 
@@ -33,6 +34,7 @@ const UserManagement = ({ currentUser, showToast }) => {
     const [showAddPass, setShowAddPass] = useState(false);
     const [editPassword, setEditPassword] = useState('');
     const [showEditPass, setShowEditPass] = useState(false);
+    const { isSubmitting, runGuarded } = useSubmitGuard();
 
     const editPolicy = {
         length: editPassword.length >= 8,
@@ -57,51 +59,59 @@ const UserManagement = ({ currentUser, showToast }) => {
 
     const handleCreateUser = async (e) => {
         e.preventDefault();
-        try {
-            const res = await api.post('/users', newUser);
-            setUsers([...users, res.data.data.user]);
-            setAddUserModal(false);
-            setNewUser({ firstName: '', lastName: '', email: '', password: '', designation: '', role: 'user', sex: 'male', telephoneNumber: '' });
-            showToast('New personnel authenticated');
-        } catch (err) { showToast(err.response?.data?.message || 'Creation failed', 'error'); }
+        await runGuarded(async () => {
+            try {
+                const res = await api.post('/users', newUser);
+                setUsers([...users, res.data.data.user]);
+                setAddUserModal(false);
+                setNewUser({ firstName: '', lastName: '', email: '', password: '', designation: '', role: 'user', sex: 'male', telephoneNumber: '' });
+                showToast('New personnel authenticated');
+            } catch (err) { showToast(err.response?.data?.message || 'Creation failed', 'error'); }
+        });
     };
 
     const handleUpdateUser = async (e) => {
         e.preventDefault();
-        try {
-            const upData = { ...editingUser, password: editPassword || undefined };
-            if (!upData.password) delete upData.password;
-            const res = await api.patch(`/users/${editingUser._id}`, upData);
-            setUsers(users.map(u => u._id === editingUser._id ? res.data.data.user : u));
-            setEditingUser(null);
-            setEditPassword('');
-            showToast('Identity updated');
-        } catch (err) { showToast('Update rejected by server', 'error'); }
+        await runGuarded(async () => {
+            try {
+                const upData = { ...editingUser, password: editPassword || undefined };
+                if (!upData.password) delete upData.password;
+                const res = await api.patch(`/users/${editingUser._id}`, upData);
+                setUsers(users.map(u => u._id === editingUser._id ? res.data.data.user : u));
+                setEditingUser(null);
+                setEditPassword('');
+                showToast('Identity updated');
+            } catch (err) { showToast('Update rejected by server', 'error'); }
+        });
     };
 
     const handleDelete = async () => {
         if (!userToDelete || typedConfirmName.toLowerCase() !== userToDelete.firstName.toLowerCase()) return;
-        try {
-            await api.delete(`/users/${userToDelete._id}`);
-            setUsers(users.filter(u => u._id !== userToDelete._id));
-            setUserToDelete(null);
-            showToast('Personnel record terminated');
-        } catch (err) { showToast('Security rejection', 'error'); }
+        await runGuarded(async () => {
+            try {
+                await api.delete(`/users/${userToDelete._id}`);
+                setUsers(users.filter(u => u._id !== userToDelete._id));
+                setUserToDelete(null);
+                showToast('Personnel record terminated');
+            } catch (err) { showToast('Security rejection', 'error'); }
+        });
     };
 
     const handleRoleUpdate = async () => {
         if (!userToPromote) return;
         const target = userToPromote;
         const nextRole = target.role === 'admin' ? 'user' : 'admin';
-        try {
-            await api.patch(`/users/${target._id}/role`, { role: nextRole });
-            setUsers(users.map(u => u._id === target._id ? { ...u, role: nextRole } : u));
-            showToast(`Clearance updated: ${nextRole.toUpperCase()}`);
-            setUserToPromote(null);
-        } catch (err) {
-            showToast('Permission denied', 'error');
-            setUserToPromote(null);
-        }
+        await runGuarded(async () => {
+            try {
+                await api.patch(`/users/${target._id}/role`, { role: nextRole });
+                setUsers(users.map(u => u._id === target._id ? { ...u, role: nextRole } : u));
+                showToast(`Clearance updated: ${nextRole.toUpperCase()}`);
+                setUserToPromote(null);
+            } catch (err) {
+                showToast('Permission denied', 'error');
+                setUserToPromote(null);
+            }
+        });
     };
 
     const filteredUsers = users.filter(u => {
@@ -316,7 +326,7 @@ const UserManagement = ({ currentUser, showToast }) => {
                                     </select>
                                 </div>
                                 <div className="user-form-actions">
-                                    <button type="submit" className="user-submit-btn">Add User</button>
+                                    <button type="submit" className="user-submit-btn" disabled={isSubmitting}>{isSubmitting ? 'Processing...' : 'Add User'}</button>
                                     <button type="button" onClick={() => setAddUserModal(false)} className="user-cancel-btn">Cancel</button>
                                 </div>
                             </form>
@@ -436,7 +446,7 @@ const UserManagement = ({ currentUser, showToast }) => {
                                     </div>
                                 )}
                                 <div className="user-form-actions">
-                                    <button type="submit" className="user-submit-btn">Update Registry</button>
+                                    <button type="submit" className="user-submit-btn" disabled={isSubmitting}>{isSubmitting ? 'Processing...' : 'Update Registry'}</button>
                                     <button type="button" onClick={() => { setEditingUser(null); setEditPassword(''); }} className="user-cancel-btn">Cancel</button>
                                 </div>
                             </form>
@@ -487,10 +497,10 @@ const UserManagement = ({ currentUser, showToast }) => {
                             <div className="user-confirm-actions">
                                 <button
                                     onClick={handleDelete}
-                                    disabled={typedConfirmName.toLowerCase() !== userToDelete.firstName.toLowerCase()}
+                                    disabled={isSubmitting || typedConfirmName.toLowerCase() !== userToDelete.firstName.toLowerCase()}
                                     className="user-confirm-btn user-confirm-btn-delete"
                                 >
-                                    CONFIRM DELETION
+                                    {isSubmitting ? 'Processing...' : 'CONFIRM DELETION'}
                                 </button>
                                 <button onClick={() => setUserToDelete(null)} className="user-cancel-confirm-btn">
                                     Cancel

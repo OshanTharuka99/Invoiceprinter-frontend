@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Shield, RefreshCw, Search, Calendar, Package, MapPin, Edit3, Trash2, X, AlertTriangle } from 'lucide-react';
 import api from '../../api';
+import useSubmitGuard from '../../utils/useSubmitGuard';
 import './WarrantyManagement.css';
 
 const WarrantyManagement = ({ currentUser, showToast }) => {
@@ -19,13 +20,12 @@ const WarrantyManagement = ({ currentUser, showToast }) => {
     const [editSerialModal, setEditSerialModal] = useState(null); // warranty object
     const [newSerial, setNewSerial] = useState('');
     const [serialReason, setSerialReason] = useState('');
-    const [editSerialSaving, setEditSerialSaving] = useState(false);
     const [availableSerials, setAvailableSerials] = useState([]);
     const [serialsLoading, setSerialsLoading] = useState(false);
 
     // Void Warranty Modal
     const [voidModal, setVoidModal] = useState(null); // warranty object
-    const [voidSaving, setVoidSaving] = useState(false);
+    const { isSubmitting, runGuarded } = useSubmitGuard();
 
     const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'root';
 
@@ -100,33 +100,31 @@ const WarrantyManagement = ({ currentUser, showToast }) => {
     const handleEditSerial = async () => {
         if (!newSerial.trim()) return showToast?.('New serial number is required', 'error');
         if (!serialReason.trim()) return showToast?.('Reason is required', 'error');
-        setEditSerialSaving(true);
-        try {
-            await api.patch(`/warranties/${editSerialModal._id}/serial`, { newSerial, reason: serialReason });
-            showToast?.('Serial number updated and stock adjusted', 'success');
-            setEditSerialModal(null);
-            setNewSerial('');
-            setSerialReason('');
-            fetchData();
-        } catch (err) {
-            showToast?.(err.response?.data?.message || 'Failed to update serial', 'error');
-        } finally {
-            setEditSerialSaving(false);
-        }
+        await runGuarded(async () => {
+            try {
+                await api.patch(`/warranties/${editSerialModal._id}/serial`, { newSerial, reason: serialReason });
+                showToast?.('Serial number updated and stock adjusted', 'success');
+                setEditSerialModal(null);
+                setNewSerial('');
+                setSerialReason('');
+                fetchData();
+            } catch (err) {
+                showToast?.(err.response?.data?.message || 'Failed to update serial', 'error');
+            }
+        });
     };
 
     const handleVoidWarranty = async () => {
-        setVoidSaving(true);
-        try {
-            await api.delete(`/warranties/${voidModal._id}`);
-            showToast?.('Warranty voided and serial restored to catalog', 'success');
-            setVoidModal(null);
-            fetchData();
-        } catch (err) {
-            showToast?.(err.response?.data?.message || 'Failed to void warranty', 'error');
-        } finally {
-            setVoidSaving(false);
-        }
+        await runGuarded(async () => {
+            try {
+                await api.delete(`/warranties/${voidModal._id}`);
+                showToast?.('Warranty voided and serial restored to catalog', 'success');
+                setVoidModal(null);
+                fetchData();
+            } catch (err) {
+                showToast?.(err.response?.data?.message || 'Failed to void warranty', 'error');
+            }
+        });
     };
 
     return (
@@ -350,8 +348,8 @@ const WarrantyManagement = ({ currentUser, showToast }) => {
                             </div>
                             <div className="wm-modal-actions">
                                 <button className="wm-modal-btn wm-modal-btn--secondary" onClick={() => setEditSerialModal(null)}>Cancel</button>
-                                <motion.button whileTap={{ scale: 0.97 }} className="wm-modal-btn wm-modal-btn--primary" onClick={handleEditSerial} disabled={editSerialSaving}>
-                                    {editSerialSaving ? 'Saving...' : 'Save Changes'}
+                                <motion.button whileTap={{ scale: isSubmitting ? 1 : 0.97 }} className="wm-modal-btn wm-modal-btn--primary" onClick={handleEditSerial} disabled={isSubmitting}>
+                                    {isSubmitting ? 'Processing...' : 'Save Changes'}
                                 </motion.button>
                             </div>
                         </motion.div>
@@ -381,8 +379,8 @@ const WarrantyManagement = ({ currentUser, showToast }) => {
                             </div>
                             <div className="wm-modal-actions">
                                 <button className="wm-modal-btn wm-modal-btn--secondary" onClick={() => setVoidModal(null)}>Cancel</button>
-                                <motion.button whileTap={{ scale: 0.97 }} className="wm-modal-btn wm-modal-btn--danger" onClick={handleVoidWarranty} disabled={voidSaving}>
-                                    {voidSaving ? 'Voiding...' : 'Void & Restore Serial'}
+                                <motion.button whileTap={{ scale: isSubmitting ? 1 : 0.97 }} className="wm-modal-btn wm-modal-btn--danger" onClick={handleVoidWarranty} disabled={isSubmitting}>
+                                    {isSubmitting ? 'Processing...' : 'Void & Restore Serial'}
                                 </motion.button>
                             </div>
                         </motion.div>

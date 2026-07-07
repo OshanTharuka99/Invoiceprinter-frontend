@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FileText, Plus, X, Search, RefreshCw, Printer, Trash2, Truck, Store, MapPin, Building2, Package, CheckCircle, Eye, Clock } from 'lucide-react';
 import api from '../../api';
+import useSubmitGuard from '../../utils/useSubmitGuard';
 import DeliveryNoteTemplate from './DeliveryNoteTemplate';
 import './QuotationManagement.css';
 import '../../styles/modern-table.css';
@@ -33,6 +34,7 @@ const DeliveryNoteManagement = ({ currentUser, showToast }) => {
     const [serialItemIndex, setSerialItemIndex] = useState(null);
     const [availableSerials, setAvailableSerials] = useState([]);
     const [manualSerialInput, setManualSerialInput] = useState('');
+    const { isSubmitting, runGuarded } = useSubmitGuard();
 
     const initialForm = {
         clientRef: '',
@@ -279,53 +281,69 @@ const DeliveryNoteManagement = ({ currentUser, showToast }) => {
     };
 
     const handleCreate = async () => {
-        try {
-            const itemsWithQty = form.items.map(item => ({
-                ...item,
-                quantity: item.quantity || item.serialNumbers?.length || 0
-            }));
-            const payload = {
-                creationMethod: 'automatic',
-                items: itemsWithQty,
-                terms: form.terms,
-                notes: form.notes,
-                clientRef: form.clientRef || undefined,
-                projectId: form.projectId || undefined,
-                deliveryType: form.deliveryType,
-                selectedStoreRef: form.deliveryType === 'Store' ? form.selectedStoreRef : '',
-                deliveryAddress: form.deliveryAddress,
-                customerPORef: form.customerPORef || undefined,
-                deliveryDate: form.deliveryDate || undefined,
+        await runGuarded(async () => {
+            try {
+                const itemsWithQty = form.items.map(item => ({
+                    ...item,
+                    quantity: item.quantity || item.serialNumbers?.length || 0
+                }));
+                const payload = {
+                    creationMethod: 'automatic',
+                    items: itemsWithQty,
+                    terms: form.terms,
+                    notes: form.notes,
+                    clientRef: form.clientRef || undefined,
+                    projectId: form.projectId || undefined,
+                    deliveryType: form.deliveryType,
+                    selectedStoreRef: form.deliveryType === 'Store' ? form.selectedStoreRef : '',
+                    deliveryAddress: form.deliveryAddress,
+                    customerPORef: form.customerPORef || undefined,
+                    deliveryDate: form.deliveryDate || undefined,
 
-            };
+                };
 
-            let res;
-            if (editingDN) {
-                res = await api.put(`/delivery-notes/${editingDN._id}`, payload);
-                setDeliveryNotes(prev => prev.map(d => d._id === editingDN._id ? res.data.data : d));
-            } else {
-                res = await api.post('/delivery-notes', payload);
-                setDeliveryNotes(prev => [res.data.data, ...prev]);
+                let res;
+                if (editingDN) {
+                    res = await api.put(`/delivery-notes/${editingDN._id}`, payload);
+                    setDeliveryNotes(prev => prev.map(d => d._id === editingDN._id ? res.data.data : d));
+                } else {
+                    res = await api.post('/delivery-notes', payload);
+                    setDeliveryNotes(prev => [res.data.data, ...prev]);
+                }
+                setIsCreateModalOpen(false);
+                setEditingDN(null);
+                showToast?.(editingDN ? 'Delivery note updated' : 'Delivery note created');
+            } catch (error) {
+                showToast?.(error.response?.data?.message || 'Save failed', 'error');
             }
-            setIsCreateModalOpen(false);
-            setEditingDN(null);
-            showToast?.(editingDN ? 'Delivery note updated' : 'Delivery note created');
-        } catch (error) {
-            showToast?.(error.response?.data?.message || 'Save failed', 'error');
-        }
+        });
     };
 
     const handleDelete = async () => {
         if (!dnToDelete) return;
-        try {
-            await api.delete(`/delivery-notes/${dnToDelete._id}`);
-            setDeliveryNotes(prev => prev.filter(dn => dn._id !== dnToDelete._id));
-            setDeleteModalOpen(false);
-            setDnToDelete(null);
-            showToast?.('Delivery note deleted');
-        } catch (error) {
-            showToast?.(error.response?.data?.message || 'Deletion failed', 'error');
-        }
+        await runGuarded(async () => {
+            try {
+                await api.delete(`/delivery-notes/${dnToDelete._id}`);
+                setDeliveryNotes(prev => prev.filter(dn => dn._id !== dnToDelete._id));
+                setDeleteModalOpen(false);
+                setDnToDelete(null);
+                showToast?.('Delivery note deleted');
+            } catch (error) {
+                showToast?.(error.response?.data?.message || 'Deletion failed', 'error');
+            }
+        });
+    };
+
+    const handleDeliver = async (dn) => {
+        await runGuarded(async () => {
+            try {
+                const res = await api.put(`/delivery-notes/${dn._id}/deliver`);
+                setDeliveryNotes(prev => prev.map(d => d._id === dn._id ? res.data.data : d));
+                showToast?.('Delivery note delivered');
+            } catch (e) {
+                showToast?.(e.response?.data?.message || 'Failed to deliver', 'error');
+            }
+        });
     };
 
     const getClientDisplay = (dn) => {
@@ -526,19 +544,12 @@ const DeliveryNoteManagement = ({ currentUser, showToast }) => {
                                                     }}>
                                                         <FileText size={14} /> Edit
                                                     </button>
-                                                    <button onClick={async () => {
-                                                        try {
-                                                            const res = await api.put(`/delivery-notes/${dn._id}/deliver`);
-                                                            setDeliveryNotes(prev => prev.map(d => d._id === dn._id ? res.data.data : d));
-                                                            showToast?.('Delivery note delivered');
-                                                        } catch (e) {
-                                                            showToast?.(e.response?.data?.message || 'Failed to deliver', 'error');
-                                                        }
-                                                    }} style={{
+                                                    <button onClick={() => handleDeliver(dn)} disabled={isSubmitting} style={{
                                                         padding: '6px 10px', borderRadius: '8px', border: 'none',
-                                                        background: '#dcfce7', color: '#166534', cursor: 'pointer',
+                                                        background: '#dcfce7', color: '#166534', cursor: isSubmitting ? 'not-allowed' : 'pointer',
                                                         display: 'inline-flex', alignItems: 'center', gap: '4px',
-                                                        fontSize: '0.75rem', fontWeight: 600, fontFamily: "'Outfit', sans-serif"
+                                                        fontSize: '0.75rem', fontWeight: 600, fontFamily: "'Outfit', sans-serif",
+                                                        opacity: isSubmitting ? 0.7 : 1
                                                     }}>
                                                         <CheckCircle size={14} /> Deliver
                                                     </button>
@@ -808,12 +819,13 @@ const DeliveryNoteManagement = ({ currentUser, showToast }) => {
                                 }}>
                                     Cancel
                                 </button>
-                                <button onClick={handleCreate} style={{
+                                <button onClick={handleCreate} disabled={isSubmitting} style={{
                                     padding: '10px 24px', borderRadius: '10px', border: 'none',
-                                    background: '#8b5cf6', color: '#fff', fontWeight: 700, fontSize: '0.85rem',
-                                    cursor: 'pointer', fontFamily: "'Outfit', sans-serif", display: 'flex', alignItems: 'center', gap: '6px'
+                                    background: isSubmitting ? '#a78bfa' : '#8b5cf6', color: '#fff', fontWeight: 700, fontSize: '0.85rem',
+                                    cursor: isSubmitting ? 'not-allowed' : 'pointer', fontFamily: "'Outfit', sans-serif", display: 'flex', alignItems: 'center', gap: '6px',
+                                    opacity: isSubmitting ? 0.85 : 1
                                 }}>
-                                    <FileText size={16} /> {editingDN ? 'Save Changes' : 'Create Delivery Note'}
+                                    <FileText size={16} /> {isSubmitting ? 'Processing...' : (editingDN ? 'Save Changes' : 'Create Delivery Note')}
                                 </button>
                             </div>
                         </motion.div>
@@ -989,12 +1001,13 @@ const DeliveryNoteManagement = ({ currentUser, showToast }) => {
                                 }}>
                                     Cancel
                                 </button>
-                                <button onClick={handleDelete} style={{
+                                <button onClick={handleDelete} disabled={isSubmitting} style={{
                                     padding: '10px 20px', borderRadius: '10px', border: 'none',
                                     background: '#ef4444', color: '#fff', fontWeight: 700, fontSize: '0.85rem',
-                                    cursor: 'pointer', fontFamily: "'Outfit', sans-serif"
+                                    cursor: isSubmitting ? 'not-allowed' : 'pointer', fontFamily: "'Outfit', sans-serif",
+                                    opacity: isSubmitting ? 0.85 : 1
                                 }}>
-                                    Delete
+                                    {isSubmitting ? 'Processing...' : 'Delete'}
                                 </button>
                             </div>
                         </motion.div>

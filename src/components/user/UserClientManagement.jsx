@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Users, Search, RefreshCw, Send, Plus, X } from 'lucide-react';
 import api from '../../api';
+import useSubmitGuard from '../../utils/useSubmitGuard';
 
 const UserClientManagement = ({ showToast }) => {
     const [clients, setClients] = useState([]);
@@ -14,6 +15,7 @@ const UserClientManagement = ({ showToast }) => {
 
     const initialForm = { firstName: '', lastName: '', clientType: 'Person', telephoneNumber: '', whatsappNumber: '', emailAddress: '', address: '' };
     const [form, setForm] = useState(initialForm);
+    const { isSubmitting, runGuarded } = useSubmitGuard();
 
     const fetchClients = async () => {
         setLoading(true);
@@ -46,25 +48,29 @@ const UserClientManagement = ({ showToast }) => {
 
     const saveNewClient = async (e) => {
         e.preventDefault();
-        try {
-            await api.post('/clients', form);
-            showToast?.('Client successfully created', 'success');
-            setIsCreateModalOpen(false);
-            fetchClients();
-        } catch (error) {
-            showToast?.(error.response?.data?.message || 'Error executing creation', 'error');
-        }
+        await runGuarded(async () => {
+            try {
+                await api.post('/clients', form);
+                showToast?.('Client successfully created', 'success');
+                setIsCreateModalOpen(false);
+                fetchClients();
+            } catch (error) {
+                showToast?.(error.response?.data?.message || 'Error executing creation', 'error');
+            }
+        });
     };
 
     const submitEditRequest = async (e) => {
         e.preventDefault();
-        try {
-            await api.post(`/clients/${selectedClient._id}/request-edit`, form);
-            showToast?.('Edit request submitted successfully.', 'success');
-            setIsEditModalOpen(false);
-        } catch (error) {
-            showToast?.(error.response?.data?.message || 'Request failed to transmit', 'error');
-        }
+        await runGuarded(async () => {
+            try {
+                await api.post(`/clients/${selectedClient._id}/request-edit`, form);
+                showToast?.('Edit request submitted successfully.', 'success');
+                setIsEditModalOpen(false);
+            } catch (error) {
+                showToast?.(error.response?.data?.message || 'Request failed to transmit', 'error');
+            }
+        });
     };
 
     const filtered = clients.filter(c =>
@@ -198,7 +204,7 @@ const UserClientManagement = ({ showToast }) => {
                                     <div><label style={labelStyle}>WhatsApp Number</label><input value={form.whatsappNumber} onChange={e => setForm({ ...form, whatsappNumber: e.target.value })} style={{ ...inputStyle, background: '#fff' }} /></div>
                                     <div style={{ gridColumn: '1 / -1' }}><label style={labelStyle}>Email Address</label><input type="email" value={form.emailAddress} onChange={e => setForm({ ...form, emailAddress: e.target.value })} style={{ ...inputStyle, background: '#fff' }} /></div>
                                 </div>
-                                <motion.button whileTap={{ scale: 0.98 }} type="submit" style={{ ...btnStyle, width: '100%', justifyContent: 'center' }}>Save Client</motion.button>
+                                <motion.button whileTap={{ scale: isSubmitting ? 1 : 0.98 }} type="submit" disabled={isSubmitting} style={{ ...btnStyle, width: '100%', justifyContent: 'center', opacity: isSubmitting ? 0.85 : 1, cursor: isSubmitting ? 'not-allowed' : 'pointer' }}>{isSubmitting ? 'Processing...' : 'Save Client'}</motion.button>
                             </form>
                         </motion.div>
                     </div>
@@ -227,7 +233,7 @@ const UserClientManagement = ({ showToast }) => {
                                     <div><label style={labelStyle}>WhatsApp Number</label><input value={form.whatsappNumber} onChange={e => setForm({ ...form, whatsappNumber: e.target.value })} style={{ ...inputStyle, background: '#fff' }} /></div>
                                     <div style={{ gridColumn: '1 / -1' }}><label style={labelStyle}>Address</label><input value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} style={{ ...inputStyle, background: '#fff' }} /></div>
                                 </div>
-                                <motion.button whileTap={{ scale: 0.98 }} type="submit" style={{ background: '#db2777', color: '#fff', border: 'none', borderRadius: '12px', padding: '1rem 1.5rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', width: '100%' }}><Send size={18} /> Submit Request</motion.button>
+                                <motion.button whileTap={{ scale: isSubmitting ? 1 : 0.98 }} type="submit" disabled={isSubmitting} style={{ background: isSubmitting ? '#9d174d' : '#db2777', color: '#fff', border: 'none', borderRadius: '12px', padding: '1rem 1.5rem', fontWeight: 800, cursor: isSubmitting ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', width: '100%', opacity: isSubmitting ? 0.85 : 1 }}><Send size={18} /> {isSubmitting ? 'Processing...' : 'Submit Request'}</motion.button>
                             </form>
                         </motion.div>
                     </div>

@@ -5,6 +5,7 @@ import { Package, Plus, X, Edit2, Trash2, RefreshCw, FolderTree, Search,
   MapPin, DollarSign, Tag, Layers } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import api from '../../api';
+import useSubmitGuard from '../../utils/useSubmitGuard';
 import PriceInput from '../../utils/PriceInput';
 import './ProductManagement.css';
 import '../../styles/modern-table.css';
@@ -55,7 +56,6 @@ const ProductManagement = ({ currentUser, showToast }) => {
   const [editBatchModal, setEditBatchModal] = useState(null);
   const [editBatchForm, setEditBatchForm] = useState({ location: '', buyingPrice: '', quantity: '', notes: '' });
   const [editBatchReason, setEditBatchReason] = useState('');
-  const [editBatchSaving, setEditBatchSaving] = useState(false);
   const [editBatchSerials, setEditBatchSerials] = useState([]);
   const [editBatchSerialInput, setEditBatchSerialInput] = useState('');
   const [editBatchAvailableSerials, setEditBatchAvailableSerials] = useState([]);
@@ -64,7 +64,7 @@ const ProductManagement = ({ currentUser, showToast }) => {
   // Edit Request (standard user flow)
   const [editReqModal, setEditReqModal] = useState(null);
   const [editReqReason, setEditReqReason] = useState('');
-  const [editReqSaving, setEditReqSaving] = useState(false);
+  const { isSubmitting, runGuarded } = useSubmitGuard();
 
   const fetchData = async () => {
     setLoading(true);
@@ -101,18 +101,18 @@ const ProductManagement = ({ currentUser, showToast }) => {
   };
   const submitEditRequest = async (type, targetId, targetName, proposedChanges) => {
     if (!editReqReason.trim()) { showToast?.('Please select a reason for modification', 'error'); return; }
-    setEditReqSaving(true);
-    try {
-      await api.post('/products/inventory-requests', { type, targetId, targetName, proposedChanges, reason: editReqReason });
-      showToast?.('Edit request submitted for approval', 'success');
-      setEditReqModal(null); setEditReqReason(''); setCatModal(false); setProdModal(false); fetchData();
-    } catch(err) { showToast?.(err.response?.data?.message || 'Failed to submit request', 'error'); }
-    finally { setEditReqSaving(false); }
+    await runGuarded(async () => {
+      try {
+        await api.post('/products/inventory-requests', { type, targetId, targetName, proposedChanges, reason: editReqReason });
+        showToast?.('Edit request submitted for approval', 'success');
+        setEditReqModal(null); setEditReqReason(''); setCatModal(false); setProdModal(false); fetchData();
+      } catch(err) { showToast?.(err.response?.data?.message || 'Failed to submit request', 'error'); }
+    });
   };
 
   const saveCat = async (e, inline = false) => {
     if (e) e.preventDefault();
-    try {
+    const run = async () => {
       if (inline) {
         const res = await api.post('/products/categories', { name:inlineCatForm.name, code:inlineCatForm.code });
         showToast?.('Category created', 'success');
@@ -133,7 +133,20 @@ const ProductManagement = ({ currentUser, showToast }) => {
         showToast?.('Category created', 'success');
         setCatModal(false); fetchData();
       }
-    } catch(err) { showToast?.(err.response?.data?.message || 'Error', 'error'); return null; }
+    };
+    if (inline) {
+      try {
+        return await run();
+      } catch(err) {
+        showToast?.(err.response?.data?.message || 'Error', 'error');
+        return null;
+      }
+    }
+    await runGuarded(async () => {
+      try {
+        await run();
+      } catch(err) { showToast?.(err.response?.data?.message || 'Error', 'error'); }
+    });
   };
   const deleteCat = (id) => setConfirm({
     msg: 'Delete this category? Products assigned to it may be affected.',
@@ -154,30 +167,32 @@ const ProductManagement = ({ currentUser, showToast }) => {
   };
   const saveProd = async (e) => {
     e.preventDefault();
-    try {
-      let catId = prodForm.category;
-      if (inlineCat) {
-        if (!inlineCatForm.name || !inlineCatForm.code) return showToast?.('Fill category name & code','error');
-        const nc = await saveCat(null, true);
-        if (!nc) return;
-        catId = nc._id;
-      } else if (!catId) return showToast?.('Select a category','error');
-      const payload = { ...prodForm, category:catId };
-      if (editProd) {
-        if (isAdmin) {
-          await api.put(`/products/${editProd._id}`, payload);
-          showToast?.('Product updated', 'success');
-          setProdModal(false); fetchData();
+    await runGuarded(async () => {
+      try {
+        let catId = prodForm.category;
+        if (inlineCat) {
+          if (!inlineCatForm.name || !inlineCatForm.code) return showToast?.('Fill category name & code','error');
+          const nc = await saveCat(null, true);
+          if (!nc) return;
+          catId = nc._id;
+        } else if (!catId) return showToast?.('Select a category','error');
+        const payload = { ...prodForm, category:catId };
+        if (editProd) {
+          if (isAdmin) {
+            await api.put(`/products/${editProd._id}`, payload);
+            showToast?.('Product updated', 'success');
+            setProdModal(false); fetchData();
+          } else {
+            setEditReqModal({ type: 'Product', targetId: editProd._id, targetName: prodForm.name, proposedChanges: payload });
+            setEditReqReason('');
+          }
         } else {
-          setEditReqModal({ type: 'Product', targetId: editProd._id, targetName: prodForm.name, proposedChanges: payload });
-          setEditReqReason('');
+          await api.post('/products', payload);
+          showToast?.('Product created', 'success');
+          setProdModal(false); fetchData();
         }
-      } else {
-        await api.post('/products', payload);
-        showToast?.('Product created', 'success');
-        setProdModal(false); fetchData();
-      }
-    } catch(err) { showToast?.(err.response?.data?.message||'Error','error'); }
+      } catch(err) { showToast?.(err.response?.data?.message||'Error','error'); }
+    });
   };
   const deleteProd = (id) => setConfirm({
     msg: 'Permanently delete this product and all its stock records?',
@@ -234,14 +249,16 @@ const ProductManagement = ({ currentUser, showToast }) => {
     if (isNaN(qty) || qty < 1) return showToast?.('Enter a valid quantity','error');
     if (useSerials && serials.length > 0 && serials.length !== qty)
       return showToast?.(`Serial count (${serials.length}) must match quantity (${qty})`,'error');
-    try {
-      await api.post(`/products/${stockProd._id}/stock`, {
-        ...stockForm, quantity:qty,
-        serialNumbers: useSerials ? serials : [],
-      });
-      showToast?.('Stock entry saved successfully','success');
-      setStockModal(false); fetchData();
-    } catch(err) { showToast?.(err.response?.data?.message||'Error','error'); }
+    await runGuarded(async () => {
+      try {
+        await api.post(`/products/${stockProd._id}/stock`, {
+          ...stockForm, quantity:qty,
+          serialNumbers: useSerials ? serials : [],
+        });
+        showToast?.('Stock entry saved successfully','success');
+        setStockModal(false); fetchData();
+      } catch(err) { showToast?.(err.response?.data?.message||'Error','error'); }
+    });
   };
 
   const sym = (t) => businessData ? (t==='primary' ? businessData.primaryCurrency?.symbol||'' : businessData.secondaryCurrency?.symbol||'') : '';
@@ -573,7 +590,7 @@ const ProductManagement = ({ currentUser, showToast }) => {
                     )}
                   </>)}
                 </div>
-                <button type="submit" className="pm-btn pm-btn-success pm-btn-full">Save Stock Entry</button>
+                <button type="submit" className="pm-btn pm-btn-success pm-btn-full" disabled={isSubmitting}>{isSubmitting ? 'Processing...' : 'Save Stock Entry'}</button>
               </form>
             </motion.div>
           </div>
@@ -598,7 +615,7 @@ const ProductManagement = ({ currentUser, showToast }) => {
                     {categories.filter(c=>!editCat||c._id!==editCat._id).map(c=><option key={c._id} value={c._id}>{c.name}</option>)}
                   </select>
                 </div>
-                <button type="submit" className="pm-btn pm-btn-success pm-btn-full">Save Category</button>
+                <button type="submit" className="pm-btn pm-btn-success pm-btn-full" disabled={isSubmitting}>{isSubmitting ? 'Processing...' : 'Save Category'}</button>
               </form>
             </motion.div>
           </div>
@@ -645,7 +662,7 @@ const ProductManagement = ({ currentUser, showToast }) => {
                 <div><label className="pm-label">Default Warranty Period</label><input className="pm-input" value={prodForm.warrantyPeriod} onChange={e=>setProdForm({...prodForm,warrantyPeriod:e.target.value})} placeholder="e.g. 1 year, 24 months"/></div>
                 <div><label className="pm-label">Description <span className="pm-label-optional">(optional)</span></label><textarea className="pm-input pm-textarea" value={prodForm.description} onChange={e=>setProdForm({...prodForm,description:e.target.value})} placeholder="Product description, specs, notes..."/></div>
                 <div className="pm-checkbox-row"><input type="checkbox" id="taxInc" checked={prodForm.isTaxIncluded} onChange={e=>setProdForm({...prodForm,isTaxIncluded:e.target.checked})}/><label htmlFor="taxInc">Selling price includes tax</label></div>
-                <button type="submit" className="pm-btn pm-btn-success pm-btn-full">Save Product</button>
+                <button type="submit" className="pm-btn pm-btn-success pm-btn-full" disabled={isSubmitting}>{isSubmitting ? 'Processing...' : 'Save Product'}</button>
               </form>
             </motion.div>
           </div>
@@ -681,24 +698,24 @@ const ProductManagement = ({ currentUser, showToast }) => {
                   }
                 }
                 if (Object.keys(changes).length === 0) return showToast?.('No changes detected', 'error');
-                setEditBatchSaving(true);
-                try {
-                  if (isAdmin) {
-                    await api.patch(`/products/${editBatchModal.product}/stock/${editBatchModal._id}`, { ...changes, reason: editBatchReason });
-                    showToast?.('Stock batch updated', 'success');
-                    setEditBatchModal(null); fetchStockEntries(viewProd._id);
-                  } else {
-                    const product = products.find(p => p._id === editBatchModal.product);
-                    await api.post('/products/inventory-requests', {
-                      type: 'StockEntry', targetId: editBatchModal._id,
-                      targetName: `${product?.name || ''} - ${editBatchModal.batchRef}`,
-                      proposedChanges: changes, reason: editBatchReason
-                    });
-                    showToast?.('Edit request submitted for approval', 'success');
-                    setEditBatchModal(null);
-                  }
-                } catch(err) { showToast?.(err.response?.data?.message||'Error','error'); }
-                finally { setEditBatchSaving(false); }
+                await runGuarded(async () => {
+                  try {
+                    if (isAdmin) {
+                      await api.patch(`/products/${editBatchModal.product}/stock/${editBatchModal._id}`, { ...changes, reason: editBatchReason });
+                      showToast?.('Stock batch updated', 'success');
+                      setEditBatchModal(null); fetchStockEntries(viewProd._id);
+                    } else {
+                      const product = products.find(p => p._id === editBatchModal.product);
+                      await api.post('/products/inventory-requests', {
+                        type: 'StockEntry', targetId: editBatchModal._id,
+                        targetName: `${product?.name || ''} - ${editBatchModal.batchRef}`,
+                        proposedChanges: changes, reason: editBatchReason
+                      });
+                      showToast?.('Edit request submitted for approval', 'success');
+                      setEditBatchModal(null);
+                    }
+                  } catch(err) { showToast?.(err.response?.data?.message||'Error','error'); }
+                });
               }}>
                 <div className="pm-form-row pm-form-row-2">
                   <div><label className="pm-label">Quantity</label><input className="pm-input" type="number" min="1" value={editBatchForm.quantity} onChange={e=>setEditBatchForm({...editBatchForm,quantity:e.target.value})}/></div>
@@ -774,8 +791,8 @@ const ProductManagement = ({ currentUser, showToast }) => {
                     {MODIFY_REASONS.stock.map(r=><option key={r} value={r}>{r}</option>)}
                   </select>
                 </div>
-                <button type="submit" className="pm-btn pm-btn-success pm-btn-full" disabled={editBatchSaving}>
-                  {editBatchSaving ? 'Saving...' : (isAdmin ? 'Save Changes' : 'Submit for Approval')}
+                <button type="submit" className="pm-btn pm-btn-success pm-btn-full" disabled={isSubmitting}>
+                  {isSubmitting ? 'Processing...' : (isAdmin ? 'Save Changes' : 'Submit for Approval')}
                 </button>
               </form>
             </motion.div>
@@ -809,8 +826,8 @@ const ProductManagement = ({ currentUser, showToast }) => {
                 </div>
                 <div className="pm-confirm-actions" style={{marginTop:'1.5rem'}}>
                   <button className="pm-btn-abort" onClick={()=>{setEditReqModal(null);setEditReqReason('');}}>Cancel</button>
-                  <button className="pm-btn-confirm-danger" onClick={()=>submitEditRequest(editReqModal.type, editReqModal.targetId, editReqModal.targetName, editReqModal.proposedChanges)} disabled={editReqSaving} style={{background:'var(--pm-indigo)',color:'#fff'}}>
-                    {editReqSaving ? 'Submitting...' : 'Submit Request'}
+                  <button className="pm-btn-confirm-danger" onClick={()=>submitEditRequest(editReqModal.type, editReqModal.targetId, editReqModal.targetName, editReqModal.proposedChanges)} disabled={isSubmitting} style={{background:'var(--pm-indigo)',color:'#fff'}}>
+                    {isSubmitting ? 'Processing...' : 'Submit Request'}
                   </button>
                 </div>
               </div>

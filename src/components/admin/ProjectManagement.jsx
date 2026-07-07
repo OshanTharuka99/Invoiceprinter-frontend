@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Briefcase, Plus, X, Edit2, Trash2, Search, RefreshCw, AlertTriangle, UserCircle2, FileText, MapPin, Calendar, Landmark, Info, DollarSign, TrendingUp, CheckCircle2, Clock, FolderKanban, Building2 } from 'lucide-react';
 import api from '../../api';
+import useSubmitGuard from '../../utils/useSubmitGuard';
 import './ProjectManagement.css';
 import '../../styles/modern-table.css';
 
@@ -21,6 +22,7 @@ const ProjectManagement = ({ currentUser, showToast }) => {
 
     const [isInlineClient, setIsInlineClient] = useState(false);
     const [inlineClientForm, setInlineClientForm] = useState({ firstName: '', lastName: '', clientType: 'Business', telephoneNumber: '', whatsappNumber: '', emailAddress: '', address: '' });
+    const { isSubmitting, runGuarded } = useSubmitGuard();
 
     const fetchData = async () => {
         setLoading(true);
@@ -49,20 +51,22 @@ const ProjectManagement = ({ currentUser, showToast }) => {
 
     const saveProject = async (e) => {
         e.preventDefault();
-        try {
-            let finalClientId = form.client;
-            if (isInlineClient) {
-                if (!inlineClientForm.firstName || !inlineClientForm.telephoneNumber) return showToast?.('Identity records incomplete', 'error');
-                const newCli = await api.post('/clients', inlineClientForm);
-                finalClientId = newCli.data.data._id;
-                showToast?.('Identity automatically registered', 'success');
-            } else if (!finalClientId) return showToast?.('Account assignment required', 'error');
-            const payload = { ...form, client: finalClientId };
-            if (editingProject) { await api.put(`/projects/${editingProject._id}`, payload); showToast?.('Blueprint synchronized', 'success'); }
-            else { await api.post('/projects', payload); showToast?.('Definition established', 'success'); }
-            setIsModalOpen(false);
-            fetchData();
-        } catch (error) { showToast?.(error.response?.data?.message || 'Transaction failure', 'error'); }
+        await runGuarded(async () => {
+            try {
+                let finalClientId = form.client;
+                if (isInlineClient) {
+                    if (!inlineClientForm.firstName || !inlineClientForm.telephoneNumber) return showToast?.('Identity records incomplete', 'error');
+                    const newCli = await api.post('/clients', inlineClientForm);
+                    finalClientId = newCli.data.data._id;
+                    showToast?.('Identity automatically registered', 'success');
+                } else if (!finalClientId) return showToast?.('Account assignment required', 'error');
+                const payload = { ...form, client: finalClientId };
+                if (editingProject) { await api.put(`/projects/${editingProject._id}`, payload); showToast?.('Blueprint synchronized', 'success'); }
+                else { await api.post('/projects', payload); showToast?.('Definition established', 'success'); }
+                setIsModalOpen(false);
+                fetchData();
+            } catch (error) { showToast?.(error.response?.data?.message || 'Transaction failure', 'error'); }
+        });
     };
 
     const deleteProject = (id) => {
@@ -347,7 +351,7 @@ const ProjectManagement = ({ currentUser, showToast }) => {
                                     <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, color: '#64748b', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Value ($)</label>
                                     <input type="number" value={form.value} onChange={e => setForm({...form, value: parseFloat(e.target.value) || 0})} style={{ width: '100%', background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: '10px', padding: '0.75rem', fontSize: '0.875rem', outline: 'none', boxSizing: 'border-box' }} />
                                 </div>
-                                <motion.button whileTap={{ scale: 0.98 }} type="submit" style={{ width: '100%', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: '#fff', border: 'none', borderRadius: '14px', padding: '1rem', fontWeight: 700, fontSize: '0.875rem', cursor: 'pointer', boxShadow: '0 4px 12px rgba(16, 185, 129, 0.35)' }}>{editingProject ? 'Update Project' : 'Create Project'}</motion.button>
+                                <motion.button whileTap={{ scale: isSubmitting ? 1 : 0.98 }} type="submit" disabled={isSubmitting} style={{ width: '100%', background: isSubmitting ? '#94a3b8' : 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: '#fff', border: 'none', borderRadius: '14px', padding: '1rem', fontWeight: 700, fontSize: '0.875rem', cursor: isSubmitting ? 'not-allowed' : 'pointer', boxShadow: '0 4px 12px rgba(16, 185, 129, 0.35)' }}>{isSubmitting ? 'Processing...' : (editingProject ? 'Update Project' : 'Create Project')}</motion.button>
                             </form>
                         </motion.div>
                     </motion.div>

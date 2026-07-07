@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FileText, Plus, X, Search, RefreshCw, Printer, AlertTriangle, ShieldAlert, CheckCircle, Users, Briefcase, Barcode } from 'lucide-react';
 import api from '../../api';
+import useSubmitGuard from '../../utils/useSubmitGuard';
 import PriceInput from '../../utils/PriceInput';
 import { calculateDocumentTotals } from '../../utils/calculateDocumentTotals';
 import InvoiceTemplate from './InvoiceTemplate';
@@ -20,6 +21,7 @@ const PromainvoiceManagemnt = ({ currentUser, showToast }) => {
 
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [creationMode, setCreationMode] = useState('automatic');
+    const { isSubmitting, runGuarded } = useSubmitGuard();
     const [isSerialModalOpen, setIsSerialModalOpen] = useState(false);
     const [activeItemIndex, setActiveItemIndex] = useState(null);
 
@@ -264,20 +266,20 @@ const PromainvoiceManagemnt = ({ currentUser, showToast }) => {
         if (!form.paymentMethod) return showToast?.('Select payment method', 'error');
         if (!form.projectId) return showToast?.('A project must be selected before generating an invoice', 'error');
 
-        // Enforce Paid status on frontend for cash payments before submit
-        const payload = { ...form, creationMethod: creationMode };
-        if (payload.paymentMethod === 'cash') {
-            payload.status = 'Paid';
-        }
-
-        try {
-            await api.post('/invoices', payload);
-            showToast?.('Invoice created successfully', 'success');
-            setIsCreateModalOpen(false);
-            fetchData();
-        } catch (err) {
-            showToast?.(err.response?.data?.message || 'Failed to create invoice', 'error');
-        }
+        await runGuarded(async () => {
+            try {
+                const payload = { ...form, creationMethod: creationMode };
+                if (payload.paymentMethod === 'cash') {
+                    payload.status = 'Paid';
+                }
+                await api.post('/invoices', payload);
+                showToast?.('Invoice created successfully', 'success');
+                setIsCreateModalOpen(false);
+                fetchData();
+            } catch (err) {
+                showToast?.(err.response?.data?.message || 'Failed to create invoice', 'error');
+            }
+        });
     };
 
     const openStatusModal = (inv) => {
@@ -291,47 +293,52 @@ const PromainvoiceManagemnt = ({ currentUser, showToast }) => {
 
     const handleUpdateStatus = async (e) => {
         e.preventDefault();
-        try {
-            await api.patch(`/invoices/${selectedInvoiceForStatus._id}/status`, statusForm);
-            showToast?.('Status updated successfully', 'success');
-            setIsStatusModalOpen(false);
-            fetchData();
-            // Update viewInvoice if it is currently open
-            if (viewInvoice && viewInvoice._id === selectedInvoiceForStatus._id) {
-                const res = await api.get(`/invoices/${selectedInvoiceForStatus._id}`);
-                setViewInvoice(res.data.data);
+        await runGuarded(async () => {
+            try {
+                await api.patch(`/invoices/${selectedInvoiceForStatus._id}/status`, statusForm);
+                showToast?.('Status updated successfully', 'success');
+                setIsStatusModalOpen(false);
+                fetchData();
+                if (viewInvoice && viewInvoice._id === selectedInvoiceForStatus._id) {
+                    const res = await api.get(`/invoices/${selectedInvoiceForStatus._id}`);
+                    setViewInvoice(res.data.data);
+                }
+            } catch (err) {
+                showToast?.(err.response?.data?.message || 'Failed to update status', 'error');
             }
-        } catch (err) {
-            showToast?.(err.response?.data?.message || 'Failed to update status', 'error');
-        }
+        });
     };
 
     const handleCreateClient = async (e) => {
         e.preventDefault();
-        try {
-            const res = await api.post('/clients', newClientForm);
-            showToast?.('Client created', 'success');
-            setClients(prev => [...prev, res.data.data]);
-            setForm(prev => ({ ...prev, clientRef: res.data.data._id, deliveryAddress: res.data.data.address || '' }));
-            setIsNewClientModalOpen(false);
-            setNewClientForm({ firstName: '', lastName: '', clientType: 'Person', telephoneNumber: '', whatsappNumber: '', address: '', emailAddress: '' });
-        } catch (err) {
-            showToast?.(err.response?.data?.message || 'Failed to create client', 'error');
-        }
+        await runGuarded(async () => {
+            try {
+                const res = await api.post('/clients', newClientForm);
+                showToast?.('Client created', 'success');
+                setClients(prev => [...prev, res.data.data]);
+                setForm(prev => ({ ...prev, clientRef: res.data.data._id, deliveryAddress: res.data.data.address || '' }));
+                setIsNewClientModalOpen(false);
+                setNewClientForm({ firstName: '', lastName: '', clientType: 'Person', telephoneNumber: '', whatsappNumber: '', address: '', emailAddress: '' });
+            } catch (err) {
+                showToast?.(err.response?.data?.message || 'Failed to create client', 'error');
+            }
+        });
     };
 
     const handleCreateProject = async (e) => {
         e.preventDefault();
-        try {
-            const res = await api.post('/projects', newProjectForm);
-            showToast?.('Project created', 'success');
-            setProjects(prev => [...prev, res.data.data]);
-            setForm(prev => ({ ...prev, projectId: res.data.data._id }));
-            setIsNewProjectModalOpen(false);
-            setNewProjectForm({ name: '', client: '', location: '', startDate: '', endDate: '', value: 0 });
-        } catch (err) {
-            showToast?.(err.response?.data?.message || 'Failed to create project', 'error');
-        }
+        await runGuarded(async () => {
+            try {
+                const res = await api.post('/projects', newProjectForm);
+                showToast?.('Project created', 'success');
+                setProjects(prev => [...prev, res.data.data]);
+                setForm(prev => ({ ...prev, projectId: res.data.data._id }));
+                setIsNewProjectModalOpen(false);
+                setNewProjectForm({ name: '', client: '', location: '', startDate: '', endDate: '', value: 0 });
+            } catch (err) {
+                showToast?.(err.response?.data?.message || 'Failed to create project', 'error');
+            }
+        });
     };
 
     const openDeleteModal = (inv) => {
@@ -341,21 +348,23 @@ const PromainvoiceManagemnt = ({ currentUser, showToast }) => {
     };
 
     const confirmDelete = async () => {
-        try {
-            if (isAdmin) {
-                await api.delete(`/invoices/${invoiceToDelete._id}`);
-                showToast?.('Invoice deleted', 'success');
-            } else {
-                if (!deleteReason.trim()) return showToast?.('Reason is required', 'error');
-                await api.post(`/invoices/${invoiceToDelete._id}/request-delete`, { reason: deleteReason });
-                showToast?.('Deletion request sent', 'success');
+        await runGuarded(async () => {
+            try {
+                if (isAdmin) {
+                    await api.delete(`/invoices/${invoiceToDelete._id}`);
+                    showToast?.('Invoice deleted', 'success');
+                } else {
+                    if (!deleteReason.trim()) return showToast?.('Reason is required', 'error');
+                    await api.post(`/invoices/${invoiceToDelete._id}/request-delete`, { reason: deleteReason });
+                    showToast?.('Deletion request sent', 'success');
+                }
+                setDeleteModalOpen(false);
+                setInvoiceToDelete(null);
+                fetchData();
+            } catch (err) {
+                showToast?.('Delete failed', 'error');
             }
-            setDeleteModalOpen(false);
-            setInvoiceToDelete(null);
-            fetchData();
-        } catch (err) {
-            showToast?.('Delete failed', 'error');
-        }
+        });
     };
 
     const filtered = invoices.filter(inv =>
@@ -787,7 +796,30 @@ const PromainvoiceManagemnt = ({ currentUser, showToast }) => {
                                     <div style={{ fontSize: '2rem', fontWeight: 900, letterSpacing: '-1px' }}>{form.finalTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
                                 </div>
 
-                                <motion.button whileTap={{ scale: 0.98 }} type="submit" style={{ background: '#10b981', color: '#fff', border: 'none', borderRadius: '12px', padding: '1rem', width: '100%', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', fontSize: '1rem' }}><CheckCircle size={20} /> Create Invoice</motion.button>
+                                <motion.button
+                                    whileTap={{ scale: isSubmitting ? 1 : 0.98 }}
+                                    type="submit"
+                                    disabled={isSubmitting}
+                                    style={{
+                                        background: isSubmitting ? '#94a3b8' : '#10b981',
+                                        color: '#fff',
+                                        border: 'none',
+                                        borderRadius: '12px',
+                                        padding: '1rem',
+                                        width: '100%',
+                                        fontWeight: 800,
+                                        cursor: isSubmitting ? 'not-allowed' : 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: '0.5rem',
+                                        fontSize: '1rem',
+                                        opacity: isSubmitting ? 0.85 : 1,
+                                    }}
+                                >
+                                    {isSubmitting ? <RefreshCw size={20} className="animate-spin" /> : <CheckCircle size={20} />}
+                                    {isSubmitting ? 'Processing...' : 'Create Invoice'}
+                                </motion.button>
                             </form>
                         </motion.div>
                     </div>
@@ -932,7 +964,7 @@ const PromainvoiceManagemnt = ({ currentUser, showToast }) => {
                                     <div><label style={labelStyle}>Phone</label><input value={newClientForm.telephoneNumber} onChange={e => setNewClientForm({ ...newClientForm, telephoneNumber: e.target.value })} style={{ ...inputStyle, background: '#fff' }} /></div>
                                     <div><label style={labelStyle}>Email</label><input type="email" value={newClientForm.emailAddress} onChange={e => setNewClientForm({ ...newClientForm, emailAddress: e.target.value })} style={{ ...inputStyle, background: '#fff' }} /></div>
                                 </div>
-                                <motion.button whileTap={{ scale: 0.98 }} type="submit" style={{ background: '#10b981', color: '#fff', border: 'none', borderRadius: '12px', padding: '0.8rem', width: '100%', fontWeight: 800, cursor: 'pointer' }}>Create & Select Client</motion.button>
+                                <motion.button whileTap={{ scale: isSubmitting ? 1 : 0.98 }} type="submit" disabled={isSubmitting} style={{ background: isSubmitting ? '#94a3b8' : '#10b981', color: '#fff', border: 'none', borderRadius: '12px', padding: '0.8rem', width: '100%', fontWeight: 800, cursor: isSubmitting ? 'not-allowed' : 'pointer', opacity: isSubmitting ? 0.85 : 1 }}>{isSubmitting ? 'Processing...' : 'Create & Select Client'}</motion.button>
                             </form>
                         </motion.div>
                     </div>
@@ -962,7 +994,7 @@ const PromainvoiceManagemnt = ({ currentUser, showToast }) => {
                                     <div><label style={labelStyle}>Start Date</label><input type="date" value={newProjectForm.startDate} onChange={e => setNewProjectForm({ ...newProjectForm, startDate: e.target.value })} style={{ ...inputStyle, background: '#fff' }} /></div>
                                     <div><label style={labelStyle}>End Date</label><input type="date" value={newProjectForm.endDate} onChange={e => setNewProjectForm({ ...newProjectForm, endDate: e.target.value })} style={{ ...inputStyle, background: '#fff' }} /></div>
                                 </div>
-                                <motion.button whileTap={{ scale: 0.98 }} type="submit" style={{ background: '#10b981', color: '#fff', border: 'none', borderRadius: '12px', padding: '0.8rem', width: '100%', fontWeight: 800, cursor: 'pointer' }}>Create & Select Project</motion.button>
+                                <motion.button whileTap={{ scale: isSubmitting ? 1 : 0.98 }} type="submit" disabled={isSubmitting} style={{ background: isSubmitting ? '#94a3b8' : '#10b981', color: '#fff', border: 'none', borderRadius: '12px', padding: '0.8rem', width: '100%', fontWeight: 800, cursor: isSubmitting ? 'not-allowed' : 'pointer', opacity: isSubmitting ? 0.85 : 1 }}>{isSubmitting ? 'Processing...' : 'Create & Select Project'}</motion.button>
                             </form>
                         </motion.div>
                     </div>
@@ -990,7 +1022,7 @@ const PromainvoiceManagemnt = ({ currentUser, showToast }) => {
                             )}
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                                 <motion.button whileTap={{ scale: 0.95 }} onClick={() => setDeleteModalOpen(false)} style={{ background: '#f8fafc', color: '#64748b', border: 'none', borderRadius: '12px', padding: '0.8rem', fontWeight: 800, cursor: 'pointer' }}>Abort</motion.button>
-                                <motion.button whileTap={{ scale: 0.95 }} onClick={confirmDelete} style={{ background: isAdmin ? '#ef4444' : '#f59e0b', color: '#fff', border: 'none', borderRadius: '12px', padding: '0.8rem', fontWeight: 800, cursor: 'pointer' }}>Proceed</motion.button>
+                                <motion.button whileTap={{ scale: isSubmitting ? 1 : 0.95 }} onClick={confirmDelete} disabled={isSubmitting} style={{ background: isAdmin ? '#ef4444' : '#f59e0b', color: '#fff', border: 'none', borderRadius: '12px', padding: '0.8rem', fontWeight: 800, cursor: isSubmitting ? 'not-allowed' : 'pointer', opacity: isSubmitting ? 0.85 : 1 }}>{isSubmitting ? 'Processing...' : 'Proceed'}</motion.button>
                             </div>
                         </motion.div>
                     </div>
@@ -1019,7 +1051,7 @@ const PromainvoiceManagemnt = ({ currentUser, showToast }) => {
                                     <label style={labelStyle}>Update Note (Optional)</label>
                                     <textarea placeholder="Reason for status change, payment ref, etc..." value={statusForm.note} onChange={e => setStatusForm({ ...statusForm, note: e.target.value })} style={{ ...inputStyle, height: 80, resize: 'none', background: '#fff' }} />
                                 </div>
-                                <motion.button whileTap={{ scale: 0.98 }} type="submit" style={{ background: '#4f46e5', color: '#fff', border: 'none', borderRadius: '12px', padding: '1rem', width: '100%', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>Update Status</motion.button>
+                                <motion.button whileTap={{ scale: isSubmitting ? 1 : 0.98 }} type="submit" disabled={isSubmitting} style={{ background: isSubmitting ? '#94a3b8' : '#4f46e5', color: '#fff', border: 'none', borderRadius: '12px', padding: '1rem', width: '100%', fontWeight: 800, cursor: isSubmitting ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', opacity: isSubmitting ? 0.85 : 1 }}>{isSubmitting ? 'Processing...' : 'Update Status'}</motion.button>
                             </form>
                         </motion.div>
                     </div>

@@ -7,6 +7,7 @@ import {
     ChevronDown, Settings2, Shield, Award, Type, Minus, Store, X
 } from 'lucide-react';
 import api from '../../api';
+import useSubmitGuard from '../../utils/useSubmitGuard';
 import './BusinessSettings.css';
 
 const BusinessSettings = ({ currentUser, showToast }) => {
@@ -32,6 +33,10 @@ const BusinessSettings = ({ currentUser, showToast }) => {
         deliveryNotePrefix: 'DN', deliveryNoteDigits: 5,
         deliveryNoteTitleColor: '#8b5cf6', deliveryNoteDividerColor: '#8b5cf6',
         deliveryNoteTerms: 'Standard delivery terms apply.', deliveryNoteNotes: '',
+        salesReturnPrefix: 'SRN', salesReturnDigits: 5,
+        salesReturnTitleColor: '#b91c1c', salesReturnDividerColor: '#b91c1c',
+        salesReturnTerms: 'Returned goods accepted as per policy.', salesReturnNotes: '',
+        salesReturnValidityDuration: 30, salesReturnValidityUnit: 'days',
         defaultWarrantyPeriod: '1 year',
         quotationTerms: 'Standard terms and conditions apply.', quotationNotes: '',
         invoiceTerms: 'Standard invoice terms and conditions apply.', invoiceNotes: '',
@@ -40,7 +45,7 @@ const BusinessSettings = ({ currentUser, showToast }) => {
     });
 
     const [isEditMode, setIsEditMode] = useState(false);
-    const [isSaving, setIsSaving] = useState(false);
+    const { isSubmitting, runGuarded } = useSubmitGuard();
 
     const fetchDetails = async () => {
         try {
@@ -59,6 +64,14 @@ const BusinessSettings = ({ currentUser, showToast }) => {
                     deliveryNoteDividerColor: details.deliveryNoteDividerColor || '#8b5cf6',
                     deliveryNoteTerms: details.deliveryNoteTerms || 'Standard delivery terms apply.',
                     deliveryNoteNotes: details.deliveryNoteNotes || '',
+                    salesReturnPrefix: details.salesReturnPrefix || 'SRN',
+                    salesReturnDigits: details.salesReturnDigits || 5,
+                    salesReturnTitleColor: details.salesReturnTitleColor || '#b91c1c',
+                    salesReturnDividerColor: details.salesReturnDividerColor || '#b91c1c',
+                    salesReturnTerms: details.salesReturnTerms || 'Returned goods accepted as per policy.',
+                    salesReturnNotes: details.salesReturnNotes || '',
+                    salesReturnValidityDuration: details.salesReturnValidityDuration ?? 30,
+                    salesReturnValidityUnit: details.salesReturnValidityUnit || 'days',
                     defaultWarrantyPeriod: details.defaultWarrantyPeriod || '1 year',
                     stores: details.stores || []
                 });
@@ -71,13 +84,13 @@ const BusinessSettings = ({ currentUser, showToast }) => {
     const handleSave = async (e) => {
         if (e) e.preventDefault();
         if (currentUser.role !== 'root' && currentUser.role !== 'admin') return showToast('Operation Denied: Admin clearance required', 'error');
-        setIsSaving(true);
-        try {
-            await api.patch('/business', businessData);
-            showToast('Global configurations stored');
-            setIsEditMode(false);
-        } catch (err) { showToast('Storage failure', 'error'); }
-        finally { setIsSaving(false); }
+        await runGuarded(async () => {
+            try {
+                await api.patch('/business', businessData);
+                showToast('Global configurations stored');
+                setIsEditMode(false);
+            } catch (err) { showToast('Storage failure', 'error'); }
+        });
     };
 
     const handleCancel = () => {
@@ -99,6 +112,7 @@ const BusinessSettings = ({ currentUser, showToast }) => {
 
     const inpCls = isEditMode ? 'bs2-inp bs2-inp--edit' : 'bs2-inp bs2-inp--view';
     const isRoot = currentUser.role === 'root' || currentUser.role === 'admin';
+    const isSuperRoot = currentUser.role === 'root';
 
     const EditBtn = () => isEditMode ? null : (
         <button onClick={() => setIsEditMode(true)} className="bs2-card-edit" title="Edit section">
@@ -111,8 +125,8 @@ const BusinessSettings = ({ currentUser, showToast }) => {
             <button onClick={handleCancel} className="bs2-action-btn bs2-action-btn--cancel" title="Cancel">
                 <X size={16} />
             </button>
-            <button onClick={handleSave} disabled={isSaving} className="bs2-action-btn bs2-action-btn--save" title="Save changes">
-                {isSaving ? <RefreshCw className="spin" size={16} /> : <Check size={16} />}
+            <button onClick={handleSave} disabled={isSubmitting} className="bs2-action-btn bs2-action-btn--save" title="Save changes">
+                {isSubmitting ? <RefreshCw className="spin" size={16} /> : <Check size={16} />}
             </button>
         </div>
     ) : null;
@@ -525,6 +539,64 @@ const BusinessSettings = ({ currentUser, showToast }) => {
                                         <div className="bs2-doc-right">
                                             <div><label>Delivery Terms & Conditions</label><textarea value={businessData.deliveryNoteTerms} onChange={e => setBusinessData({ ...businessData, deliveryNoteTerms: e.target.value })} disabled={!isEditMode} className={`${inpCls} bs2-ta`} placeholder="Enter standard delivery terms..." /></div>
                                             <div><label>Default Delivery Notes</label><textarea value={businessData.deliveryNoteNotes} onChange={e => setBusinessData({ ...businessData, deliveryNoteNotes: e.target.value })} disabled={!isEditMode} className={`${inpCls} bs2-ta`} placeholder="Enter default notes..." /></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Sales Return Note */}
+                            <div className="bs2-card">
+                                <div className="bs2-card-head">
+                                    <div className="bs2-card-head-left">
+                                        <span className="bs2-icon" style={{ background: '#b91c1c15', color: '#b91c1c' }}><Receipt size={20} /></span>
+                                        <h3>Sales Return Note Settings</h3>
+                                    </div>
+                                    <ColorPreview titleColor={businessData.salesReturnTitleColor} dividerColor={businessData.salesReturnDividerColor} title="SALES RETURN NOTE" />
+                                    {isRoot && <><EditBtn /><SaveCancelBtns /></>}
+                                </div>
+                                <div className="bs2-card-body">
+                                    <div className="bs2-doc-grid">
+                                        <div className="bs2-doc-left">
+                                            <div className="bs2-grid bs2-grid-2">
+                                                <div><label>Prefix</label><input value={businessData.salesReturnPrefix} onChange={e => setBusinessData({ ...businessData, salesReturnPrefix: e.target.value })} disabled={!isEditMode} className={inpCls} placeholder="e.g. SRN" /></div>
+                                                <div><label>Digits</label><input type="number" min="2" max="10" value={businessData.salesReturnDigits} onChange={e => setBusinessData({ ...businessData, salesReturnDigits: parseInt(e.target.value, 10) || 5 })} disabled={!isEditMode} className={inpCls} placeholder="5" /></div>
+                                            </div>
+                                            <div className="bs2-grid bs2-grid-2" style={{ marginTop: '0.75rem' }}>
+                                                <ColorPicker label="Title Color" value={businessData.salesReturnTitleColor} onChange={v => setBusinessData({ ...businessData, salesReturnTitleColor: v })} disabled={!isEditMode} icon={Type} />
+                                                <ColorPicker label="Divider Color" value={businessData.salesReturnDividerColor} onChange={v => setBusinessData({ ...businessData, salesReturnDividerColor: v })} disabled={!isEditMode} icon={Minus} />
+                                            </div>
+                                            <div className="bs2-grid bs2-grid-2" style={{ marginTop: '0.75rem' }}>
+                                                <div>
+                                                    <label>Return Validity Period</label>
+                                                    <input
+                                                        type="number"
+                                                        min="1"
+                                                        value={businessData.salesReturnValidityDuration}
+                                                        onChange={e => setBusinessData({ ...businessData, salesReturnValidityDuration: parseInt(e.target.value, 10) || 30 })}
+                                                        disabled={!isEditMode}
+                                                        className={inpCls}
+                                                        placeholder="e.g. 30"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label>Validity Unit</label>
+                                                    <select
+                                                        value={businessData.salesReturnValidityUnit}
+                                                        onChange={e => setBusinessData({ ...businessData, salesReturnValidityUnit: e.target.value })}
+                                                        disabled={!isEditMode}
+                                                        className={inpCls}
+                                                    >
+                                                        <option value="days">Days</option>
+                                                        <option value="weeks">Weeks</option>
+                                                        <option value="months">Months</option>
+                                                        <option value="years">Years</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="bs2-doc-right">
+                                            <div><label>Sales Return Terms</label><textarea value={businessData.salesReturnTerms} onChange={e => setBusinessData({ ...businessData, salesReturnTerms: e.target.value })} disabled={!isEditMode} className={`${inpCls} bs2-ta`} placeholder="Enter standard return terms..." /></div>
+                                            <div><label>Default Sales Return Notes</label><textarea value={businessData.salesReturnNotes} onChange={e => setBusinessData({ ...businessData, salesReturnNotes: e.target.value })} disabled={!isEditMode} className={`${inpCls} bs2-ta`} placeholder="Enter default notes..." /></div>
                                         </div>
                                     </div>
                                 </div>

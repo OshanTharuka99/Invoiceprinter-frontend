@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FileText, Plus, X, Search, RefreshCw, Printer, AlertTriangle, ShieldAlert, CheckCircle, Briefcase, Trash2, Users, Building, MapPin } from 'lucide-react';
 import api from '../../api';
+import useSubmitGuard from '../../utils/useSubmitGuard';
 import PriceInput from '../../utils/PriceInput';
 import { calculateDocumentTotals } from '../../utils/calculateDocumentTotals';
 import PurchaseOrderTemplate from './PurchaseOrderTemplate';
@@ -56,6 +57,7 @@ const PurchaseOrderManagement = ({ currentUser, showToast }) => {
     const [form, setForm] = useState(initialForm);
     const [applyDiscountMode, setApplyDiscountMode] = useState(false);
     const [customDiscount, setCustomDiscount] = useState({ type: 'percentage', value: 0 });
+    const { isSubmitting, runGuarded } = useSubmitGuard();
 
     const fetchData = async () => {
         setLoading(true);
@@ -201,20 +203,22 @@ const PurchaseOrderManagement = ({ currentUser, showToast }) => {
     const handleCreateSupplier = async (e) => {
         e.preventDefault();
         if (!newSupplier.name.trim()) return showToast?.('Supplier name is required', 'error');
-        try {
-            const res = await api.post('/suppliers', newSupplier);
-            const created = res.data.data;
-            setSuppliers(prev => [created, ...prev]);
-            setForm(prev => ({ ...prev, supplierRef: created._id }));
-            setIsSupplierModalOpen(false);
-            setNewSupplier({
-                name: '', telephoneNumber: '', emailAddress: '', address: '',
-                bankDetails: { accountNumber: '', accountName: '', bankName: '', branch: '' }
-            });
-            showToast?.('Supplier added successfully', 'success');
-        } catch (err) {
-            showToast?.('Failed to create supplier', 'error');
-        }
+        await runGuarded(async () => {
+            try {
+                const res = await api.post('/suppliers', newSupplier);
+                const created = res.data.data;
+                setSuppliers(prev => [created, ...prev]);
+                setForm(prev => ({ ...prev, supplierRef: created._id }));
+                setIsSupplierModalOpen(false);
+                setNewSupplier({
+                    name: '', telephoneNumber: '', emailAddress: '', address: '',
+                    bankDetails: { accountNumber: '', accountName: '', bankName: '', branch: '' }
+                });
+                showToast?.('Supplier added successfully', 'success');
+            } catch (err) {
+                showToast?.('Failed to create supplier', 'error');
+            }
+        });
     };
 
     const submitPO = async (e) => {
@@ -223,26 +227,30 @@ const PurchaseOrderManagement = ({ currentUser, showToast }) => {
         if (!form.supplierQuotationNumber.trim()) return showToast?.('Supplier Quotation Number is required', 'error');
         if (form.items.length === 0) return showToast?.('Insert at least 1 item', 'error');
 
-        try {
-            await api.post('/purchase-orders', { ...form, creationMethod: creationMode });
-            showToast?.('Purchase Order created successfully', 'success');
-            setIsCreateModalOpen(false);
-            fetchData();
-        } catch (err) {
-            showToast?.(err.response?.data?.message || 'Failed to create PO', 'error');
-        }
+        await runGuarded(async () => {
+            try {
+                await api.post('/purchase-orders', { ...form, creationMethod: creationMode });
+                showToast?.('Purchase Order created successfully', 'success');
+                setIsCreateModalOpen(false);
+                fetchData();
+            } catch (err) {
+                showToast?.(err.response?.data?.message || 'Failed to create PO', 'error');
+            }
+        });
     };
 
     const confirmDelete = async () => {
-        try {
-            await api.delete(`/purchase-orders/${poToDelete._id}`);
-            showToast?.('Purchase Order deleted successfully', 'success');
-            setDeleteModalOpen(false);
-            setPoToDelete(null);
-            fetchData();
-        } catch (err) {
-            showToast?.('Failed to delete PO', 'error');
-        }
+        await runGuarded(async () => {
+            try {
+                await api.delete(`/purchase-orders/${poToDelete._id}`);
+                showToast?.('Purchase Order deleted successfully', 'success');
+                setDeleteModalOpen(false);
+                setPoToDelete(null);
+                fetchData();
+            } catch (err) {
+                showToast?.('Failed to delete PO', 'error');
+            }
+        });
     };
 
     const filtered = purchaseOrders.filter(po =>
@@ -602,7 +610,7 @@ const PurchaseOrderManagement = ({ currentUser, showToast }) => {
                                     </div>
                                 </div>
 
-                                <motion.button whileTap={{ scale: 0.98 }} type="submit" className="po-btn po-btn-success po-btn-full" style={{ padding: '1rem', fontWeight: 800 }}><CheckCircle size={20} /> Create Purchase Order</motion.button>
+                                <motion.button whileTap={{ scale: isSubmitting ? 1 : 0.98 }} type="submit" disabled={isSubmitting} className="po-btn po-btn-success po-btn-full" style={{ padding: '1rem', fontWeight: 800, opacity: isSubmitting ? 0.85 : 1, cursor: isSubmitting ? 'not-allowed' : 'pointer' }}><CheckCircle size={20} /> {isSubmitting ? 'Processing...' : 'Create Purchase Order'}</motion.button>
                             </form>
                         </motion.div>
                     </div>
@@ -663,7 +671,7 @@ const PurchaseOrderManagement = ({ currentUser, showToast }) => {
                                     </div>
                                 </div>
 
-                                <motion.button whileTap={{ scale: 0.98 }} type="submit" className="po-btn po-btn-success" style={{ width: '100%', padding: '10px', marginTop: '1rem', fontWeight: 800 }}>Save Supplier to Database</motion.button>
+                                <motion.button whileTap={{ scale: isSubmitting ? 1 : 0.98 }} type="submit" disabled={isSubmitting} className="po-btn po-btn-success" style={{ width: '100%', padding: '10px', marginTop: '1rem', fontWeight: 800, opacity: isSubmitting ? 0.85 : 1, cursor: isSubmitting ? 'not-allowed' : 'pointer' }}>{isSubmitting ? 'Processing...' : 'Save Supplier to Database'}</motion.button>
                             </form>
                         </motion.div>
                     </div>
@@ -680,7 +688,7 @@ const PurchaseOrderManagement = ({ currentUser, showToast }) => {
                             <p style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '2rem' }}>This action will permanently delete purchase order <strong>{poToDelete?.poNumber}</strong>. This action is irreversible.</p>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                                 <motion.button whileTap={{ scale: 0.95 }} onClick={() => setDeleteModalOpen(false)} style={{ background: '#f8fafc', color: '#64748b', border: 'none', borderRadius: '12px', padding: '0.8rem', fontWeight: 800, cursor: 'pointer' }}>Cancel</motion.button>
-                                <motion.button whileTap={{ scale: 0.95 }} onClick={confirmDelete} style={{ background: '#ef4444', color: '#fff', border: 'none', borderRadius: '12px', padding: '0.8rem', fontWeight: 800, cursor: 'pointer' }}>Delete permanently</motion.button>
+                                <motion.button whileTap={{ scale: isSubmitting ? 1 : 0.95 }} onClick={confirmDelete} disabled={isSubmitting} style={{ background: '#ef4444', color: '#fff', border: 'none', borderRadius: '12px', padding: '0.8rem', fontWeight: 800, cursor: isSubmitting ? 'not-allowed' : 'pointer', opacity: isSubmitting ? 0.85 : 1 }}>{isSubmitting ? 'Processing...' : 'Delete permanently'}</motion.button>
                             </div>
                         </motion.div>
                     </div>

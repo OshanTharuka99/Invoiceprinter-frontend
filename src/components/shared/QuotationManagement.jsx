@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FileText, Plus, X, Search, RefreshCw, Printer, AlertTriangle, ShieldAlert, CheckCircle, Briefcase, Trash2 } from 'lucide-react';
 import api from '../../api';
+import useSubmitGuard from '../../utils/useSubmitGuard';
 import PriceInput from '../../utils/PriceInput';
 import { calculateDocumentTotals } from '../../utils/calculateDocumentTotals';
 import QuotationTemplate from './QuotationTemplate';
@@ -49,6 +50,7 @@ const QuotationManagement = ({ currentUser, showToast }) => {
     const [form, setForm] = useState(initialForm);
     const [applyDiscountMode, setApplyDiscountMode] = useState(false);
     const [customDiscount, setCustomDiscount] = useState({ type: 'percentage', value: 0 });
+    const { isSubmitting, runGuarded } = useSubmitGuard();
 
     const fetchData = async () => {
         setLoading(true);
@@ -187,14 +189,16 @@ const QuotationManagement = ({ currentUser, showToast }) => {
         e.preventDefault();
         if (form.items.length === 0) return showToast?.('Insert at least 1 item', 'error');
 
-        try {
-            await api.post('/quotations', { ...form, creationMethod: creationMode });
-            showToast?.('Quotation compiled securely', 'success');
-            setIsCreateModalOpen(false);
-            fetchData();
-        } catch (err) {
-            showToast?.(err.response?.data?.message || 'Failure writing node', 'error');
-        }
+        await runGuarded(async () => {
+            try {
+                await api.post('/quotations', { ...form, creationMethod: creationMode });
+                showToast?.('Quotation compiled securely', 'success');
+                setIsCreateModalOpen(false);
+                fetchData();
+            } catch (err) {
+                showToast?.(err.response?.data?.message || 'Failure writing node', 'error');
+            }
+        });
     };
 
     const openDeleteModal = (q) => {
@@ -204,27 +208,31 @@ const QuotationManagement = ({ currentUser, showToast }) => {
     };
 
     const confirmDelete = async () => {
-        try {
-            if (currentUser.role === 'root' || currentUser.role === 'admin') {
-                await api.delete(`/quotations/${quotationToDelete._id}`);
-                showToast?.('Record eliminated.', 'success');
-            } else {
-                if (!deleteReason.trim()) return showToast?.('Reason is required for standard users.', 'error');
-                await api.post(`/quotations/${quotationToDelete._id}/request-delete`, { reason: deleteReason });
-                showToast?.('Deletion Request transmitted to Security.', 'success');
+        await runGuarded(async () => {
+            try {
+                if (currentUser.role === 'root' || currentUser.role === 'admin') {
+                    await api.delete(`/quotations/${quotationToDelete._id}`);
+                    showToast?.('Quotation cancelled.', 'success');
+                } else {
+                    if (!deleteReason.trim()) return showToast?.('Reason is required for standard users.', 'error');
+                    await api.post(`/quotations/${quotationToDelete._id}/request-delete`, { reason: deleteReason });
+                    showToast?.('Deletion Request transmitted to Security.', 'success');
+                }
+                setDeleteModalOpen(false);
+                setQuotationToDelete(null);
+                fetchData();
+            } catch (err) {
+                showToast?.('Elimination protocol failed', 'error');
             }
-            setDeleteModalOpen(false);
-            setQuotationToDelete(null);
-            fetchData();
-        } catch (err) {
-            showToast?.('Elimination protocol failed', 'error');
-        }
+        });
     };
 
     const filtered = quotations.filter(q =>
-        q.quotationId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (q.clientRef?.firstName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (q.manualClientDetails?.name || '').toLowerCase().includes(searchTerm.toLowerCase())
+        q.status !== 'Cancelled' && (
+            q.quotationId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (q.clientRef?.firstName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (q.manualClientDetails?.name || '').toLowerCase().includes(searchTerm.toLowerCase())
+        )
     );
 
     const cardStyle = { background: '#fff', border: '1px solid #e2e8f0', borderRadius: '24px', padding: '2.5rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' };
@@ -726,7 +734,7 @@ const QuotationManagement = ({ currentUser, showToast }) => {
                                             <div className="qm-total-value">{form.finalTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
                                         </div>
 
-                                        <motion.button whileTap={{ scale: 0.98 }} type="submit" className="qm-btn qm-btn-success qm-btn-full"><CheckCircle size={20} /> Create Quotation</motion.button>
+                                        <motion.button whileTap={{ scale: isSubmitting ? 1 : 0.98 }} type="submit" disabled={isSubmitting} className="qm-btn qm-btn-success qm-btn-full" style={{ opacity: isSubmitting ? 0.85 : 1, cursor: isSubmitting ? 'not-allowed' : 'pointer' }}><CheckCircle size={20} /> {isSubmitting ? 'Processing...' : 'Create Quotation'}</motion.button>
                                     </form>
                                 </motion.div>
                             </div>
@@ -754,7 +762,7 @@ const QuotationManagement = ({ currentUser, showToast }) => {
                                     )}
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                                         <motion.button whileTap={{ scale: 0.95 }} onClick={() => setDeleteModalOpen(false)} style={{ background: '#f8fafc', color: '#64748b', border: 'none', borderRadius: '12px', padding: '0.8rem', fontWeight: 800, cursor: 'pointer' }}>Abort Action</motion.button>
-                                        <motion.button whileTap={{ scale: 0.95 }} onClick={confirmDelete} style={{ background: (currentUser.role === 'admin' || currentUser.role === 'root') ? '#ef4444' : '#f59e0b', color: '#fff', border: 'none', borderRadius: '12px', padding: '0.8rem', fontWeight: 800, cursor: 'pointer' }}>Proceed with Command</motion.button>
+                                        <motion.button whileTap={{ scale: isSubmitting ? 1 : 0.95 }} onClick={confirmDelete} disabled={isSubmitting} style={{ background: (currentUser.role === 'admin' || currentUser.role === 'root') ? '#ef4444' : '#f59e0b', color: '#fff', border: 'none', borderRadius: '12px', padding: '0.8rem', fontWeight: 800, cursor: isSubmitting ? 'not-allowed' : 'pointer', opacity: isSubmitting ? 0.85 : 1 }}>{isSubmitting ? 'Processing...' : 'Proceed with Command'}</motion.button>
                                     </div>
                                 </motion.div>
                             </div>

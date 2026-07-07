@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FileText, Plus, X, Search, RefreshCw, Printer, AlertTriangle, ShieldAlert, CheckCircle, Barcode, Edit3, AlertCircle, Trash2, Clock, Truck } from 'lucide-react';
+import { FileText, Plus, X, Search, RefreshCw, Printer, AlertTriangle, ShieldAlert, CheckCircle, Barcode, Edit3, AlertCircle, Trash2, Clock, Truck, ClipboardList } from 'lucide-react';
 import api from '../../api';
+import useSubmitGuard from '../../utils/useSubmitGuard';
 import PriceInput from '../../utils/PriceInput';
 import { calculateDocumentTotals } from '../../utils/calculateDocumentTotals';
 import InvoiceTemplate from './InvoiceTemplate';
@@ -19,6 +20,7 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
     const [businessData, setBusinessData] = useState(null);
     const [projects, setProjects] = useState([]);
     const [deliveryNotes, setDeliveryNotes] = useState([]);
+    const [quotations, setQuotations] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [activeTab, setActiveTab] = useState('Active');
@@ -26,7 +28,8 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [creationMode, setCreationMode] = useState('automatic');
     const [selectedDeliveryNote, setSelectedDeliveryNote] = useState('');
-    const [invoiceSource, setInvoiceSource] = useState('blank'); // 'blank' or 'delivery_note'
+    const [selectedQuotation, setSelectedQuotation] = useState('');
+    const [invoiceSource, setInvoiceSource] = useState('blank'); // 'blank', 'delivery_note', or 'quotation'
     const [isSerialModalOpen, setIsSerialModalOpen] = useState(false);
     const [activeItemIndex, setActiveItemIndex] = useState(null);
 
@@ -44,6 +47,7 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
 
     const [editingInvoice, setEditingInvoice] = useState(null); // original invoice being edited
     const [editNote, setEditNote] = useState('');
+    const { isSubmitting, runGuarded } = useSubmitGuard();
 
     const [isNewClientModalOpen, setIsNewClientModalOpen] = useState(false);
     const [newClientForm, setNewClientForm] = useState({ firstName: '', lastName: '', clientType: 'Person', telephoneNumber: '', whatsappNumber: '', address: '', emailAddress: '' });
@@ -68,7 +72,8 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
         currency: 'primary',
         status: 'Unpaid',
         invoiceDate: new Date().toISOString().split('T')[0],
-        deliveryNoteRef: null
+        deliveryNoteRef: null,
+        quotationRef: null
     };
     const [form, setForm] = useState(initialForm);
     const [applyDiscountMode, setApplyDiscountMode] = useState(false);
@@ -89,19 +94,21 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
     const fetchData = async () => {
         setLoading(true);
         try {
-            const [invRes, cRes, pRes, bRes, prRes, dnRes] = await Promise.all([
+            const [invRes, cRes, pRes, bRes, prRes, dnRes, qRes] = await Promise.all([
                 api.get('/invoices'),
                 api.get('/clients'),
                 api.get('/products'),
                 api.get('/business'),
                 api.get('/projects'),
-                api.get('/delivery-notes')
+                api.get('/delivery-notes'),
+                api.get('/quotations?forLoad=true'),
             ]);
             setInvoices(invRes.data.data);
             setClients(cRes.data.data);
             setProducts(pRes.data.data);
             setProjects(prRes.data.data);
             setDeliveryNotes(dnRes.data.data);
+            setQuotations(qRes.data.data || []);
             if (bRes.data.data.details) setBusinessData(bRes.data.data.details);
         } catch (error) {
             showToast?.('Error fetching data', 'error');
@@ -160,17 +167,18 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
 
     const calculateTotals = calculateDocumentTotals;
 
-    const openCreation = (mode, source = 'blank', dnId = null) => {
+    const openCreation = (mode, source = 'blank', sourceId = null) => {
         if (mode === 'manual' && !isAdmin) {
             showToast?.('Manual invoice creation is restricted to admin users', 'error');
             return;
         }
         setCreationMode(mode);
         setInvoiceSource(source);
-        setSelectedDeliveryNote(dnId || '');
+        setSelectedDeliveryNote(source === 'delivery_note' ? (sourceId || '') : '');
+        setSelectedQuotation(source === 'quotation' ? (sourceId || '') : '');
 
         const preSelectedDN = localStorage.getItem('preSelectedDN');
-        const dnToLoad = dnId || preSelectedDN;
+        const dnToLoad = source === 'delivery_note' ? (sourceId || preSelectedDN) : null;
         if (preSelectedDN) localStorage.removeItem('preSelectedDN');
 
         const initialTaxes = [];
@@ -195,6 +203,9 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
 
         if (source === 'delivery_note' && dnToLoad) {
             setTimeout(() => handleDeliveryNoteSelect(dnToLoad), 100);
+        }
+        if (source === 'quotation' && sourceId) {
+            setTimeout(() => handleQuotationSelect(sourceId), 100);
         }
     };
 
@@ -273,6 +284,44 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
         setForm(prev => calculateTotals({ ...prev, hasTax: checked }));
     };
 
+    const handleQuotationSelect = async (quotationId) => {
+        setSelectedQuotation(quotationId);
+        if (!quotationId) return;
+        try {
+            const res = await api.get(`/quotations/${quotationId}/for-invoice`);
+            const qData = res.data.data;
+            setForm(prev => ({
+                ...prev,
+                clientRef: qData.clientRef || '',
+                manualClientDetails: qData.manualClientDetails || prev.manualClientDetails,
+                projectId: qData.projectId || '',
+                deliveryAddress: qData.deliveryAddress || '',
+                customerPO: qData.customerPO || '',
+                items: qData.items.map(item => ({
+                    productRef: item.productRef || '',
+                    manualName: item.manualName || '',
+                    quantity: item.quantity,
+                    unitPrice: item.unitPrice || 0,
+                    lineTotal: item.lineTotal || 0,
+                    serialNumbers: item.serialNumbers || []
+                })),
+                subTotal: qData.subTotal,
+                appliedDiscounts: qData.appliedDiscounts || [],
+                discountTotal: qData.discountTotal || 0,
+                hasTax: qData.hasTax || false,
+                appliedTaxes: qData.appliedTaxes || [],
+                taxTotal: qData.taxTotal || 0,
+                finalTotal: qData.finalTotal,
+                currency: qData.currency || 'primary',
+                deliveryNoteRef: null,
+                quotationRef: qData.quotationId
+            }));
+            showToast?.(`Loaded from ${qData.quotationNumber}`);
+        } catch (error) {
+            showToast?.(error.response?.data?.message || 'Failed to load quotation', 'error');
+        }
+    };
+
     const handleDeliveryNoteSelect = async (dnId) => {
         setSelectedDeliveryNote(dnId);
         if (!dnId) return;
@@ -310,7 +359,8 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
                 taxTotal: 0,
                 discountTotal: 0,
                 finalTotal: subTotal,
-                deliveryNoteRef: dnData.deliveryNoteId
+                deliveryNoteRef: dnData.deliveryNoteId,
+                quotationRef: null
             }));
             showToast?.(`Loaded from ${dnData.deliveryNoteNumber}`);
         } catch (error) {
@@ -356,7 +406,10 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
         setForm({ ...form, projectId: value });
     };
 
-    const isClientProjectLocked = !!(invoiceSource === 'delivery_note' && form.deliveryNoteRef);
+    const isClientProjectLocked = !!(
+        (invoiceSource === 'delivery_note' && form.deliveryNoteRef)
+        || (invoiceSource === 'quotation' && form.quotationRef)
+    );
     const filteredProjectsForClient = projects.filter(
         p => !form.clientRef || p.client === form.clientRef || p.client?._id === form.clientRef
     );
@@ -386,28 +439,28 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
             return showToast?.('Duplicate serial numbers found in the same item', 'error');
         }
 
-        // Enforce Paid status on frontend for cash payments before submit
-        const payload = { ...form, creationMethod: creationMode };
-        if (payload.paymentMethod === 'cash') {
-            payload.status = 'Paid';
-        }
+        await runGuarded(async () => {
+            try {
+                const payload = { ...form, creationMethod: creationMode };
+                if (payload.paymentMethod === 'cash') {
+                    payload.status = 'Paid';
+                }
 
-        try {
-            if (editingInvoice) {
-                // Edit mode: PUT to the edit endpoint
-                await api.put(`/invoices/${editingInvoice._id}/edit`, { ...payload, editNote });
-                showToast?.(`Invoice edited. Original ${editingInvoice.invoiceNumber} cancelled.`, 'success');
-            } else {
-                await api.post('/invoices', payload);
-                showToast?.('Invoice created successfully', 'success');
+                if (editingInvoice) {
+                    await api.put(`/invoices/${editingInvoice._id}/edit`, { ...payload, editNote });
+                    showToast?.(`Invoice edited. Original ${editingInvoice.invoiceNumber} cancelled.`, 'success');
+                } else {
+                    await api.post('/invoices', payload);
+                    showToast?.('Invoice created successfully', 'success');
+                }
+                setIsCreateModalOpen(false);
+                setEditingInvoice(null);
+                setEditNote('');
+                fetchData();
+            } catch (err) {
+                showToast?.(err.response?.data?.message || 'Failed to save invoice', 'error');
             }
-            setIsCreateModalOpen(false);
-            setEditingInvoice(null);
-            setEditNote('');
-            fetchData();
-        } catch (err) {
-            showToast?.(err.response?.data?.message || 'Failed to save invoice', 'error');
-        }
+        });
     };
 
     const openEditModal = (inv) => {
@@ -458,47 +511,52 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
 
     const handleUpdateStatus = async (e) => {
         e.preventDefault();
-        try {
-            await api.patch(`/invoices/${selectedInvoiceForStatus._id}/status`, statusForm);
-            showToast?.('Status updated successfully', 'success');
-            setIsStatusModalOpen(false);
-            fetchData();
-            // Update viewInvoice if it is currently open
-            if (viewInvoice && viewInvoice._id === selectedInvoiceForStatus._id) {
-                const res = await api.get(`/invoices/${selectedInvoiceForStatus._id}`);
-                setViewInvoice(res.data.data);
+        await runGuarded(async () => {
+            try {
+                await api.patch(`/invoices/${selectedInvoiceForStatus._id}/status`, statusForm);
+                showToast?.('Status updated successfully', 'success');
+                setIsStatusModalOpen(false);
+                fetchData();
+                if (viewInvoice && viewInvoice._id === selectedInvoiceForStatus._id) {
+                    const res = await api.get(`/invoices/${selectedInvoiceForStatus._id}`);
+                    setViewInvoice(res.data.data);
+                }
+            } catch (err) {
+                showToast?.(err.response?.data?.message || 'Failed to update status', 'error');
             }
-        } catch (err) {
-            showToast?.(err.response?.data?.message || 'Failed to update status', 'error');
-        }
+        });
     };
 
     const handleCreateClient = async (e) => {
         e.preventDefault();
-        try {
-            const res = await api.post('/clients', newClientForm);
-            showToast?.('Client created', 'success');
-            setClients(prev => [...prev, res.data.data]);
-            setForm(prev => ({ ...prev, clientRef: res.data.data._id, deliveryAddress: res.data.data.address || '' }));
-            setIsNewClientModalOpen(false);
-            setNewClientForm({ firstName: '', lastName: '', clientType: 'Person', telephoneNumber: '', whatsappNumber: '', address: '', emailAddress: '' });
-        } catch (err) {
-            showToast?.(err.response?.data?.message || 'Failed to create client', 'error');
-        }
+        await runGuarded(async () => {
+            try {
+                const res = await api.post('/clients', newClientForm);
+                showToast?.('Client created', 'success');
+                setClients(prev => [...prev, res.data.data]);
+                setForm(prev => ({ ...prev, clientRef: res.data.data._id, deliveryAddress: res.data.data.address || '' }));
+                setIsNewClientModalOpen(false);
+                setNewClientForm({ firstName: '', lastName: '', clientType: 'Person', telephoneNumber: '', whatsappNumber: '', address: '', emailAddress: '' });
+            } catch (err) {
+                showToast?.(err.response?.data?.message || 'Failed to create client', 'error');
+            }
+        });
     };
 
     const handleCreateProject = async (e) => {
         e.preventDefault();
-        try {
-            const res = await api.post('/projects', newProjectForm);
-            showToast?.('Project created', 'success');
-            setProjects(prev => [...prev, res.data.data]);
-            setForm(prev => ({ ...prev, projectId: res.data.data._id }));
-            setIsNewProjectModalOpen(false);
-            setNewProjectForm({ name: '', client: '', location: '', startDate: '', endDate: '', value: 0 });
-        } catch (err) {
-            showToast?.(err.response?.data?.message || 'Failed to create project', 'error');
-        }
+        await runGuarded(async () => {
+            try {
+                const res = await api.post('/projects', newProjectForm);
+                showToast?.('Project created', 'success');
+                setProjects(prev => [...prev, res.data.data]);
+                setForm(prev => ({ ...prev, projectId: res.data.data._id }));
+                setIsNewProjectModalOpen(false);
+                setNewProjectForm({ name: '', client: '', location: '', startDate: '', endDate: '', value: 0 });
+            } catch (err) {
+                showToast?.(err.response?.data?.message || 'Failed to create project', 'error');
+            }
+        });
     };
 
     const openDeleteModal = (inv) => {
@@ -510,21 +568,23 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
     const confirmDelete = async () => {
         if (!deleteReason.trim()) return showToast?.('Deletion reason is required', 'error');
 
-        try {
-            if (isAdmin) {
-                await api.delete(`/invoices/${invoiceToDelete._id}`, { data: { reason: deleteReason.trim() } });
-                showToast?.('Invoice deleted', 'success');
-            } else {
-                await api.post(`/invoices/${invoiceToDelete._id}/request-delete`, { reason: deleteReason.trim() });
-                showToast?.('Deletion request sent', 'success');
+        await runGuarded(async () => {
+            try {
+                if (isAdmin) {
+                    await api.delete(`/invoices/${invoiceToDelete._id}`, { data: { reason: deleteReason.trim() } });
+                    showToast?.('Invoice deleted', 'success');
+                } else {
+                    await api.post(`/invoices/${invoiceToDelete._id}/request-delete`, { reason: deleteReason.trim() });
+                    showToast?.('Deletion request sent', 'success');
+                }
+                setDeleteModalOpen(false);
+                setInvoiceToDelete(null);
+                setDeleteReason('');
+                fetchData();
+            } catch (err) {
+                showToast?.(err.response?.data?.message || 'Delete failed', 'error');
             }
-            setDeleteModalOpen(false);
-            setInvoiceToDelete(null);
-            setDeleteReason('');
-            fetchData();
-        } catch (err) {
-            showToast?.(err.response?.data?.message || 'Delete failed', 'error');
-        }
+        });
     };
 
     const filtered = invoices.filter(inv => {
@@ -619,6 +679,12 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
                                 cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '8px',
                                 fontFamily: "'Outfit', sans-serif"
                             }}><Truck size={18} /> From Delivery Note</motion.button>
+                            <motion.button whileTap={{ scale: 0.95 }} onClick={() => openCreation('automatic', 'quotation')} style={{
+                                padding: '10px 18px', borderRadius: '12px', border: '1.5px solid #fde68a',
+                                background: '#fffbeb', color: '#92400e', fontWeight: 700, fontSize: '0.85rem',
+                                cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '8px',
+                                fontFamily: "'Outfit', sans-serif"
+                            }}><ClipboardList size={18} /> From Quotation</motion.button>
                         </div>
                     </div>
                     <div className="modern-table-card">
@@ -746,6 +812,30 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
                                             {form.deliveryNoteRef && (
                                                 <div style={{ marginTop: '8px', fontSize: '0.8rem', color: '#166534', fontWeight: 600 }}>
                                                     ✓ Delivery note loaded — client, project, items, and serials have been auto-populated
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {invoiceSource === 'quotation' && (
+                                    <div style={{ marginBottom: '1.5rem', padding: '1.5rem', borderRadius: '16px', background: '#fffbeb', border: '1px solid #fde68a' }}>
+                                        <h4 style={{ margin: '0 0 1rem 0', color: '#92400e', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <ClipboardList size={18} /> Create Invoice from Quotation
+                                        </h4>
+                                        <div>
+                                            <label style={labelStyle}>Select Quotation</label>
+                                            <select value={selectedQuotation} onChange={e => handleQuotationSelect(e.target.value)} style={{ ...inputStyle, background: '#fff' }}>
+                                                <option value="">Choose a quotation...</option>
+                                                {quotations.map(q => (
+                                                    <option key={q._id} value={q._id}>
+                                                        {q.quotationId} [{q.status}] — {q.clientRef ? (q.clientRef.clientType === 'Organization' ? q.clientRef.firstName : `${q.clientRef.firstName || ''} ${q.clientRef.lastName || ''}`.trim()) : (q.manualClientDetails?.organization || q.manualClientDetails?.name || 'N/A')} ({new Date(q.createdAt).toLocaleDateString('en-GB')})
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            {form.quotationRef && (
+                                                <div style={{ marginTop: '8px', fontSize: '0.8rem', color: '#92400e', fontWeight: 600 }}>
+                                                    ✓ Quotation loaded — client, project, items, discounts, and taxes have been auto-populated
                                                 </div>
                                             )}
                                         </div>
@@ -1219,28 +1309,32 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
                                 </div>
 
                                 <motion.button
-                                    whileTap={{ scale: hasSerialMismatch ? 1 : 0.98 }}
+                                    whileTap={{ scale: (hasSerialMismatch || isSubmitting) ? 1 : 0.98 }}
                                     type="submit"
-                                    disabled={hasSerialMismatch}
+                                    disabled={hasSerialMismatch || isSubmitting}
                                     style={{
-                                        background: hasSerialMismatch ? '#94a3b8' : '#10b981',
+                                        background: (hasSerialMismatch || isSubmitting) ? '#94a3b8' : '#10b981',
                                         color: '#fff',
                                         border: 'none',
                                         borderRadius: '12px',
                                         padding: '1rem',
                                         width: '100%',
                                         fontWeight: 800,
-                                        cursor: hasSerialMismatch ? 'not-allowed' : 'pointer',
+                                        cursor: (hasSerialMismatch || isSubmitting) ? 'not-allowed' : 'pointer',
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',
                                         gap: '0.5rem',
                                         fontSize: '1rem',
-                                        opacity: hasSerialMismatch ? 0.85 : 1,
+                                        opacity: (hasSerialMismatch || isSubmitting) ? 0.85 : 1,
                                     }}
                                 >
-                                    <CheckCircle size={20} />
-                                    {hasSerialMismatch ? 'Assign All Serial Numbers First' : 'Create Invoice'}
+                                    {isSubmitting ? <RefreshCw size={20} className="animate-spin" /> : <CheckCircle size={20} />}
+                                    {isSubmitting
+                                        ? 'Processing...'
+                                        : hasSerialMismatch
+                                            ? 'Assign All Serial Numbers First'
+                                            : (editingInvoice ? 'Save Edited Invoice' : 'Create Invoice')}
                                 </motion.button>
                                 {hasSerialMismatch && (
                                     <div style={{ fontSize: '0.75rem', color: '#ef4444', marginTop: '0.75rem', fontWeight: 700, textAlign: 'center' }}>
@@ -1391,7 +1485,7 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
                                     <div><label style={labelStyle}>Phone</label><input value={newClientForm.telephoneNumber} onChange={e => setNewClientForm({ ...newClientForm, telephoneNumber: e.target.value })} style={{ ...inputStyle, background: '#fff' }} /></div>
                                     <div><label style={labelStyle}>Email</label><input type="email" value={newClientForm.emailAddress} onChange={e => setNewClientForm({ ...newClientForm, emailAddress: e.target.value })} style={{ ...inputStyle, background: '#fff' }} /></div>
                                 </div>
-                                <motion.button whileTap={{ scale: 0.98 }} type="submit" style={{ background: '#10b981', color: '#fff', border: 'none', borderRadius: '12px', padding: '0.8rem', width: '100%', fontWeight: 800, cursor: 'pointer' }}>Create & Select Client</motion.button>
+                                <motion.button whileTap={{ scale: isSubmitting ? 1 : 0.98 }} type="submit" disabled={isSubmitting} style={{ background: isSubmitting ? '#94a3b8' : '#10b981', color: '#fff', border: 'none', borderRadius: '12px', padding: '0.8rem', width: '100%', fontWeight: 800, cursor: isSubmitting ? 'not-allowed' : 'pointer', opacity: isSubmitting ? 0.85 : 1 }}>{isSubmitting ? 'Processing...' : 'Create & Select Client'}</motion.button>
                             </form>
                         </motion.div>
                     </div>
@@ -1421,7 +1515,7 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
                                     <div><label style={labelStyle}>Start Date</label><input type="date" value={newProjectForm.startDate} onChange={e => setNewProjectForm({ ...newProjectForm, startDate: e.target.value })} style={{ ...inputStyle, background: '#fff' }} /></div>
                                     <div><label style={labelStyle}>End Date</label><input type="date" value={newProjectForm.endDate} onChange={e => setNewProjectForm({ ...newProjectForm, endDate: e.target.value })} style={{ ...inputStyle, background: '#fff' }} /></div>
                                 </div>
-                                <motion.button whileTap={{ scale: 0.98 }} type="submit" style={{ background: '#10b981', color: '#fff', border: 'none', borderRadius: '12px', padding: '0.8rem', width: '100%', fontWeight: 800, cursor: 'pointer' }}>Create & Select Project</motion.button>
+                                <motion.button whileTap={{ scale: isSubmitting ? 1 : 0.98 }} type="submit" disabled={isSubmitting} style={{ background: isSubmitting ? '#94a3b8' : '#10b981', color: '#fff', border: 'none', borderRadius: '12px', padding: '0.8rem', width: '100%', fontWeight: 800, cursor: isSubmitting ? 'not-allowed' : 'pointer', opacity: isSubmitting ? 0.85 : 1 }}>{isSubmitting ? 'Processing...' : 'Create & Select Project'}</motion.button>
                             </form>
                         </motion.div>
                     </div>
@@ -1460,7 +1554,7 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
                             />
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                                 <motion.button whileTap={{ scale: 0.95 }} onClick={() => { setDeleteModalOpen(false); setDeleteReason(''); }} style={{ background: '#f8fafc', color: '#64748b', border: 'none', borderRadius: '12px', padding: '0.8rem', fontWeight: 800, cursor: 'pointer' }}>Cancel</motion.button>
-                                <motion.button whileTap={{ scale: 0.95 }} onClick={confirmDelete} disabled={!deleteReason.trim()} style={{ background: isAdmin ? '#ef4444' : '#f59e0b', color: '#fff', border: 'none', borderRadius: '12px', padding: '0.8rem', fontWeight: 800, cursor: deleteReason.trim() ? 'pointer' : 'not-allowed', opacity: deleteReason.trim() ? 1 : 0.6 }}>{isAdmin ? 'Delete Invoice' : 'Submit Request'}</motion.button>
+                                <motion.button whileTap={{ scale: isSubmitting ? 1 : 0.95 }} onClick={confirmDelete} disabled={isSubmitting || !deleteReason.trim()} style={{ background: isAdmin ? '#ef4444' : '#f59e0b', color: '#fff', border: 'none', borderRadius: '12px', padding: '0.8rem', fontWeight: 800, cursor: (isSubmitting || !deleteReason.trim()) ? 'not-allowed' : 'pointer', opacity: (isSubmitting || !deleteReason.trim()) ? 0.6 : 1 }}>{isSubmitting ? 'Processing...' : (isAdmin ? 'Delete Invoice' : 'Submit Request')}</motion.button>
                             </div>
                         </motion.div>
                     </div>
@@ -1489,7 +1583,7 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
                                     <label style={labelStyle}>Update Note (Optional)</label>
                                     <textarea placeholder="Reason for status change, payment ref, etc..." value={statusForm.note} onChange={e => setStatusForm({ ...statusForm, note: e.target.value })} style={{ ...inputStyle, height: 80, resize: 'none', background: '#fff' }} />
                                 </div>
-                                <motion.button whileTap={{ scale: 0.98 }} type="submit" style={{ background: '#4f46e5', color: '#fff', border: 'none', borderRadius: '12px', padding: '1rem', width: '100%', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>Update Status</motion.button>
+                                <motion.button whileTap={{ scale: isSubmitting ? 1 : 0.98 }} type="submit" disabled={isSubmitting} style={{ background: isSubmitting ? '#94a3b8' : '#4f46e5', color: '#fff', border: 'none', borderRadius: '12px', padding: '1rem', width: '100%', fontWeight: 800, cursor: isSubmitting ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', opacity: isSubmitting ? 0.85 : 1 }}>{isSubmitting ? 'Processing...' : 'Update Status'}</motion.button>
                             </form>
                         </motion.div>
                     </div>

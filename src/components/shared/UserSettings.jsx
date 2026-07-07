@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { User, Camera, Lock, Save, AlertCircle, CheckCircle, Eye, EyeOff } from 'lucide-react';
 import api from '../../api';
+import useSubmitGuard from '../../utils/useSubmitGuard';
 import './UserSettings.css';
 
 const STOCK_LOCATIONS = ['Showroom', 'Warehouse A', 'Warehouse B', 'Store Room', 'Main Store'];
@@ -15,12 +16,12 @@ const UserSettings = ({ currentUser, showToast, onUserUpdate }) => {
         telephoneNumber: currentUser?.telephoneNumber || '',
         profilePicture: currentUser?.profilePicture || null,
     });
-    const [saving, setSaving] = useState(false);
     const [previewImg, setPreviewImg] = useState(currentUser?.profilePicture || null);
+    const { isSubmitting: profileSubmitting, runGuarded: runProfileGuarded } = useSubmitGuard();
+    const { isSubmitting: pwSubmitting, runGuarded: runPwGuarded } = useSubmitGuard();
 
     // Password change state
     const [pwForm, setPwForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
-    const [pwSaving, setPwSaving] = useState(false);
     const [showPw, setShowPw] = useState({ current: false, new: false, confirm: false });
 
     const fileInputRef = useRef(null);
@@ -49,16 +50,15 @@ const UserSettings = ({ currentUser, showToast, onUserUpdate }) => {
 
     const handleSaveProfile = async (e) => {
         e.preventDefault();
-        setSaving(true);
-        try {
-            const res = await api.patch('/users/update-me', form);
-            showToast?.('Profile updated successfully', 'success');
-            onUserUpdate?.(res.data.data.user);
-        } catch (err) {
-            showToast?.(err.response?.data?.message || 'Update failed', 'error');
-        } finally {
-            setSaving(false);
-        }
+        await runProfileGuarded(async () => {
+            try {
+                const res = await api.patch('/users/update-me', form);
+                showToast?.('Profile updated successfully', 'success');
+                onUserUpdate?.(res.data.data.user);
+            } catch (err) {
+                showToast?.(err.response?.data?.message || 'Update failed', 'error');
+            }
+        });
     };
 
     const handleChangePassword = async (e) => {
@@ -71,19 +71,18 @@ const UserSettings = ({ currentUser, showToast, onUserUpdate }) => {
             showToast?.('Password must be at least 6 characters', 'error');
             return;
         }
-        setPwSaving(true);
-        try {
-            await api.post('/users/change-password', {
-                currentPassword: pwForm.currentPassword,
-                newPassword: pwForm.newPassword,
-            });
-            showToast?.('Password changed successfully', 'success');
-            setPwForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
-        } catch (err) {
-            showToast?.(err.response?.data?.message || 'Password change failed', 'error');
-        } finally {
-            setPwSaving(false);
-        }
+        await runPwGuarded(async () => {
+            try {
+                await api.post('/users/change-password', {
+                    currentPassword: pwForm.currentPassword,
+                    newPassword: pwForm.newPassword,
+                });
+                showToast?.('Password changed successfully', 'success');
+                setPwForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+            } catch (err) {
+                showToast?.(err.response?.data?.message || 'Password change failed', 'error');
+            }
+        });
     };
 
     return (
@@ -159,8 +158,8 @@ const UserSettings = ({ currentUser, showToast, onUserUpdate }) => {
                     </div>
 
                     <div className="us-form-actions">
-                        <motion.button type="submit" className="us-btn-primary" disabled={saving} whileTap={{ scale: 0.97 }}>
-                            <Save size={16} /> {saving ? 'Saving...' : 'Save Profile'}
+                        <motion.button type="submit" className="us-btn-primary" disabled={profileSubmitting} whileTap={{ scale: 0.97 }}>
+                            <Save size={16} /> {profileSubmitting ? 'Processing...' : 'Save Profile'}
                         </motion.button>
                     </div>
                 </form>
@@ -204,8 +203,8 @@ const UserSettings = ({ currentUser, showToast, onUserUpdate }) => {
                         ))}
                     </div>
                     <div className="us-form-actions">
-                        <motion.button type="submit" className="us-btn-amber" disabled={pwSaving} whileTap={{ scale: 0.97 }}>
-                            <CheckCircle size={16} /> {pwSaving ? 'Updating...' : 'Update Password'}
+                        <motion.button type="submit" className="us-btn-amber" disabled={pwSubmitting} whileTap={{ scale: 0.97 }}>
+                            <CheckCircle size={16} /> {pwSubmitting ? 'Processing...' : 'Update Password'}
                         </motion.button>
                     </div>
                 </form>

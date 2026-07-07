@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShieldCheck, Lock, Eye, EyeOff, RefreshCw, Check, X, ShieldAlert } from 'lucide-react';
 import api from '../api';
+import useSubmitGuard from '../utils/useSubmitGuard';
 import toast, { Toaster } from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 
@@ -18,8 +19,8 @@ const ForcePasswordChange = () => {
     const [confirmPassword, setConfirmPassword] = useState('');
     const [showNewPassword, setShowNewPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-    const [isLoading, setIsLoading] = useState(false);
     const navigate = useNavigate();
+    const { isSubmitting, runGuarded } = useSubmitGuard();
 
     const policy = {
         length: newPassword.length >= 8,
@@ -43,22 +44,21 @@ const ForcePasswordChange = () => {
         e.preventDefault();
         if (!isPolicyValid) return showToast('Policy requirements missing.', 'error');
         if (newPassword !== confirmPassword) return showToast('Passwords mismatch.', 'error');
-        setIsLoading(true);
-        try {
-            const res = await api.post('/users/change-password', { newPassword });
-            
-            if (res.data.data?.user) {
-                updateUser(res.data.data.user);
-            }
+        await runGuarded(async () => {
+            try {
+                const res = await api.post('/users/change-password', { newPassword });
+                
+                if (res.data.data?.user) {
+                    updateUser(res.data.data.user);
+                }
 
-            showToast('Security updated. Redirecting...', 'success');
-            setTimeout(() => navigate('/dashboard'), 1500);
-        } catch (err) { 
-            const msg = err.response?.data?.message || 'Update rejection. Check policy.';
-            showToast(msg, 'error'); 
-        } finally {
-            setIsLoading(false);
-        }
+                showToast('Security updated. Redirecting...', 'success');
+                setTimeout(() => navigate('/dashboard'), 1500);
+            } catch (err) { 
+                const msg = err.response?.data?.message || 'Update rejection. Check policy.';
+                showToast(msg, 'error'); 
+            }
+        });
     };
 
     const PolicyItem = ({ label, met }) => (
@@ -247,11 +247,11 @@ const ForcePasswordChange = () => {
                     >
                         <motion.button
                             type="submit"
-                            disabled={isLoading || !isPolicyValid}
+                            disabled={isSubmitting || !isPolicyValid}
                             onMouseEnter={() => setHoverBtn(true)}
                             onMouseLeave={() => setHoverBtn(false)}
                             animate={{
-                                scale: hoverBtn && isPolicyValid && !isLoading ? 1.01 : 1,
+                                scale: hoverBtn && isPolicyValid && !isSubmitting ? 1.01 : 1,
                                 background: isPolicyValid
                                     ? 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)'
                                     : '#e2e8f0'
@@ -264,16 +264,16 @@ const ForcePasswordChange = () => {
                                 cursor: isPolicyValid ? 'pointer' : 'not-allowed',
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                                 gap: '0.75rem', marginTop: '0.5rem',
-                                boxShadow: isPolicyValid && !isLoading ? '0 8px 24px rgba(15,23,42,0.25)' : 'none'
+                                boxShadow: isPolicyValid && !isSubmitting ? '0 8px 24px rgba(15,23,42,0.25)' : 'none'
                             }}
                             whileTap={{ scale: 0.98 }}
                         >
-                            {isLoading ? (
+                            {isSubmitting ? (
                                 <RefreshCw size={20} className="spin" />
                             ) : (
                                 <ShieldCheck size={20} />
                             )}
-                            {isLoading ? 'UPDATING...' : 'FINALIZE SECURITY'}
+                            {isSubmitting ? 'UPDATING...' : 'FINALIZE SECURITY'}
                         </motion.button>
                     </motion.div>
                     

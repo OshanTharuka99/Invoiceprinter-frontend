@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShieldAlert, CheckCircle, XCircle, RefreshCw, UserCheck, FileText, Users, Package } from 'lucide-react';
 import api from '../../api';
+import useSubmitGuard from '../../utils/useSubmitGuard';
 import './ApprovalsDashboard.css';
 
 const ApprovalsDashboard = ({ showToast }) => {
@@ -11,6 +12,7 @@ const ApprovalsDashboard = ({ showToast }) => {
     const [quotationRequests, setQuotationRequests] = useState([]);
     const [inventoryRequests, setInventoryRequests] = useState([]);
     const [loading, setLoading] = useState(false);
+    const { isSubmitting, runGuarded } = useSubmitGuard();
 
     const fetchData = async () => {
         setLoading(true);
@@ -35,33 +37,39 @@ const ApprovalsDashboard = ({ showToast }) => {
     useEffect(() => { fetchData(); }, [activeTab]);
 
     const handleClientAction = async (id, action) => {
-        try {
-            await api.put(`/clients/requests/${id}/${action}`);
-            showToast?.(`Edit securely ${action}d`, 'success');
-            fetchData();
-        } catch {
-            showToast?.(`Failed to ${action} transaction`, 'error');
-        }
+        await runGuarded(async () => {
+            try {
+                await api.put(`/clients/requests/${id}/${action}`);
+                showToast?.(`Edit securely ${action}d`, 'success');
+                fetchData();
+            } catch {
+                showToast?.(`Failed to ${action} transaction`, 'error');
+            }
+        });
     };
 
     const handleQuotationAction = async (id, action) => {
-        try {
-            await api.put(`/quotations/delete-requests/${id}/${action}`);
-            showToast?.(`Quotation Deletion ${action}d`, 'success');
-            fetchData();
-        } catch {
-            showToast?.(`Failed to ${action} transaction`, 'error');
-        }
+        await runGuarded(async () => {
+            try {
+                await api.put(`/quotations/delete-requests/${id}/${action}`);
+                showToast?.(`Quotation Deletion ${action}d`, 'success');
+                fetchData();
+            } catch {
+                showToast?.(`Failed to ${action} transaction`, 'error');
+            }
+        });
     };
 
     const handleInventoryAction = async (id, action) => {
-        try {
-            await api.put(`/products/inventory-requests/${id}/${action}`);
-            showToast?.(`Inventory request ${action}d`, 'success');
-            fetchData();
-        } catch {
-            showToast?.(`Failed to ${action} inventory request`, 'error');
-        }
+        await runGuarded(async () => {
+            try {
+                await api.put(`/products/inventory-requests/${id}/${action}`);
+                showToast?.(`Inventory request ${action}d`, 'success');
+                fetchData();
+            } catch {
+                showToast?.(`Failed to ${action} inventory request`, 'error');
+            }
+        });
     };
 
     const TYPE_COLORS = { Product: '#6366f1', Category: '#f59e0b', StockEntry: '#22c55e' };
@@ -117,10 +125,10 @@ const ApprovalsDashboard = ({ showToast }) => {
                                                 </div>
                                             </div>
                                             <div className="adb-req-actions">
-                                                <motion.button whileTap={{ scale: 0.95 }} onClick={() => handleClientAction(req._id, 'reject')} className="adb-btn adb-btn--reject">
+                                                <motion.button whileTap={{ scale: isSubmitting ? 1 : 0.95 }} onClick={() => handleClientAction(req._id, 'reject')} disabled={isSubmitting} className="adb-btn adb-btn--reject">
                                                     <XCircle size={16} /> Reject
                                                 </motion.button>
-                                                <motion.button whileTap={{ scale: 0.95 }} onClick={() => handleClientAction(req._id, 'approve')} className="adb-btn adb-btn--approve">
+                                                <motion.button whileTap={{ scale: isSubmitting ? 1 : 0.95 }} onClick={() => handleClientAction(req._id, 'approve')} disabled={isSubmitting} className="adb-btn adb-btn--approve">
                                                     <CheckCircle size={16} /> Approve Override
                                                 </motion.button>
                                             </div>
@@ -158,10 +166,10 @@ const ApprovalsDashboard = ({ showToast }) => {
                                                 </div>
                                             </div>
                                             <div className="adb-req-actions">
-                                                <motion.button whileTap={{ scale: 0.95 }} onClick={() => handleQuotationAction(req._id, 'reject')} className="adb-btn adb-btn--outline-danger">
+                                                <motion.button whileTap={{ scale: isSubmitting ? 1 : 0.95 }} onClick={() => handleQuotationAction(req._id, 'reject')} disabled={isSubmitting} className="adb-btn adb-btn--outline-danger">
                                                     <XCircle size={16} /> Keep Quotation
                                                 </motion.button>
-                                                <motion.button whileTap={{ scale: 0.95 }} onClick={() => handleQuotationAction(req._id, 'approve')} className="adb-btn adb-btn--danger">
+                                                <motion.button whileTap={{ scale: isSubmitting ? 1 : 0.95 }} onClick={() => handleQuotationAction(req._id, 'approve')} disabled={isSubmitting} className="adb-btn adb-btn--danger">
                                                     <CheckCircle size={16} /> Approve Permanent Deletion
                                                 </motion.button>
                                             </div>
@@ -198,10 +206,10 @@ const ApprovalsDashboard = ({ showToast }) => {
                                                 </div>
                                             </div>
                                             <div className="adb-req-actions">
-                                                <motion.button whileTap={{ scale: 0.95 }} onClick={() => handleInventoryAction(req._id, 'reject')} className="adb-btn adb-btn--reject">
+                                                <motion.button whileTap={{ scale: isSubmitting ? 1 : 0.95 }} onClick={() => handleInventoryAction(req._id, 'reject')} disabled={isSubmitting} className="adb-btn adb-btn--reject">
                                                     <XCircle size={16} /> Reject
                                                 </motion.button>
-                                                <motion.button whileTap={{ scale: 0.95 }} onClick={() => handleInventoryAction(req._id, 'approve')} className="adb-btn adb-btn--approve">
+                                                <motion.button whileTap={{ scale: isSubmitting ? 1 : 0.95 }} onClick={() => handleInventoryAction(req._id, 'approve')} disabled={isSubmitting} className="adb-btn adb-btn--approve">
                                                     <CheckCircle size={16} /> Approve & Apply
                                                 </motion.button>
                                             </div>

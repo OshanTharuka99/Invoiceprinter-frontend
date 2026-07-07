@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Users, Plus, X, Edit2, Trash2, Search, RefreshCw, AlertTriangle, Building2, UserCircle2, Landmark, FileText, Phone, Mail, MapPin, Hash } from 'lucide-react';
 import api from '../../api';
+import useSubmitGuard from '../../utils/useSubmitGuard';
 import '../../styles/modern-table.css';
 
 const ClientManagement = ({ currentUser, showToast }) => {
@@ -15,6 +16,7 @@ const ClientManagement = ({ currentUser, showToast }) => {
 
     const initialForm = { firstName: '', lastName: '', clientType: 'Person', telephoneNumber: '', whatsappNumber: '', emailAddress: '', address: '' };
     const [form, setForm] = useState(initialForm);
+    const { isSubmitting, runGuarded } = useSubmitGuard();
 
     const fetchClients = async () => {
         setLoading(true);
@@ -41,12 +43,14 @@ const ClientManagement = ({ currentUser, showToast }) => {
 
     const saveClient = async (e) => {
         e.preventDefault();
-        try {
-            if (editingClient) { await api.put(`/clients/${editingClient._id}`, form); showToast?.('Client records updated', 'success'); }
-            else { await api.post('/clients', form); showToast?.('New client registered', 'success'); }
-            setIsModalOpen(false);
-            fetchClients();
-        } catch (error) { showToast?.(error.response?.data?.message || 'Protocol failure', 'error'); }
+        await runGuarded(async () => {
+            try {
+                if (editingClient) { await api.put(`/clients/${editingClient._id}`, form); showToast?.('Client records updated', 'success'); }
+                else { await api.post('/clients', form); showToast?.('New client registered', 'success'); }
+                setIsModalOpen(false);
+                fetchClients();
+            } catch (error) { showToast?.(error.response?.data?.message || 'Protocol failure', 'error'); }
+        });
     };
 
     const deleteClient = (id) => {
@@ -243,7 +247,7 @@ const ClientManagement = ({ currentUser, showToast }) => {
                                     </div>
                                 </div>
                                 <div style={{ display: 'flex', gap: '1rem' }}>
-                                    <motion.button whileTap={{ scale: 0.98 }} title="Save client" type="submit" style={{ background: '#10b981', color: '#fff', border: 'none', borderRadius: '14px', width: '100%', padding: '1rem', fontWeight: 800, cursor: 'pointer', justifyContent: 'center', display: 'flex' }}>SAVE CLIENT</motion.button>
+                                    <motion.button whileTap={{ scale: isSubmitting ? 1 : 0.98 }} title="Save client" type="submit" disabled={isSubmitting} style={{ background: isSubmitting ? '#94a3b8' : '#10b981', color: '#fff', border: 'none', borderRadius: '14px', width: '100%', padding: '1rem', fontWeight: 800, cursor: isSubmitting ? 'not-allowed' : 'pointer', justifyContent: 'center', display: 'flex' }}>{isSubmitting ? 'Processing...' : 'SAVE CLIENT'}</motion.button>
                                 </div>
                             </form>
                         </motion.div>

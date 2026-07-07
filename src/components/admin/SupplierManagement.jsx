@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Truck, Plus, X, Edit2, Trash2, Search, RefreshCw, AlertTriangle, FileText, Phone, Mail, MapPin, Landmark, Building2, Users, CheckCircle2, DollarSign, CreditCard } from 'lucide-react';
 import api from '../../api';
+import useSubmitGuard from '../../utils/useSubmitGuard';
 import './SupplierManagement.css';
 import '../../styles/modern-table.css';
 
@@ -22,6 +23,7 @@ const SupplierManagement = ({ currentUser, showToast }) => {
         bankDetails: { accountNumber: '', accountName: '', bankName: '', branch: '' } 
     };
     const [form, setForm] = useState(initialForm);
+    const { isSubmitting, runGuarded } = useSubmitGuard();
 
     const fetchData = async () => {
         setLoading(true);
@@ -55,12 +57,14 @@ const SupplierManagement = ({ currentUser, showToast }) => {
 
     const saveVendor = async (e) => {
         e.preventDefault();
-        try {
-            if (editingVendor) { await api.put(`/suppliers/${editingVendor._id}`, form); showToast?.('Supply chain records synchronized', 'success'); }
-            else { await api.post('/suppliers', form); showToast?.('New vendor entity established', 'success'); }
-            setIsModalOpen(false);
-            fetchData();
-        } catch (error) { showToast?.(error.response?.data?.message || 'Transmission failure', 'error'); }
+        await runGuarded(async () => {
+            try {
+                if (editingVendor) { await api.put(`/suppliers/${editingVendor._id}`, form); showToast?.('Supply chain records synchronized', 'success'); }
+                else { await api.post('/suppliers', form); showToast?.('New vendor entity established', 'success'); }
+                setIsModalOpen(false);
+                fetchData();
+            } catch (error) { showToast?.(error.response?.data?.message || 'Transmission failure', 'error'); }
+        });
     };
 
     const deleteVendor = (id) => {
@@ -306,8 +310,8 @@ const SupplierManagement = ({ currentUser, showToast }) => {
                                         </div>
                                     </div>
                                 </div>
-                                <motion.button whileTap={{ scale: 0.98 }} type="submit" className="sm-btn-submit">
-                                    {editingVendor ? 'Update Vendor' : 'Create Vendor'}
+                                <motion.button whileTap={{ scale: isSubmitting ? 1 : 0.98 }} type="submit" disabled={isSubmitting} className="sm-btn-submit" style={{ opacity: isSubmitting ? 0.85 : 1, cursor: isSubmitting ? 'not-allowed' : 'pointer' }}>
+                                    {isSubmitting ? 'Processing...' : (editingVendor ? 'Update Vendor' : 'Create Vendor')}
                                 </motion.button>
                             </form>
                         </motion.div>

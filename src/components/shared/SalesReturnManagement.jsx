@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { RefreshCw, Search, Undo2, Plus, FileSearch, Printer, Eye, X } from 'lucide-react';
+import { RefreshCw, Search, Undo2, Plus, FileSearch, Printer, Eye, X, BookOpen } from 'lucide-react';
 import api from '../../api';
 import useSubmitGuard from '../../utils/useSubmitGuard';
 import '../../styles/modern-table.css';
 import SalesReturnTemplate from './SalesReturnTemplate';
+import SalesReturnUserManual from './SalesReturnUserManual';
 
 const SalesReturnManagement = ({ currentUser, showToast }) => {
     const [returns, setReturns] = useState([]);
@@ -25,7 +26,9 @@ const SalesReturnManagement = ({ currentUser, showToast }) => {
     const [businessData, setBusinessData] = useState(null);
     const [viewReturn, setViewReturn] = useState(null);
     const [previewReturn, setPreviewReturn] = useState(null);
+    const [showManual, setShowManual] = useState(false);
     const printRef = useRef();
+    const manualPrintRef = useRef();
 
     const isSuperRoot = currentUser?.role === 'root';
 
@@ -189,6 +192,40 @@ const SalesReturnManagement = ({ currentUser, showToast }) => {
         }, 100);
     };
 
+    const handlePrintManual = () => {
+        setTimeout(() => {
+            const printContent = manualPrintRef.current;
+            if (!printContent) return;
+            const fileName = `Sales_Return_User_Manual_${new Date().toISOString().slice(0, 10)}`;
+            const windowPrint = window.open('', '', 'left=0,top=0,width=900,height=1100,toolbar=0,scrollbars=1,status=0');
+            windowPrint.document.write(`
+                <!DOCTYPE html>
+                <html>
+                    <head>
+                        <title>${fileName}</title>
+                        <style>
+                            * { box-sizing: border-box; margin: 0; padding: 0; }
+                            body { background: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; color-adjust: exact; }
+                            @media print {
+                                @page { size: A4 portrait; margin: 12mm 14mm 12mm 14mm; }
+                                body { margin: 0 !important; padding: 0 !important; }
+                                div { padding: 0 !important; }
+                                * { box-shadow: none !important; }
+                            }
+                        </style>
+                    </head>
+                    <body>${printContent.innerHTML}</body>
+                </html>
+            `);
+            windowPrint.document.close();
+            windowPrint.focus();
+            setTimeout(() => {
+                windowPrint.print();
+                windowPrint.close();
+            }, 400);
+        }, 100);
+    };
+
     return (
         <div className="pm-root">
             <div style={{ display: 'none' }}>
@@ -196,6 +233,9 @@ const SalesReturnManagement = ({ currentUser, showToast }) => {
                     {viewReturn && businessData && (
                         <SalesReturnTemplate salesReturn={viewReturn} business={businessData} />
                     )}
+                </div>
+                <div ref={manualPrintRef}>
+                    <SalesReturnUserManual business={businessData} />
                 </div>
             </div>
 
@@ -209,6 +249,14 @@ const SalesReturnManagement = ({ currentUser, showToast }) => {
                         </div>
                     </div>
                     <div className="pm-card-actions">
+                        <motion.button
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => setShowManual(true)}
+                            className="pm-btn pm-btn-outline"
+                            title="Open user manual"
+                        >
+                            <BookOpen size={16} /> User Manual
+                        </motion.button>
                         {!createMode && (
                             <motion.button
                                 whileTap={{ scale: 0.95 }}
@@ -458,6 +506,54 @@ const SalesReturnManagement = ({ currentUser, showToast }) => {
                         </div>
                         <div style={{ overflow: 'auto', padding: '1rem' }}>
                             <SalesReturnTemplate salesReturn={previewReturn} business={businessData} />
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {showManual && (
+                <div
+                    style={{
+                        position: 'fixed',
+                        inset: 0,
+                        background: 'rgba(15, 23, 42, 0.6)',
+                        backdropFilter: 'blur(4px)',
+                        zIndex: 9999,
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        padding: '1rem',
+                    }}
+                    onClick={() => setShowManual(false)}
+                >
+                    <div
+                        style={{
+                            width: '100%',
+                            maxWidth: '900px',
+                            maxHeight: '92vh',
+                            background: '#f8fafc',
+                            borderRadius: '16px',
+                            overflow: 'hidden',
+                            display: 'flex',
+                            flexDirection: 'column',
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div style={{ padding: '0.75rem 1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', background: '#fff' }}>
+                            <div style={{ fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <BookOpen size={18} color="#b91c1c" /> Sales Return — User Manual
+                            </div>
+                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                <button type="button" className="pm-btn pm-btn-primary" onClick={handlePrintManual}>
+                                    <Printer size={15} /> Download PDF
+                                </button>
+                                <button type="button" className="pm-btn pm-btn-outline" onClick={() => setShowManual(false)}>
+                                    <X size={15} /> Close
+                                </button>
+                            </div>
+                        </div>
+                        <div style={{ overflow: 'auto', padding: '1rem', background: '#e2e8f0' }}>
+                            <SalesReturnUserManual business={businessData} />
                         </div>
                     </div>
                 </div>

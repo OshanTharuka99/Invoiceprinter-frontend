@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import {
     Users, ShieldCheck, LayoutDashboard, FileText, Settings,
-    TrendingUp, LogOut, Bell, Package, Briefcase, Truck, ShieldAlert, ScrollText, Printer, Shield, X, Undo2
+    TrendingUp, LogOut, Bell, Package, Briefcase, Truck, ShieldAlert, ScrollText, Printer, Shield, X, Undo2, RotateCcw
 } from 'lucide-react';
 import api from '../api';
 import { toast, Toaster } from 'react-hot-toast';
@@ -23,6 +23,7 @@ import WarrantyManagement from '../components/admin/WarrantyManagement';
 import PurchaseOrderManagement from '../components/shared/PurchaseOrderManagement';
 import DeliveryNoteManagement from '../components/shared/DeliveryNoteManagement';
 import SalesReturnManagement from '../components/shared/SalesReturnManagement';
+import GoodsReturnManagement from '../components/shared/GoodsReturnManagement';
 import UserSettings from '../components/shared/UserSettings';
 
 
@@ -63,6 +64,7 @@ const AdminPortal = () => {
         { id: 'purchase_orders', label: 'Purchase Orders', icon: ScrollText },
         { id: 'delivery_notes', label: 'Delivery Notes', icon: Truck },
         { id: 'sales_returns', label: 'Sales Return Notes', icon: Undo2 },
+        { id: 'goods_returns', label: 'Goods Return Notes', icon: RotateCcw },
     ];
 
 
@@ -144,6 +146,7 @@ const AdminPortal = () => {
             case 'purchase_orders': return <PurchaseOrderManagement currentUser={user} showToast={showToast} />;
             case 'delivery_notes': return <DeliveryNoteManagement currentUser={user} showToast={showToast} />;
             case 'sales_returns': return <SalesReturnManagement currentUser={user} showToast={showToast} />;
+            case 'goods_returns': return <GoodsReturnManagement currentUser={user} showToast={showToast} />;
             case 'analytics': return <AdminDashboard currentUser={user} />;
             default: return <div className="admin-empty-module">Module under development...</div>;
         }

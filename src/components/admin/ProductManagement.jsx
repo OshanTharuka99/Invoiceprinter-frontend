@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Package, Plus, X, Edit2, Trash2, RefreshCw, FolderTree, Search,
   AlertTriangle, FileText, BarChart3, ShieldCheck, Hash, FileSpreadsheet,
-  MapPin, DollarSign, Tag, Layers } from 'lucide-react';
+  MapPin, DollarSign, Tag, Layers, Truck } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import api from '../../api';
 import useSubmitGuard from '../../utils/useSubmitGuard';
@@ -13,7 +13,7 @@ import '../../styles/modern-table.css';
 const FV = { initial:{opacity:0,y:8}, animate:{opacity:1,y:0}, exit:{opacity:0,y:-8} };
 const FM = { initial:{scale:0.95,opacity:0}, animate:{scale:1,opacity:1}, exit:{scale:0.95,opacity:0} };
 const EMPTY_PROD = { name:'', category:'', price:'', currencyType:'primary', isTaxIncluded:false, description:'', warrantyPeriod:'' };
-const EMPTY_STOCK = { location:'', buyingPrice:'', quantity:'', warrantyPeriod:'', notes:'' };
+const EMPTY_STOCK = { location:'', buyingPrice:'', quantity:'', warrantyPeriod:'', notes:'', supplierRef:'', supplierInvoiceNumber:'', supplierDeliveryNumber:'' };
 const STOCK_LOCATIONS = ['Showroom', 'Warehouse A', 'Warehouse B', 'Store Room', 'Main Store'];
 const MODIFY_REASONS = {
   stock: ['Stock Level Correction', 'Damaged / Broken Stock', 'Data Entry Error', 'Incorrect Serial Number', 'Stock Location Correction', 'Supplier Return'],
@@ -26,6 +26,7 @@ const ProductManagement = ({ currentUser, showToast }) => {
   const [categories, setCategories] = useState([]);
   const [products, setProducts] = useState([]);
   const [businessData, setBusinessData] = useState(null);
+  const [suppliers, setSuppliers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [catSearch, setCatSearch] = useState('');
   const [prodSearch, setProdSearch] = useState('');
@@ -69,14 +70,16 @@ const ProductManagement = ({ currentUser, showToast }) => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [cr, pr, br] = await Promise.all([
+      const [cr, pr, br, sr] = await Promise.all([
         api.get('/products/categories'),
         api.get('/products'),
-        api.get('/business')
+        api.get('/business'),
+        api.get('/suppliers').catch(() => ({ data: { data: [] } })),
       ]);
       setCategories(cr.data.data || []);
       setProducts(pr.data.data || []);
       if (br.data?.data?.details) setBusinessData(br.data.data.details);
+      setSuppliers(sr.data?.data || []);
     } catch { showToast?.('Error loading data', 'error'); }
     finally { setLoading(false); }
   };
@@ -86,7 +89,7 @@ const ProductManagement = ({ currentUser, showToast }) => {
     setStockLoading(true);
     try {
       const res = await api.get(`/products/${pid}/stock`);
-      setStockEntries(res.data.data || []);
+      setStockEntries((res.data.data || []).filter((e) => Number(e.quantity || 0) > 0));
     } catch { setStockEntries([]); }
     finally { setStockLoading(false); }
   };
@@ -252,7 +255,9 @@ const ProductManagement = ({ currentUser, showToast }) => {
     await runGuarded(async () => {
       try {
         await api.post(`/products/${stockProd._id}/stock`, {
-          ...stockForm, quantity:qty,
+          ...stockForm,
+          quantity: qty,
+          supplierRef: stockForm.supplierRef || null,
           serialNumbers: useSerials ? serials : [],
         });
         showToast?.('Stock entry saved successfully','success');
@@ -507,6 +512,15 @@ const ProductManagement = ({ currentUser, showToast }) => {
                           {e.warrantyPeriod&&<span><ShieldCheck size={12}/> {e.warrantyPeriod}</span>}
                           {e.addedBy&&<span><Tag size={12}/> {e.addedBy.name||e.addedBy.username}</span>}
                         </div>
+                        {(e.supplierRef || e.supplierInvoiceNumber || e.supplierDeliveryNumber) && (
+                          <div className="pm-entry-meta" style={{ marginTop: 4 }}>
+                            {e.supplierRef && <span><Truck size={12}/> {e.supplierRef.name || e.supplierRef.supplierId}</span>}
+                            {e.supplierInvoiceNumber && <span><FileText size={12}/> Inv: {e.supplierInvoiceNumber}</span>}
+                            {e.supplierDeliveryNumber && (
+                              <span><FileText size={12}/> DN: {e.supplierDeliveryNumber === 'N/A' ? 'N/A' : e.supplierDeliveryNumber}</span>
+                            )}
+                          </div>
+                        )}
                         {e.notes&&<div style={{fontSize:'0.78rem',color:'var(--pm-text-2)',marginTop:4,fontStyle:'italic'}}>{e.notes}</div>}
                         {e.serialNumbers?.length>0&&(
                           <div className="pm-entry-serials">
@@ -548,12 +562,60 @@ const ProductManagement = ({ currentUser, showToast }) => {
                   <div><label className="pm-label">Stock Location</label>
                     <select className="pm-input pm-select-input" value={stockForm.location} onChange={e=>setStockForm({...stockForm,location:e.target.value})}>
                       <option value="">— Select Location —</option>
-                      {STOCK_LOCATIONS.map(loc=><option key={loc} value={loc}>{loc}</option>)}
+                      {(businessData?.stores?.length ? businessData.stores.map(s => s.name).filter(Boolean) : STOCK_LOCATIONS).map(loc=><option key={loc} value={loc}>{loc}</option>)}
                     </select>
                   </div>
                   <div><label className="pm-label">Buying Price / Unit</label><PriceInput value={parseFloat(stockForm.buyingPrice) || 0} onChange={v => setStockForm({...stockForm, buyingPrice: v.toString()})} className="pm-input" placeholder="0.00" /></div>
                 </div>
-                <div><label className="pm-label">Notes <span className="pm-label-optional">(optional)</span></label><textarea className="pm-input pm-textarea" value={stockForm.notes} onChange={e=>setStockForm({...stockForm,notes:e.target.value})} placeholder="Supplier name, invoice #, purchase order..."/></div>
+                <div className="pm-form-row pm-form-row-2">
+                  <div>
+                    <label className="pm-label">Supplier <span className="pm-label-optional">(optional)</span></label>
+                    <select className="pm-input pm-select-input" value={stockForm.supplierRef} onChange={e=>setStockForm({...stockForm,supplierRef:e.target.value})}>
+                      <option value="">— Select Supplier —</option>
+                      {suppliers.map(s => <option key={s._id} value={s._id}>{s.name} ({s.supplierId})</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="pm-label">Supplier Invoice #</label>
+                    <input className="pm-input" value={stockForm.supplierInvoiceNumber} onChange={e=>setStockForm({...stockForm,supplierInvoiceNumber:e.target.value.toUpperCase()})} placeholder="e.g. SUP-INV-001"/>
+                  </div>
+                </div>
+                <div>
+                  <label className="pm-label">Supplier Delivery Note #</label>
+                  <div className="pm-form-row pm-form-row-2" style={{ marginTop: 0 }}>
+                    <select
+                      className="pm-input pm-select-input"
+                      value={stockForm.supplierDeliveryNumber === 'N/A' ? 'N/A' : 'CUSTOM'}
+                      onChange={(e) => {
+                        if (e.target.value === 'N/A') {
+                          setStockForm({ ...stockForm, supplierDeliveryNumber: 'N/A' });
+                        } else {
+                          setStockForm({
+                            ...stockForm,
+                            supplierDeliveryNumber: stockForm.supplierDeliveryNumber === 'N/A' ? '' : stockForm.supplierDeliveryNumber,
+                          });
+                        }
+                      }}
+                    >
+                      <option value="CUSTOM">Enter delivery note number</option>
+                      <option value="N/A">N/A (invoice only — no DN)</option>
+                    </select>
+                    <input
+                      className="pm-input"
+                      value={stockForm.supplierDeliveryNumber === 'N/A' ? '' : stockForm.supplierDeliveryNumber}
+                      onChange={(e) => setStockForm({ ...stockForm, supplierDeliveryNumber: e.target.value.toUpperCase() })}
+                      placeholder="e.g. SUP-DN-001"
+                      disabled={stockForm.supplierDeliveryNumber === 'N/A'}
+                      style={stockForm.supplierDeliveryNumber === 'N/A' ? { opacity: 0.55, background: '#f8fafc' } : undefined}
+                    />
+                  </div>
+                  {stockForm.supplierDeliveryNumber === 'N/A' && (
+                    <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: 6, fontWeight: 600 }}>
+                      No supplier delivery note — goods received against invoice only.
+                    </div>
+                  )}
+                </div>
+                <div><label className="pm-label">Notes <span className="pm-label-optional">(optional)</span></label><textarea className="pm-input pm-textarea" value={stockForm.notes} onChange={e=>setStockForm({...stockForm,notes:e.target.value})} placeholder="Additional notes..."/></div>
                 <div className="pm-serial-section">
                   <div className="pm-serial-toggle-row">
                     <input type="checkbox" id="useSerial" checked={useSerials} onChange={e=>{setUseSerials(e.target.checked);if(!e.target.checked)setSerials([]);}} style={{width:17,height:17,accentColor:'#6366f1',cursor:'pointer'}}/>

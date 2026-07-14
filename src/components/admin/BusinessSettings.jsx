@@ -37,6 +37,9 @@ const BusinessSettings = ({ currentUser, showToast }) => {
         salesReturnTitleColor: '#b91c1c', salesReturnDividerColor: '#b91c1c',
         salesReturnTerms: 'Returned goods accepted as per policy.', salesReturnNotes: '',
         salesReturnValidityDuration: 30, salesReturnValidityUnit: 'days',
+        goodsReturnPrefix: 'GRN', goodsReturnDigits: 5,
+        goodsReturnTitleColor: '#0f766e', goodsReturnDividerColor: '#0f766e',
+        goodsReturnTerms: 'Goods returned to supplier as per purchase terms.', goodsReturnNotes: '',
         defaultWarrantyPeriod: '1 year',
         quotationTerms: 'Standard terms and conditions apply.', quotationNotes: '',
         invoiceTerms: 'Standard invoice terms and conditions apply.', invoiceNotes: '',
@@ -72,6 +75,12 @@ const BusinessSettings = ({ currentUser, showToast }) => {
                     salesReturnNotes: details.salesReturnNotes || '',
                     salesReturnValidityDuration: details.salesReturnValidityDuration ?? 30,
                     salesReturnValidityUnit: details.salesReturnValidityUnit || 'days',
+                    goodsReturnPrefix: details.goodsReturnPrefix || 'GRN',
+                    goodsReturnDigits: details.goodsReturnDigits || 5,
+                    goodsReturnTitleColor: details.goodsReturnTitleColor || '#0f766e',
+                    goodsReturnDividerColor: details.goodsReturnDividerColor || '#0f766e',
+                    goodsReturnTerms: details.goodsReturnTerms || 'Goods returned to supplier as per purchase terms.',
+                    goodsReturnNotes: details.goodsReturnNotes || '',
                     defaultWarrantyPeriod: details.defaultWarrantyPeriod || '1 year',
                     stores: details.stores || []
                 });
@@ -597,6 +606,36 @@ const BusinessSettings = ({ currentUser, showToast }) => {
                                         <div className="bs2-doc-right">
                                             <div><label>Sales Return Terms</label><textarea value={businessData.salesReturnTerms} onChange={e => setBusinessData({ ...businessData, salesReturnTerms: e.target.value })} disabled={!isEditMode} className={`${inpCls} bs2-ta`} placeholder="Enter standard return terms..." /></div>
                                             <div><label>Default Sales Return Notes</label><textarea value={businessData.salesReturnNotes} onChange={e => setBusinessData({ ...businessData, salesReturnNotes: e.target.value })} disabled={!isEditMode} className={`${inpCls} bs2-ta`} placeholder="Enter default notes..." /></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Goods Return Note */}
+                            <div className="bs2-card">
+                                <div className="bs2-card-head">
+                                    <div className="bs2-card-head-left">
+                                        <span className="bs2-icon" style={{ background: '#0f766e15', color: '#0f766e' }}><Receipt size={20} /></span>
+                                        <h3>Goods Return Note Settings</h3>
+                                    </div>
+                                    <ColorPreview titleColor={businessData.goodsReturnTitleColor} dividerColor={businessData.goodsReturnDividerColor} title="GOODS RETURN NOTE" />
+                                    {isRoot && <><EditBtn /><SaveCancelBtns /></>}
+                                </div>
+                                <div className="bs2-card-body">
+                                    <div className="bs2-doc-grid">
+                                        <div className="bs2-doc-left">
+                                            <div className="bs2-grid bs2-grid-2">
+                                                <div><label>Prefix</label><input value={businessData.goodsReturnPrefix} onChange={e => setBusinessData({ ...businessData, goodsReturnPrefix: e.target.value })} disabled={!isEditMode} className={inpCls} placeholder="e.g. GRN" /></div>
+                                                <div><label>Digits</label><input type="number" min="2" max="10" value={businessData.goodsReturnDigits} onChange={e => setBusinessData({ ...businessData, goodsReturnDigits: parseInt(e.target.value, 10) || 5 })} disabled={!isEditMode} className={inpCls} placeholder="5" /></div>
+                                            </div>
+                                            <div className="bs2-grid bs2-grid-2" style={{ marginTop: '0.75rem' }}>
+                                                <ColorPicker label="Title Color" value={businessData.goodsReturnTitleColor} onChange={v => setBusinessData({ ...businessData, goodsReturnTitleColor: v })} disabled={!isEditMode} icon={Type} />
+                                                <ColorPicker label="Divider Color" value={businessData.goodsReturnDividerColor} onChange={v => setBusinessData({ ...businessData, goodsReturnDividerColor: v })} disabled={!isEditMode} icon={Minus} />
+                                            </div>
+                                        </div>
+                                        <div className="bs2-doc-right">
+                                            <div><label>Goods Return Terms</label><textarea value={businessData.goodsReturnTerms} onChange={e => setBusinessData({ ...businessData, goodsReturnTerms: e.target.value })} disabled={!isEditMode} className={`${inpCls} bs2-ta`} placeholder="Enter standard goods return terms..." /></div>
+                                            <div><label>Default Goods Return Notes</label><textarea value={businessData.goodsReturnNotes} onChange={e => setBusinessData({ ...businessData, goodsReturnNotes: e.target.value })} disabled={!isEditMode} className={`${inpCls} bs2-ta`} placeholder="Enter default notes..." /></div>
                                         </div>
                                     </div>
                                 </div>

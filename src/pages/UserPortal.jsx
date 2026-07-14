@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
-import { LogOut, Printer, Bell, LayoutDashboard, FileText, ClipboardList, Package, Briefcase, Users, Shield, Settings, LogIn, Truck, Undo2 } from 'lucide-react';
+import { LogOut, Printer, Bell, LayoutDashboard, FileText, ClipboardList, Package, Briefcase, Users, Shield, Settings, LogIn, Truck, Undo2, RotateCcw } from 'lucide-react';
 import api from '../api';
 import UserDashboard from '../components/user/UserDashboard';
 import ProductManagement from '../components/admin/ProductManagement';
@@ -14,6 +14,7 @@ import WarrantyManagement from '../components/admin/WarrantyManagement';
 import PurchaseOrderManagement from '../components/shared/PurchaseOrderManagement';
 import DeliveryNoteManagement from '../components/shared/DeliveryNoteManagement';
 import SalesReturnManagement from '../components/shared/SalesReturnManagement';
+import GoodsReturnManagement from '../components/shared/GoodsReturnManagement';
 import UserSettings from '../components/shared/UserSettings';
 
 import './UserPortal.css';
@@ -25,6 +26,7 @@ const NAV_ITEMS = [
     { key: 'Purchase Orders', label: 'Purchase Orders', icon: Package, adminOnly: true },
     { key: 'Delivery Notes', label: 'Delivery Notes', icon: Truck, adminOnly: true },
     { key: 'Sales Returns', label: 'Sales Return Notes', icon: Undo2, adminOnly: true },
+    { key: 'Goods Returns', label: 'Goods Return Notes', icon: RotateCcw, adminOnly: true },
     { key: 'Products', label: 'Products', icon: Package },
     { key: 'Projects', label: 'Projects', icon: Briefcase },
     { key: 'Clients', label: 'Clients', icon: Users },
@@ -42,7 +44,7 @@ const UserPortal = () => {
 
     const isAdminOrRoot = user?.role === 'admin' || user?.role === 'root';
     useEffect(() => {
-        if ((activeTab === 'Purchase Orders' || activeTab === 'Delivery Notes' || activeTab === 'Sales Returns') && !isAdminOrRoot) setActiveTab('Dashboard');
+        if ((activeTab === 'Purchase Orders' || activeTab === 'Delivery Notes' || activeTab === 'Sales Returns' || activeTab === 'Goods Returns') && !isAdminOrRoot) setActiveTab('Dashboard');
     }, [activeTab, isAdminOrRoot]);
 
     const fetchNotifications = async () => {
@@ -201,6 +203,8 @@ const UserPortal = () => {
                             <DeliveryNoteManagement currentUser={user} showToast={showToast} />
                         ) : activeTab === 'Sales Returns' ? (
                             <SalesReturnManagement currentUser={user} showToast={showToast} />
+                        ) : activeTab === 'Goods Returns' ? (
+                            <GoodsReturnManagement currentUser={user} showToast={showToast} />
                         ) : activeTab === 'Invoices' ? (
                             <InvoiceManagement currentUser={user} showToast={showToast} />
                         ) : activeTab === 'Clients' ? (

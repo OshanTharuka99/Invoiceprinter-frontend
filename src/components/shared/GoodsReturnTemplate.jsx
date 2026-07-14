@@ -37,6 +37,7 @@ const GoodsReturnTemplate = React.forwardRef(({ goodsReturn, business }, ref) =>
 
     return (
         <div ref={ref} data-goodsreturntemplate style={{
+            position: 'relative',
             background: '#fff',
             color: DARK,
             fontFamily: FONT,
@@ -50,7 +51,26 @@ const GoodsReturnTemplate = React.forwardRef(({ goodsReturn, business }, ref) =>
             flexDirection: 'column',
             padding: '12mm 14mm 14mm 14mm',
         }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            {gr.status === 'Cancelled' && (
+                <div style={{
+                    position: 'absolute',
+                    top: '40%',
+                    left: '50%',
+                    transform: 'translate(-50%, -50%) rotate(-30deg)',
+                    fontSize: '120px',
+                    fontWeight: '900',
+                    color: 'rgba(239, 68, 68, 0.12)',
+                    textTransform: 'uppercase',
+                    letterSpacing: '10px',
+                    pointerEvents: 'none',
+                    zIndex: 0,
+                    whiteSpace: 'nowrap',
+                }}>
+                    CANCELLED
+                </div>
+            )}
+
+            <div style={{ position: 'relative', zIndex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div style={{ maxWidth: '52%' }}>
                     {b.quotationLogo
                         ? <img src={b.quotationLogo} alt="Logo" style={{ maxHeight: '75px', maxWidth: '180px', objectFit: 'contain', display: 'block', marginBottom: '8px' }} />

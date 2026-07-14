@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Search, RefreshCw, Briefcase, FolderKanban, CheckCircle2 } from 'lucide-react';
+import { Search, RefreshCw, Briefcase, FolderKanban, CheckCircle2, Building2, DollarSign } from 'lucide-react';
 import api from '../../api';
 import '../../styles/modern-table.css';
 
@@ -29,6 +29,8 @@ const UserProjectCatalog = () => {
     );
 
     const activeCount = projects.filter(p => p.startDate && new Date(p.startDate) <= new Date()).length;
+    const clientCount = new Set(projects.map((p) => p.clientRef?._id || p.clientRef).filter(Boolean)).size;
+    const totalValue = projects.reduce((sum, p) => sum + (Number(p.value) || 0), 0);
 
     return (
         <div className="pm-root">
@@ -45,6 +47,20 @@ const UserProjectCatalog = () => {
                     <div className="pm-stat-body">
                         <div className="pm-stat-value">{activeCount}</div>
                         <div className="pm-stat-label">Active</div>
+                    </div>
+                </motion.div>
+                <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }} className="pm-stat-card blue">
+                    <div className="pm-stat-icon blue"><Building2 size={22} /></div>
+                    <div className="pm-stat-body">
+                        <div className="pm-stat-value">{clientCount}</div>
+                        <div className="pm-stat-label">Clients</div>
+                    </div>
+                </motion.div>
+                <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.18 }} className="pm-stat-card amber">
+                    <div className="pm-stat-icon amber"><DollarSign size={22} /></div>
+                    <div className="pm-stat-body">
+                        <div className="pm-stat-value" style={{ fontSize: '1.25rem' }}>Rs. {totalValue.toLocaleString()}</div>
+                        <div className="pm-stat-label">Portfolio Value</div>
                     </div>
                 </motion.div>
             </div>

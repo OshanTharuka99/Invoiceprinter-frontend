@@ -106,6 +106,13 @@ const ClientManagement = ({ currentUser, showToast }) => {
                                 <div className="pm-stat-label">Organizations</div>
                             </div>
                         </div>
+                        <div className="pm-stat-card amber">
+                            <div className="pm-stat-icon amber"><Mail size={22} /></div>
+                            <div className="pm-stat-body">
+                                <div className="pm-stat-value">{clients.filter((c) => c.emailAddress).length}</div>
+                                <div className="pm-stat-label">With Email</div>
+                            </div>
+                        </div>
                     </div>
                     <div className="pm-card">
                         <div className="pm-card-header">

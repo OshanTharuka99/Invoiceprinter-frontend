@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Package, Search, RefreshCw, Layers, CheckCircle2 } from 'lucide-react';
+import { Package, Search, RefreshCw, Layers, CheckCircle2, AlertTriangle } from 'lucide-react';
 import api from '../../api';
 import '../../styles/modern-table.css';
 
@@ -46,6 +46,7 @@ const UserProductCatalog = () => {
     });
 
     const inStockCount = products.filter(p => p.quantity > 0).length;
+    const outOfStockCount = products.filter(p => p.quantity === 0).length;
 
     return (
         <div className="pm-root">
@@ -69,6 +70,13 @@ const UserProductCatalog = () => {
                     <div className="pm-stat-body">
                         <div className="pm-stat-value">{categories.length}</div>
                         <div className="pm-stat-label">Categories</div>
+                    </div>
+                </motion.div>
+                <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.18 }} className="pm-stat-card red">
+                    <div className="pm-stat-icon red"><AlertTriangle size={22} /></div>
+                    <div className="pm-stat-body">
+                        <div className="pm-stat-value">{outOfStockCount}</div>
+                        <div className="pm-stat-label">Out of Stock</div>
                     </div>
                 </motion.div>
             </div>

@@ -108,6 +108,13 @@ const UserClientManagement = ({ showToast }) => {
                         <div className="pm-stat-label">Companies</div>
                     </div>
                 </motion.div>
+                <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.18 }} className="pm-stat-card green">
+                    <div className="pm-stat-icon green"><Users size={22} /></div>
+                    <div className="pm-stat-body">
+                        <div className="pm-stat-value">{clients.filter((c) => c.telephoneNumber || c.whatsappNumber).length}</div>
+                        <div className="pm-stat-label">With Phone</div>
+                    </div>
+                </motion.div>
             </div>
 
             <div className="pm-card">

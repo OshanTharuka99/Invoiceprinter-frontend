@@ -6,6 +6,7 @@ import useSubmitGuard from '../../utils/useSubmitGuard';
 import PriceInput from '../../utils/PriceInput';
 import { calculateDocumentTotals } from '../../utils/calculateDocumentTotals';
 import InvoiceTemplate from './InvoiceTemplate';
+import { openA4PrintWindow, buildPrintFileName } from '../../utils/printDocument';
 import './PromainvoiceManagemnt.css';
 import '../../styles/modern-table.css';
 
@@ -108,35 +109,10 @@ const PromainvoiceManagemnt = ({ currentUser, showToast }) => {
         const clientName = viewInvoice.clientRef
             ? (viewInvoice.clientRef.firstName + (viewInvoice.clientRef.lastName ? '_' + viewInvoice.clientRef.lastName : ''))
             : (viewInvoice.manualClientDetails?.organization || viewInvoice.manualClientDetails?.name || 'Client');
-        const cleanClient = clientName.replace(/[^a-zA-Z0-9_\-]/g, '_').replace(/_+/g, '_');
-        const dateStr = new Date(viewInvoice.createdAt || Date.now()).toISOString().slice(0, 10);
-        const fileName = `${invId}_${cleanClient}_${dateStr}`;
-
-        const printContent = printRef.current;
-        const windowPrint = window.open('', '', 'left=0,top=0,width=900,height=1100,toolbar=0,scrollbars=1,status=0');
-        windowPrint.document.write(`
-            <!DOCTYPE html>
-            <html>
-                <head>
-                    <title>${fileName}</title>
-                    <style>
-                        * { box-sizing: border-box; margin: 0; padding: 0; }
-                        body { background: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; color-adjust: exact; }
-                        @media print {
-                            @page { size: A4 portrait; margin: 14mm 15mm 14mm 15mm; }
-                            body { margin: 0 !important; padding: 0 !important; }
-                            div { padding: 0 !important; }
-                            * { box-shadow: none !important; }
-                            tr { page-break-inside: avoid; }
-                        }
-                    </style>
-                </head>
-                <body>${printContent.innerHTML}</body>
-            </html>
-        `);
-        windowPrint.document.close();
-        windowPrint.focus();
-        setTimeout(() => { windowPrint.print(); windowPrint.close(); }, 400);
+        openA4PrintWindow(
+            printRef.current,
+            buildPrintFileName(invId, clientName, viewInvoice.createdAt),
+        );
     };
 
     const calculateTotals = calculateDocumentTotals;
@@ -1061,13 +1037,17 @@ const PromainvoiceManagemnt = ({ currentUser, showToast }) => {
             {/* VIEW/PRINT MODAL */}
             <AnimatePresence>
                 {viewInvoice && (
-                    <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.8)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 1000, overflowY: 'auto', padding: '2rem' }}>
-                        <div style={{ width: '100%', maxWidth: '210mm', position: 'relative' }}>
-                            <div style={{ position: 'sticky', top: 0, display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginBottom: '1rem', zIndex: 10 }}>
-                                <motion.button whileTap={{ scale: 0.95 }} onClick={handlePrint} style={{ background: '#10b981', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: '12px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', boxShadow: '0 10px 15px -3px rgba(16, 185, 129, 0.4)' }}><Printer size={18} /> A4 Print / PDF</motion.button>
-                                <motion.button whileTap={{ scale: 0.95 }} onClick={() => setViewInvoice(null)} style={{ background: '#fff', color: '#0f172a', border: 'none', width: 42, height: 42, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}><X size={20} /></motion.button>
+                    <div className="app-print-overlay">
+                        <div className="app-print-shell">
+                            <div className="app-print-toolbar">
+                                <motion.button whileTap={{ scale: 0.95 }} type="button" onClick={handlePrint} className="app-print-btn">
+                                    <Printer size={18} /> A4 Print / PDF
+                                </motion.button>
+                                <motion.button whileTap={{ scale: 0.95 }} type="button" onClick={() => setViewInvoice(null)} className="app-print-close">
+                                    <X size={20} />
+                                </motion.button>
                             </div>
-                            <div style={{ boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)', borderRadius: '4px', overflow: 'hidden' }}>
+                            <div className="app-print-doc">
                                 <InvoiceTemplate ref={printRef} invoice={viewInvoice} business={businessData} />
                             </div>
 
@@ -1115,4 +1095,4 @@ const PromainvoiceManagemnt = ({ currentUser, showToast }) => {
     );
 };
 
-export default InvoiceManagement;
+export default PromainvoiceManagemnt;

@@ -10,16 +10,23 @@
     border: 1px solid #e2e8f0;
     overflow: hidden;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
 }
 
 .modern-table-scroll {
     overflow-x: auto;
+    max-width: 100%;
+    width: 100%;
+    -webkit-overflow-scrolling: touch;
 }
 
 .modern-table-scroll .modern-table,
 .modern-table-card .modern-table,
 .modern-table-wrapper .modern-table {
-    min-width: 680px;
+    min-width: 720px;
+    width: 100%;
 }
 
 /* Base Table */
@@ -419,22 +426,33 @@
 }
 
 /* Responsive */
-@media (max-width: 768px) {
+@media (max-width: 900px) {
     .modern-table thead th,
     .modern-table tbody td {
-        padding: 0.875rem 1rem;
+        padding: 0.75rem 0.85rem;
+        font-size: 0.82rem;
     }
 
-    .modern-table-cell-primary {
-        gap: 0.625rem;
-    }
-
-    .modern-table-cell-icon {
-        padding: 8px;
+    .modern-table-scroll .modern-table,
+    .modern-table-card .modern-table,
+    .modern-table-wrapper .modern-table {
+        min-width: 620px;
     }
 
     .modern-table-actions {
         flex-wrap: nowrap;
         gap: 0.25rem;
+    }
+}
+
+@media (max-width: 640px) {
+    .modern-table-card,
+    .modern-table-wrapper {
+        border-radius: 14px;
+    }
+
+    .modern-table thead th,
+    .modern-table tbody td {
+        padding: 0.65rem 0.7rem;
     }
 }

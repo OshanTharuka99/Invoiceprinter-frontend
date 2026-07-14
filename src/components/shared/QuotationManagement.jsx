@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FileText, Plus, X, Search, RefreshCw, Printer, AlertTriangle, ShieldAlert, CheckCircle, Briefcase, Trash2 } from 'lucide-react';
+import { FileText, Plus, X, Search, RefreshCw, Printer, AlertTriangle, ShieldAlert, CheckCircle, Briefcase, Trash2, Edit3, Clock, AlertCircle } from 'lucide-react';
 import api from '../../api';
 import useSubmitGuard from '../../utils/useSubmitGuard';
 import PriceInput from '../../utils/PriceInput';
 import { calculateDocumentTotals } from '../../utils/calculateDocumentTotals';
+import { openA4PrintWindow, buildPrintFileName } from '../../utils/printDocument';
 import QuotationTemplate from './QuotationTemplate';
 import './QuotationManagement.css';
 import '../../styles/modern-table.css';
@@ -16,10 +17,15 @@ const QuotationManagement = ({ currentUser, showToast }) => {
     const [businessData, setBusinessData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [activeTab, setActiveTab] = useState('Active');
     const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'root';
+    const isRoot = currentUser?.role === 'root';
 
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [creationMode, setCreationMode] = useState('automatic'); // 'automatic' or 'manual'
+    const [editingQuotation, setEditingQuotation] = useState(null);
+    const [editNote, setEditNote] = useState('');
+    const [historyQuotation, setHistoryQuotation] = useState(null);
 
     // View/Print
     const [viewQuotation, setViewQuotation] = useState(null);
@@ -52,6 +58,11 @@ const QuotationManagement = ({ currentUser, showToast }) => {
     const [customDiscount, setCustomDiscount] = useState({ type: 'percentage', value: 0 });
     const { isSubmitting, runGuarded } = useSubmitGuard();
 
+    const isWithin30Days = (createdAt) => {
+        const diffMs = Date.now() - new Date(createdAt);
+        return diffMs / (1000 * 60 * 60 * 24) <= 30;
+    };
+
     const fetchData = async () => {
         setLoading(true);
         try {
@@ -78,61 +89,22 @@ const QuotationManagement = ({ currentUser, showToast }) => {
 
     const handlePrint = () => {
         if (!viewQuotation) return;
-
-        // Build a clean filename: QN00001_ClientName_YYYY-MM-DD
         const qId = viewQuotation.quotationId || 'QN';
         const clientName = viewQuotation.clientRef
             ? (viewQuotation.clientRef.firstName + (viewQuotation.clientRef.lastName ? '_' + viewQuotation.clientRef.lastName : ''))
             : (viewQuotation.manualClientDetails?.organization || viewQuotation.manualClientDetails?.name || 'Client');
-        const cleanClient = clientName.replace(/[^a-zA-Z0-9_\-]/g, '_').replace(/_+/g, '_');
-        const dateStr = new Date(viewQuotation.createdAt || Date.now())
-            .toISOString().slice(0, 10); // YYYY-MM-DD
-        const fileName = `${qId}_${cleanClient}_${dateStr}`;
-
-        const printContent = printRef.current;
-        const windowPrint = window.open('', '', 'left=0,top=0,width=900,height=1100,toolbar=0,scrollbars=1,status=0');
-        windowPrint.document.write(`
-            <!DOCTYPE html>
-            <html>
-                <head>
-                    <title>${fileName}</title>
-                    <style>
-                        * { box-sizing: border-box; margin: 0; padding: 0; }
-                        body {
-                            background: #fff;
-                            -webkit-print-color-adjust: exact;
-                            print-color-adjust: exact;
-                            color-adjust: exact;
-                        }
-                        @media print {
-                            @page {
-                                size: A4 portrait;
-                                margin: 14mm 15mm 14mm 15mm;
-                            }
-                            body { margin: 0 !important; padding: 0 !important; }
-                            div { padding: 0 !important; }
-                            * { box-shadow: none !important; }
-                            tr { page-break-inside: avoid; }
-                        }
-                    </style>
-                </head>
-                <body>
-                    ${printContent.innerHTML}
-                </body>
-            </html>
-        `);
-        windowPrint.document.close();
-        windowPrint.focus();
-        setTimeout(() => {
-            windowPrint.print();
-            windowPrint.close();
-        }, 400);
+        openA4PrintWindow(
+            printRef.current,
+            buildPrintFileName(qId, clientName, viewQuotation.createdAt),
+        );
     };
 
     const calculateTotals = calculateDocumentTotals;
 
     const openCreation = (mode) => {
         setCreationMode(mode);
+        setEditingQuotation(null);
+        setEditNote('');
 
         const initialTaxes = [];
         if (businessData?.isVatRegistered) {
@@ -188,17 +160,60 @@ const QuotationManagement = ({ currentUser, showToast }) => {
     const submitQuotation = async (e) => {
         e.preventDefault();
         if (form.items.length === 0) return showToast?.('Insert at least 1 item', 'error');
+        if (editingQuotation && !editNote.trim()) return showToast?.('Edit reason is required', 'error');
 
         await runGuarded(async () => {
             try {
-                await api.post('/quotations', { ...form, creationMethod: creationMode });
-                showToast?.('Quotation compiled securely', 'success');
+                const payload = { ...form, creationMethod: creationMode };
+                if (editingQuotation) {
+                    await api.put(`/quotations/${editingQuotation._id}/edit`, { ...payload, editNote });
+                    showToast?.(`Quotation edited. Original ${editingQuotation.quotationId} cancelled.`, 'success');
+                } else {
+                    await api.post('/quotations', payload);
+                    showToast?.('Quotation compiled securely', 'success');
+                }
                 setIsCreateModalOpen(false);
+                setEditingQuotation(null);
+                setEditNote('');
                 fetchData();
             } catch (err) {
                 showToast?.(err.response?.data?.message || 'Failure writing node', 'error');
             }
         });
+    };
+
+    const openEditModal = (q) => {
+        if (!isWithin30Days(q.createdAt)) {
+            return showToast?.('This quotation is older than 30 days and cannot be edited.', 'error');
+        }
+        setEditingQuotation(q);
+        setEditNote('');
+        setCreationMode(q.creationMethod || 'automatic');
+        setForm({
+            clientRef: q.clientRef?._id || '',
+            projectId: q.projectId?._id || '',
+            deliveryAddress: q.deliveryAddress || '',
+            customDuration: q.customDuration || '',
+            customUnit: q.customUnit || 'days',
+            manualClientDetails: q.manualClientDetails || { title: 'Mr', organization: '', name: '', address: '', telephoneNumber: '', emailAddress: '' },
+            items: (q.items || []).map(it => ({
+                productRef: it.productRef?._id || it.productRef || '',
+                manualName: it.manualName || '',
+                quantity: it.quantity,
+                unitPrice: it.unitPrice,
+                lineTotal: it.lineTotal
+            })),
+            subTotal: q.subTotal || 0,
+            appliedDiscounts: q.appliedDiscounts || [],
+            discountTotal: q.discountTotal || 0,
+            hasTax: q.hasTax || false,
+            appliedTaxes: q.appliedTaxes || [],
+            taxTotal: q.taxTotal || 0,
+            finalTotal: q.finalTotal || 0,
+            currency: q.currency || 'primary',
+            validDate: q.validDate ? new Date(q.validDate).toISOString().split('T')[0] : ''
+        });
+        setIsCreateModalOpen(true);
     };
 
     const openDeleteModal = (q) => {
@@ -208,32 +223,36 @@ const QuotationManagement = ({ currentUser, showToast }) => {
     };
 
     const confirmDelete = async () => {
+        if (!deleteReason.trim()) return showToast?.('Deletion reason is required', 'error');
+
         await runGuarded(async () => {
             try {
-                if (currentUser.role === 'root' || currentUser.role === 'admin') {
-                    await api.delete(`/quotations/${quotationToDelete._id}`);
+                if (isAdmin) {
+                    await api.delete(`/quotations/${quotationToDelete._id}`, { data: { reason: deleteReason.trim() } });
                     showToast?.('Quotation cancelled.', 'success');
                 } else {
-                    if (!deleteReason.trim()) return showToast?.('Reason is required for standard users.', 'error');
-                    await api.post(`/quotations/${quotationToDelete._id}/request-delete`, { reason: deleteReason });
-                    showToast?.('Deletion Request transmitted to Security.', 'success');
+                    await api.post(`/quotations/${quotationToDelete._id}/request-delete`, { reason: deleteReason.trim() });
+                    showToast?.('Deletion request sent', 'success');
                 }
                 setDeleteModalOpen(false);
                 setQuotationToDelete(null);
+                setDeleteReason('');
                 fetchData();
             } catch (err) {
-                showToast?.('Elimination protocol failed', 'error');
+                showToast?.(err.response?.data?.message || 'Delete failed', 'error');
             }
         });
     };
 
-    const filtered = quotations.filter(q =>
-        q.status !== 'Cancelled' && (
-            q.quotationId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    const filtered = quotations.filter(q => {
+        const matchesSearch =
+            q.quotationId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             (q.clientRef?.firstName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (q.manualClientDetails?.name || '').toLowerCase().includes(searchTerm.toLowerCase())
-        )
-    );
+            (q.manualClientDetails?.name || '').toLowerCase().includes(searchTerm.toLowerCase());
+        const isCancelled = q.status === 'Cancelled';
+        const matchesTab = activeTab === 'Active' ? !isCancelled : isCancelled;
+        return matchesSearch && matchesTab;
+    });
 
     const cardStyle = { background: '#fff', border: '1px solid #e2e8f0', borderRadius: '24px', padding: '2.5rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' };
     const labelStyle = { display: 'block', fontSize: '0.75rem', fontWeight: 900, color: '#64748b', marginBottom: '0.6rem', textTransform: 'uppercase' };
@@ -257,6 +276,10 @@ const QuotationManagement = ({ currentUser, showToast }) => {
                             <div className="qm-search-wrap">
                                 <Search size={16} className="qm-search-icon" />
                                 <input type="text" placeholder="Search QN00000 or Client..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="qm-search-input" />
+                            </div>
+                            <div style={{ display: 'flex', gap: '4px', background: '#f1f5f9', padding: '4px', borderRadius: '12px', alignItems: 'center' }}>
+                                <button onClick={() => setActiveTab('Active')} style={{ padding: '6px 14px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 700, fontSize: '0.8rem', background: activeTab === 'Active' ? '#fff' : 'transparent', color: activeTab === 'Active' ? '#0f172a' : '#64748b', boxShadow: activeTab === 'Active' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.2s' }}>Active</button>
+                                <button onClick={() => setActiveTab('Cancelled')} style={{ padding: '6px 14px', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 700, fontSize: '0.8rem', background: activeTab === 'Cancelled' ? '#fff' : 'transparent', color: activeTab === 'Cancelled' ? '#ef4444' : '#64748b', boxShadow: activeTab === 'Cancelled' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.2s' }}>Deleted / Cancelled</button>
                             </div>
                             <motion.button whileTap={{ scale: 0.95 }} onClick={() => openCreation('automatic')} className="qm-btn qm-btn-primary"><Plus size={16} /> Automatic Protocol</motion.button>
                             {isAdmin && (
@@ -311,7 +334,15 @@ const QuotationManagement = ({ currentUser, showToast }) => {
                                         <td>
                                             <div className="modern-table-actions">
                                                 <motion.button whileTap={{ scale: 0.95 }} onClick={() => setViewQuotation(q)} className="modern-table-action view"><Printer size={14} /></motion.button>
-                                                <motion.button whileTap={{ scale: 0.95 }} onClick={() => openDeleteModal(q)} className="modern-table-action delete"><Trash2 size={14} /></motion.button>
+                                                {isAdmin && (
+                                                    <motion.button whileTap={{ scale: 0.95 }} onClick={() => setHistoryQuotation(q)} className="modern-table-action history" title="View Status History"><Clock size={14} /></motion.button>
+                                                )}
+                                                {isRoot && q.status !== 'Cancelled' && isWithin30Days(q.createdAt) && (
+                                                    <motion.button whileTap={{ scale: 0.95 }} onClick={() => openEditModal(q)} className="modern-table-action edit"><Edit3 size={14} /></motion.button>
+                                                )}
+                                                {q.status !== 'Cancelled' && isWithin30Days(q.createdAt) && (
+                                                    <motion.button whileTap={{ scale: 0.95 }} onClick={() => openDeleteModal(q)} className="modern-table-action delete"><Trash2 size={14} /></motion.button>
+                                                )}
                                             </div>
                                         </td>
                                     </tr>
@@ -332,14 +363,37 @@ const QuotationManagement = ({ currentUser, showToast }) => {
                                     <div className="qm-modal-header">
                                         <div className="qm-modal-title-row">
                                             <div>
-                                                <h2>Create Quotation [{creationMode.toUpperCase()}]</h2>
-                                                <div className="qm-modal-subtitle">Create a new quotation for a client</div>
+                                                <h2>{editingQuotation ? `Edit Quotation (${editingQuotation.quotationId})` : `Create Quotation [${creationMode.toUpperCase()}]`}</h2>
+                                                <div className="qm-modal-subtitle">{editingQuotation ? 'Root-level edit — original will be cancelled' : 'Create a new quotation for a client'}</div>
                                             </div>
                                         </div>
-                                        <motion.button whileTap={{ scale: 0.9 }} onClick={() => setIsCreateModalOpen(false)} className="qm-modal-close"><X size={18} /></motion.button>
+                                        <motion.button whileTap={{ scale: 0.9 }} onClick={() => { setIsCreateModalOpen(false); setEditingQuotation(null); setEditNote(''); }} className="qm-modal-close"><X size={18} /></motion.button>
                                     </div>
 
+                                    {editingQuotation && (
+                                        <div style={{ background: '#fff7ed', border: '1.5px solid #fed7aa', borderRadius: '12px', padding: '1rem 1.25rem', marginBottom: '1.5rem', display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
+                                            <AlertCircle size={20} color="#f59e0b" style={{ flexShrink: 0, marginTop: '2px' }} />
+                                            <div>
+                                                <div style={{ fontWeight: 800, color: '#92400e', fontSize: '0.9rem' }}>Editing Quotation {editingQuotation.quotationId}</div>
+                                                <div style={{ color: '#b45309', fontSize: '0.8rem', marginTop: '0.2rem' }}>Saving will cancel the original quotation and create a new quotation number. This action is irreversible.</div>
+                                            </div>
+                                        </div>
+                                    )}
+
                                     <form onSubmit={submitQuotation}>
+                                        {editingQuotation && (
+                                            <div style={{ marginBottom: '1.5rem', padding: '1.5rem', borderRadius: '16px', background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+                                                <h4 style={{ margin: '0 0 1rem 0', color: '#0f172a' }}>Reason for Edit</h4>
+                                                <input
+                                                    type="text"
+                                                    value={editNote}
+                                                    onChange={e => setEditNote(e.target.value)}
+                                                    placeholder="Why are you editing this quotation?"
+                                                    style={{ ...inputStyle, background: '#fff', borderColor: !editNote ? '#fca5a5' : '#e2e8f0' }}
+                                                    required
+                                                />
+                                            </div>
+                                        )}
                                         {/* CLIENT INFO */}
                                         <div className="qm-section">
                                             <h4>1. Client Details</h4>
@@ -734,36 +788,92 @@ const QuotationManagement = ({ currentUser, showToast }) => {
                                             <div className="qm-total-value">{form.finalTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
                                         </div>
 
-                                        <motion.button whileTap={{ scale: isSubmitting ? 1 : 0.98 }} type="submit" disabled={isSubmitting} className="qm-btn qm-btn-success qm-btn-full" style={{ opacity: isSubmitting ? 0.85 : 1, cursor: isSubmitting ? 'not-allowed' : 'pointer' }}><CheckCircle size={20} /> {isSubmitting ? 'Processing...' : 'Create Quotation'}</motion.button>
+                                        <motion.button whileTap={{ scale: isSubmitting ? 1 : 0.98 }} type="submit" disabled={isSubmitting} className="qm-btn qm-btn-success qm-btn-full" style={{ opacity: isSubmitting ? 0.85 : 1, cursor: isSubmitting ? 'not-allowed' : 'pointer' }}><CheckCircle size={20} /> {isSubmitting ? 'Processing...' : (editingQuotation ? 'Save Edited Quotation' : 'Create Quotation')}</motion.button>
                                     </form>
                                 </motion.div>
                             </div>
                         )}
                     </AnimatePresence>
 
-                    {/* DELETE MODAL (Distinguishes Admin vs User) */}
-                    < AnimatePresence >
+                    {/* DELETE MODAL */}
+                    <AnimatePresence>
                         {deleteModalOpen && (
                             <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.4)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
                                 <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} style={{ background: '#fff', borderRadius: '24px', padding: '2.5rem', width: '100%', maxWidth: 450, textAlign: 'center', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }}>
-                                    {(currentUser.role === 'admin' || currentUser.role === 'root') ? (
+                                    {isAdmin ? (
                                         <>
                                             <ShieldAlert size={48} color="#ef4444" style={{ marginBottom: '1rem', margin: '0 auto' }} />
-                                            <h3 style={{ margin: 0, fontWeight: 800, fontSize: '1.25rem', color: '#0f172a' }}>Authorize Direct Nullification?</h3>
-                                            <p style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '2rem' }}>As a high-level authority, executing this will permanently destroy this quotation.</p>
+                                            <h3 style={{ margin: 0, fontWeight: 800, fontSize: '1.25rem', color: '#0f172a' }}>Cancel Quotation?</h3>
+                                            <p style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '1.25rem' }}>
+                                                This will soft-cancel the quotation. The reason will be saved in status history.
+                                            </p>
                                         </>
                                     ) : (
                                         <>
                                             <AlertTriangle size={48} color="#f59e0b" style={{ marginBottom: '1rem', margin: '0 auto' }} />
-                                            <h3 style={{ margin: 0, fontWeight: 800, fontSize: '1.25rem', color: '#0f172a' }}>Propose Deletion Request</h3>
-                                            <p style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '1.5rem' }}>Provide diagnostic reason for Security Approval dashboard.</p>
-                                            <textarea placeholder="State explicit reason..." value={deleteReason} onChange={e => setDeleteReason(e.target.value)} required style={{ ...inputStyle, height: 100, resize: 'none', marginBottom: '2rem', textAlign: 'left' }} />
+                                            <h3 style={{ margin: 0, fontWeight: 800, fontSize: '1.25rem', color: '#0f172a' }}>Request Quotation Cancellation</h3>
+                                            <p style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '1.25rem' }}>
+                                                Provide a reason for admin approval. The reason will be saved in status history.
+                                            </p>
                                         </>
                                     )}
+                                    <label style={{ ...labelStyle, textAlign: 'left' }}>Cancellation Reason *</label>
+                                    <textarea
+                                        placeholder="e.g. Wrong client selected, duplicate quotation, customer cancelled..."
+                                        value={deleteReason}
+                                        onChange={e => setDeleteReason(e.target.value)}
+                                        required
+                                        style={{ ...inputStyle, height: 100, resize: 'none', marginBottom: '1.5rem', textAlign: 'left' }}
+                                    />
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                                        <motion.button whileTap={{ scale: 0.95 }} onClick={() => setDeleteModalOpen(false)} style={{ background: '#f8fafc', color: '#64748b', border: 'none', borderRadius: '12px', padding: '0.8rem', fontWeight: 800, cursor: 'pointer' }}>Abort Action</motion.button>
-                                        <motion.button whileTap={{ scale: isSubmitting ? 1 : 0.95 }} onClick={confirmDelete} disabled={isSubmitting} style={{ background: (currentUser.role === 'admin' || currentUser.role === 'root') ? '#ef4444' : '#f59e0b', color: '#fff', border: 'none', borderRadius: '12px', padding: '0.8rem', fontWeight: 800, cursor: isSubmitting ? 'not-allowed' : 'pointer', opacity: isSubmitting ? 0.85 : 1 }}>{isSubmitting ? 'Processing...' : 'Proceed with Command'}</motion.button>
+                                        <motion.button whileTap={{ scale: 0.95 }} onClick={() => { setDeleteModalOpen(false); setDeleteReason(''); }} style={{ background: '#f8fafc', color: '#64748b', border: 'none', borderRadius: '12px', padding: '0.8rem', fontWeight: 800, cursor: 'pointer' }}>Cancel</motion.button>
+                                        <motion.button whileTap={{ scale: isSubmitting ? 1 : 0.95 }} onClick={confirmDelete} disabled={isSubmitting || !deleteReason.trim()} style={{ background: isAdmin ? '#ef4444' : '#f59e0b', color: '#fff', border: 'none', borderRadius: '12px', padding: '0.8rem', fontWeight: 800, cursor: (isSubmitting || !deleteReason.trim()) ? 'not-allowed' : 'pointer', opacity: (isSubmitting || !deleteReason.trim()) ? 0.6 : 1 }}>{isSubmitting ? 'Processing...' : (isAdmin ? 'Cancel Quotation' : 'Submit Request')}</motion.button>
                                     </div>
+                                </motion.div>
+                            </div>
+                        )}
+                    </AnimatePresence>
+
+                    {/* STATUS HISTORY MODAL */}
+                    <AnimatePresence>
+                        {historyQuotation && (
+                            <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem' }}>
+                                <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} style={{ background: '#fff', borderRadius: '24px', padding: '2rem', width: '100%', maxWidth: 600, boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', maxHeight: '85vh', overflowY: 'auto' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                                        <h3 style={{ margin: 0, fontWeight: 900, color: '#0f172a', fontSize: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                            <Clock size={22} color="#3b82f6" /> Status History: {historyQuotation.quotationId}
+                                        </h3>
+                                        <motion.button whileTap={{ scale: 0.9 }} onClick={() => setHistoryQuotation(null)} style={{ background: '#f1f5f9', border: 'none', borderRadius: '50%', width: 36, height: 36, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={20} /></motion.button>
+                                    </div>
+
+                                    {historyQuotation.statusHistory && historyQuotation.statusHistory.length > 0 ? (
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                            {historyQuotation.statusHistory.map((hist, idx) => (
+                                                <div key={idx} style={{ display: 'flex', gap: '1.5rem', alignItems: 'flex-start' }}>
+                                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '40px' }}>
+                                                        <div style={{ width: 14, height: 14, borderRadius: '50%', background: '#3b82f6', margin: '4px 0', border: '3px solid #eff6ff' }} />
+                                                        {idx < historyQuotation.statusHistory.length - 1 && <div style={{ width: 2, height: '100%', background: '#e2e8f0', minHeight: '40px' }} />}
+                                                    </div>
+                                                    <div style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '16px', flex: 1, border: '1px solid #e2e8f0' }}>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem', alignItems: 'center' }}>
+                                                            <span style={{ padding: '4px 10px', fontSize: '0.75rem', fontWeight: 700, borderRadius: '8px', background: hist.status === 'Cancelled' ? '#fef2f2' : '#f0fdf4', color: hist.status === 'Cancelled' ? '#ef4444' : '#166534' }}>{hist.status}</span>
+                                                            <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 700 }}>{new Date(hist.editedAt).toLocaleString()}</span>
+                                                        </div>
+                                                        <div style={{ fontSize: '0.9rem', color: '#334155', marginBottom: hist.note ? '0.75rem' : '0' }}>
+                                                            Updated by <strong style={{ color: '#0f172a' }}>{hist.editedBy?.firstName || 'System'} {hist.editedBy?.lastName || ''}</strong>
+                                                        </div>
+                                                        {hist.note && (
+                                                            <div style={{ fontSize: '0.85rem', color: '#475569', fontStyle: 'italic', background: '#fff', padding: '0.75rem', borderRadius: '8px', borderLeft: '3px solid #cbd5e1' }}>
+                                                                "{hist.note}"
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div style={{ color: '#64748b', fontSize: '0.95rem', fontStyle: 'italic', textAlign: 'center', padding: '2rem 0' }}>No status history available.</div>
+                                    )}
                                 </motion.div>
                             </div>
                         )}
@@ -772,13 +882,17 @@ const QuotationManagement = ({ currentUser, showToast }) => {
                     {/* PRINT/VIEW INVISIBLE TEMPLATE LAYER */}
                     <AnimatePresence>
                         {viewQuotation && (
-                            <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.8)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 1000, overflowY: 'auto', padding: '2rem' }}>
-                                <div style={{ width: '100%', maxWidth: '210mm', position: 'relative' }}>
-                                    <div style={{ position: 'sticky', top: 0, display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginBottom: '1rem', zIndex: 10 }}>
-                                        <motion.button whileTap={{ scale: 0.95 }} onClick={handlePrint} style={{ background: '#10b981', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: '12px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', boxShadow: '0 10px 15px -3px rgba(16, 185, 129, 0.4)' }}><Printer size={18} /> A4 Print / PDF</motion.button>
-                                        <motion.button whileTap={{ scale: 0.95 }} onClick={() => setViewQuotation(null)} style={{ background: '#fff', color: '#0f172a', border: 'none', width: 42, height: 42, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}><X size={20} /></motion.button>
+                            <div className="app-print-overlay">
+                                <div className="app-print-shell">
+                                    <div className="app-print-toolbar">
+                                        <motion.button whileTap={{ scale: 0.95 }} type="button" onClick={handlePrint} className="app-print-btn">
+                                            <Printer size={18} /> A4 Print / PDF
+                                        </motion.button>
+                                        <motion.button whileTap={{ scale: 0.95 }} type="button" onClick={() => setViewQuotation(null)} className="app-print-close">
+                                            <X size={20} />
+                                        </motion.button>
                                     </div>
-                                    <div style={{ boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)', borderRadius: '4px', overflow: 'hidden' }}>
+                                    <div className="app-print-doc">
                                         <QuotationTemplate ref={printRef} quotation={viewQuotation} business={businessData} />
                                     </div>
                                 </div>

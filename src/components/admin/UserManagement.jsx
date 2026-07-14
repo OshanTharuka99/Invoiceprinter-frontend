@@ -128,6 +128,7 @@ const UserManagement = ({ currentUser, showToast }) => {
                 {[
                     { label: 'Total Users', value: users.length, icon: Users, variant: 'indigo' },
                     { label: 'Admin Users', value: users.filter(u => u.role !== 'user').length, icon: Shield, variant: 'blue' },
+                    { label: 'Standard Users', value: users.filter(u => u.role === 'user').length, icon: User, variant: 'amber' },
                     { label: 'Operational', value: users.length, icon: Activity, variant: 'green' },
                 ].map((stat, i) => {
                     const Icon = stat.icon;

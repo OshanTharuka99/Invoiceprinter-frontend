@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FileText, Plus, X, Search, RefreshCw, Printer, Trash2, Truck, Store, MapPin, Building2, Package, CheckCircle, Eye, Clock } from 'lucide-react';
+import { FileText, Plus, X, Search, RefreshCw, Printer, Trash2, Truck, Store, MapPin, Building2, Package, CheckCircle, Clock } from 'lucide-react';
 import api from '../../api';
 import useSubmitGuard from '../../utils/useSubmitGuard';
+import { openA4PrintWindow, buildPrintFileName } from '../../utils/printDocument';
 import DeliveryNoteTemplate from './DeliveryNoteTemplate';
 import './QuotationManagement.css';
 import '../../styles/modern-table.css';
@@ -21,7 +22,6 @@ const DeliveryNoteManagement = ({ currentUser, showToast }) => {
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [creationMode, setCreationMode] = useState('automatic');
     const [editingDN, setEditingDN] = useState(null);
-    const [viewingDN, setViewingDN] = useState(null);
 
     const [viewDeliveryNote, setViewDeliveryNote] = useState(null);
     const printRef = useRef();
@@ -78,45 +78,14 @@ const DeliveryNoteManagement = ({ currentUser, showToast }) => {
 
     const handlePrint = () => {
         if (!viewDeliveryNote) return;
-
         const dnId = viewDeliveryNote.deliveryNoteNumber || 'DN';
         const clientName = viewDeliveryNote.clientRef
             ? (viewDeliveryNote.clientRef.firstName + (viewDeliveryNote.clientRef.lastName ? '_' + viewDeliveryNote.clientRef.lastName : ''))
             : (viewDeliveryNote.manualClientDetails?.organization || viewDeliveryNote.manualClientDetails?.name || 'Client');
-        const cleanClient = clientName.replace(/[^a-zA-Z0-9_\-]/g, '_').replace(/_+/g, '_');
-        const dateStr = new Date(viewDeliveryNote.createdAt || Date.now()).toISOString().slice(0, 10);
-        const fileName = `${dnId}_${cleanClient}_${dateStr}`;
-
-        const printContent = printRef.current;
-        const windowPrint = window.open('', '', 'left=0,top=0,width=900,height=1100,toolbar=0,scrollbars=1,status=0');
-        windowPrint.document.write(`
-            <!DOCTYPE html>
-            <html>
-                <head>
-                    <title>${fileName}</title>
-                    <style>
-                        * { box-sizing: border-box; margin: 0; padding: 0; }
-                        body { background: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; color-adjust: exact; }
-                        @media print {
-                            @page { size: A4 portrait; margin: 14mm 15mm 14mm 15mm; }
-                            body { margin: 0 !important; padding: 0 !important; }
-                            div { padding: 0 !important; }
-                            * { box-shadow: none !important; }
-                            tr { page-break-inside: avoid; }
-                        }
-                    </style>
-                </head>
-                <body>
-                    ${printContent.innerHTML}
-                </body>
-            </html>
-        `);
-        windowPrint.document.close();
-        windowPrint.focus();
-        setTimeout(() => {
-            windowPrint.print();
-            windowPrint.close();
-        }, 400);
+        openA4PrintWindow(
+            printRef.current,
+            buildPrintFileName(dnId, clientName, viewDeliveryNote.createdAt),
+        );
     };
 
     const openCreation = () => {
@@ -411,14 +380,6 @@ const DeliveryNoteManagement = ({ currentUser, showToast }) => {
 
     return (
         <div className="pm-root">
-            <div style={{ display: 'none' }}>
-                <div ref={printRef}>
-                    {viewDeliveryNote && businessData && (
-                        <DeliveryNoteTemplate deliveryNote={viewDeliveryNote} business={businessData} />
-                    )}
-                </div>
-            </div>
-
             <div className="pm-stats">
                 <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="pm-stat-card indigo">
                     <div className="pm-stat-icon indigo"><Truck size={22} /></div>
@@ -439,6 +400,15 @@ const DeliveryNoteManagement = ({ currentUser, showToast }) => {
                     <div className="pm-stat-body">
                         <div className="pm-stat-value">{draftCount}</div>
                         <div className="pm-stat-label">Draft</div>
+                    </div>
+                </motion.div>
+                <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.18 }} className="pm-stat-card blue">
+                    <div className="pm-stat-icon blue"><Package size={22} /></div>
+                    <div className="pm-stat-body">
+                        <div className="pm-stat-value">
+                            {deliveryNotes.reduce((sum, dn) => sum + (dn.items?.length || 0), 0)}
+                        </div>
+                        <div className="pm-stat-label">Line Items</div>
                     </div>
                 </motion.div>
             </div>
@@ -510,29 +480,11 @@ const DeliveryNoteManagement = ({ currentUser, showToast }) => {
                                     <td>{new Date(dn.createdAt).toLocaleDateString('en-GB')}</td>
                                     <td>
                                         <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                                            <button onClick={() => { setViewingDN(dn); }} style={{
-                                                padding: '6px 10px', borderRadius: '8px', border: 'none',
-                                                background: '#f1f5f9', color: '#475569', cursor: 'pointer',
-                                                display: 'inline-flex', alignItems: 'center', gap: '4px',
-                                                fontSize: '0.75rem', fontWeight: 600, fontFamily: "'Outfit', sans-serif"
-                                            }}>
-                                                <FileText size={14} /> View
+                                            <button type="button" onClick={() => setViewDeliveryNote(dn)} className="modern-table-action view" title="View / Print">
+                                                <Printer size={14} />
                                             </button>
-                                            <button onClick={() => { setViewDeliveryNote(dn); setTimeout(handlePrint, 100); }} style={{
-                                                padding: '6px 10px', borderRadius: '8px', border: 'none',
-                                                background: '#f1f5f9', color: '#475569', cursor: 'pointer',
-                                                display: 'inline-flex', alignItems: 'center', gap: '4px',
-                                                fontSize: '0.75rem', fontWeight: 600, fontFamily: "'Outfit', sans-serif"
-                                            }}>
-                                                <Printer size={14} /> Print
-                                            </button>
-                                            <button onClick={() => setHistoryDN(dn)} style={{
-                                                padding: '6px 10px', borderRadius: '8px', border: 'none',
-                                                background: '#f1f5f9', color: '#475569', cursor: 'pointer',
-                                                display: 'inline-flex', alignItems: 'center', gap: '4px',
-                                                fontSize: '0.75rem', fontWeight: 600, fontFamily: "'Outfit', sans-serif"
-                                            }}>
-                                                <Clock size={14} /> History
+                                            <button type="button" onClick={() => setHistoryDN(dn)} className="modern-table-action history" title="History">
+                                                <Clock size={14} />
                                             </button>
                                             {dn.status === 'Draft' && (
                                                 <>
@@ -1062,64 +1014,24 @@ const DeliveryNoteManagement = ({ currentUser, showToast }) => {
                 )}
             </AnimatePresence>
 
-            {/* View Modal — renders same format as print */}
+            {/* Print preview — Invoice Engine style */}
             <AnimatePresence>
-                {viewingDN && businessData && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        style={modalOverlay}
-                        onClick={() => setViewingDN(null)}
-                    >
-                        <motion.div
-                            initial={{ scale: 0.95, opacity: 0, y: 12 }}
-                            animate={{ scale: 1, opacity: 1, y: 0 }}
-                            exit={{ scale: 0.95, opacity: 0, y: 12 }}
-                            style={{ ...modalContent, maxWidth: '850px' }}
-                            onClick={e => e.stopPropagation()}
-                        >
-                            <div style={modalHeader}>
-                                <div>
-                                    <div style={{ fontSize: '1rem', fontWeight: 800, color: '#0f172a', fontFamily: "'Outfit', sans-serif" }}>
-                                        {viewingDN.deliveryNoteNumber}
-                                    </div>
-                                    <div style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 600, fontFamily: "'Outfit', sans-serif", marginTop: 2 }}>
-                                        {viewingDN.status === 'Delivered' ? '✓ Delivered' : '○ Draft'}
-                                    </div>
-                                </div>
-                                <div style={{ display: 'flex', gap: '8px' }}>
-                                    <button onClick={() => { const p = viewingDN; setViewDeliveryNote(p); setTimeout(() => { handlePrint(); }, 100); }} style={{
-                                        padding: '8px', borderRadius: '10px', border: 'none',
-                                        background: '#f1f5f9', color: '#475569', cursor: 'pointer',
-                                        display: 'flex', alignItems: 'center'
-                                    }}>
-                                        <Printer size={18} />
-                                    </button>
-                                    <button onClick={() => setViewingDN(null)} style={{
-                                        padding: '8px', borderRadius: '10px', border: 'none',
-                                        background: '#f1f5f9', color: '#64748b', cursor: 'pointer',
-                                        display: 'flex', alignItems: 'center'
-                                    }}>
-                                        <X size={18} />
-                                    </button>
-                                </div>
+                {viewDeliveryNote && businessData && (
+                    <div className="app-print-overlay">
+                        <div className="app-print-shell">
+                            <div className="app-print-toolbar">
+                                <motion.button whileTap={{ scale: 0.95 }} type="button" onClick={handlePrint} className="app-print-btn">
+                                    <Printer size={18} /> A4 Print / PDF
+                                </motion.button>
+                                <motion.button whileTap={{ scale: 0.95 }} type="button" onClick={() => setViewDeliveryNote(null)} className="app-print-close">
+                                    <X size={20} />
+                                </motion.button>
                             </div>
-                            <div style={{
-                                padding: '20px 24px', overflow: 'auto', flex: 1,
-                                background: '#f8f9fa', display: 'flex', justifyContent: 'center'
-                            }}>
-                                <div style={{
-                                    background: '#fff', width: '210mm', padding: '12mm 14mm',
-                                    boxShadow: '0 2px 20px rgba(0,0,0,0.08)', borderRadius: '4px',
-                                    boxSizing: 'border-box', fontSize: '12px', lineHeight: '1.6',
-                                    fontFamily: "'Arial', 'Helvetica Neue', sans-serif", color: '#0f172a'
-                                }}>
-                                    <DeliveryNoteTemplate deliveryNote={viewingDN} business={businessData} />
-                                </div>
+                            <div className="app-print-doc" ref={printRef}>
+                                <DeliveryNoteTemplate deliveryNote={viewDeliveryNote} business={businessData} />
                             </div>
-                        </motion.div>
-                    </motion.div>
+                        </div>
+                    </div>
                 )}
             </AnimatePresence>
         </div>

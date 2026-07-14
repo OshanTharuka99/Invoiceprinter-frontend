@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import {
     Users, ShieldCheck, LayoutDashboard, FileText, Settings,
-    TrendingUp, LogOut, Bell, Package, Briefcase, Truck, ShieldAlert, ScrollText, Printer, Shield, X, Undo2, RotateCcw
+    TrendingUp, LogOut, Bell, Package, Briefcase, Truck, ShieldAlert, ScrollText, Printer, Shield, X,     Undo2, RotateCcw, Menu, Wrench
 } from 'lucide-react';
 import api from '../api';
 import { toast, Toaster } from 'react-hot-toast';
@@ -24,6 +24,7 @@ import PurchaseOrderManagement from '../components/shared/PurchaseOrderManagemen
 import DeliveryNoteManagement from '../components/shared/DeliveryNoteManagement';
 import SalesReturnManagement from '../components/shared/SalesReturnManagement';
 import GoodsReturnManagement from '../components/shared/GoodsReturnManagement';
+import RmaManagement from '../components/shared/RmaManagement';
 import UserSettings from '../components/shared/UserSettings';
 
 
@@ -33,6 +34,8 @@ const AdminPortal = () => {
     const [activeNav, setActiveNav] = useState('analytics');
     const [businessSubTab, setBusinessSubTab] = useState('settings');
     const [sidebarOpen, setSidebarOpen] = useState(true);
+    const [mobileNavOpen, setMobileNavOpen] = useState(false);
+    const [isNarrow, setIsNarrow] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 1024);
     const [notifications, setNotifications] = useState([]);
     const [showNotifications, setShowNotifications] = useState(false);
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
@@ -47,7 +50,30 @@ const AdminPortal = () => {
 
     useEffect(() => { fetchNotifications(); }, []);
 
+    useEffect(() => {
+        const onResize = () => {
+            const narrow = window.innerWidth <= 1024;
+            setIsNarrow(narrow);
+            if (!narrow) setMobileNavOpen(false);
+        };
+        window.addEventListener('resize', onResize);
+        return () => window.removeEventListener('resize', onResize);
+    }, []);
+
     const unreadCount = notifications.filter(n => !n.isRead).length;
+
+    const selectNav = (id) => {
+        setActiveNav(id);
+        setMobileNavOpen(false);
+    };
+
+    const toggleSidebar = () => {
+        if (isNarrow) {
+            setMobileNavOpen((v) => !v);
+        } else {
+            setSidebarOpen((v) => !v);
+        }
+    };
 
     const navItems = [
         { id: 'analytics', label: 'Dashboard', icon: TrendingUp },
@@ -65,6 +91,7 @@ const AdminPortal = () => {
         { id: 'delivery_notes', label: 'Delivery Notes', icon: Truck },
         { id: 'sales_returns', label: 'Sales Return Notes', icon: Undo2 },
         { id: 'goods_returns', label: 'Goods Return Notes', icon: RotateCcw },
+        { id: 'rma', label: 'RMA Process', icon: Wrench },
     ];
 
 
@@ -147,6 +174,7 @@ const AdminPortal = () => {
             case 'delivery_notes': return <DeliveryNoteManagement currentUser={user} showToast={showToast} />;
             case 'sales_returns': return <SalesReturnManagement currentUser={user} showToast={showToast} />;
             case 'goods_returns': return <GoodsReturnManagement currentUser={user} showToast={showToast} />;
+            case 'rma': return <RmaManagement currentUser={user} showToast={showToast} />;
             case 'analytics': return <AdminDashboard currentUser={user} />;
             default: return <div className="admin-empty-module">Module under development...</div>;
         }
@@ -157,17 +185,27 @@ const AdminPortal = () => {
         <div className="admin-container">
             <Toaster position="top-right" reverseOrder={false} />
 
-            {/* SIDEBAR - 20% width */}
-            <motion.aside
-                animate={{ width: sidebarOpen ? '20%' : '90px' }}
-                transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
-                className="admin-sidebar"
+            {mobileNavOpen && (
+                <button
+                    type="button"
+                    className="admin-sidebar-backdrop"
+                    aria-label="Close menu"
+                    onClick={() => setMobileNavOpen(false)}
+                />
+            )}
+
+            <aside
+                className={[
+                    'admin-sidebar',
+                    sidebarOpen ? 'admin-sidebar--expanded' : 'admin-sidebar--collapsed',
+                    mobileNavOpen ? 'admin-sidebar--mobile-open' : '',
+                ].filter(Boolean).join(' ')}
             >
                 <div className="admin-sidebar-brand">
                     <div className="admin-sidebar-logo">
                         <Printer size={26} color="#08090a" />
                     </div>
-                    {sidebarOpen && (
+                    {(sidebarOpen || isNarrow) && (
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="admin-fade-in">
                             <div className="admin-sidebar-title">Invo<span style={{ color: '#dc2626', fontStyle: 'italic' }}>Print</span></div>
                             <div className="admin-sidebar-subtitle">CORE PROTOCOL</div>
@@ -179,11 +217,12 @@ const AdminPortal = () => {
                     {navItems.map((item) => (
                         <button
                             key={item.id}
-                            onClick={() => setActiveNav(item.id)}
-                            className={`admin-nav-item ${activeNav === item.id ? 'admin-nav-item-active' : ''}`}
+                            type="button"
+                            onClick={() => selectNav(item.id)}
+                            className={`admin-nav-item ${activeNav === item.id ? 'active' : ''}`}
                         >
                             <item.icon size={20} />
-                            {sidebarOpen && <span>{item.label}</span>}
+                            {(sidebarOpen || isNarrow) && <span>{item.label}</span>}
                         </button>
                     ))}
                 </nav>
@@ -193,7 +232,7 @@ const AdminPortal = () => {
                         <div className="admin-sidebar-avatar">
                             {user?.firstName?.[0]}{user?.lastName?.[0]}
                         </div>
-                        {sidebarOpen && (
+                        {(sidebarOpen || isNarrow) && (
                             <div className="admin-sidebar-user-info">
                                 <div className="admin-sidebar-username">{user?.firstName}</div>
                                 <div className="admin-sidebar-userrole">{user?.role?.toUpperCase()}</div>
@@ -201,20 +240,22 @@ const AdminPortal = () => {
                         )}
                     </div>
                 </div>
-            </motion.aside>
+            </aside>
 
             {/* MAIN AREA */}
             <div className="admin-main">
-                {/* Header - 1/8 height */}
+                {/* Header */}
                 <header className="admin-header">
                     {/* Left: Page Title */}
                     <div className="admin-header-left">
                         <motion.button
-                            onClick={() => setSidebarOpen(!sidebarOpen)}
+                            type="button"
+                            onClick={toggleSidebar}
                             whileTap={{ scale: 0.9 }}
                             className="admin-sidebar-toggle"
+                            aria-label="Toggle navigation"
                         >
-                            <LayoutDashboard size={18} />
+                            {isNarrow ? (mobileNavOpen ? <X size={18} /> : <Menu size={18} />) : <LayoutDashboard size={18} />}
                         </motion.button>
                         <div className="admin-header-title">
                             <div className="admin-header-pagename">

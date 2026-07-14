@@ -40,6 +40,9 @@ const BusinessSettings = ({ currentUser, showToast }) => {
         goodsReturnPrefix: 'GRN', goodsReturnDigits: 5,
         goodsReturnTitleColor: '#0f766e', goodsReturnDividerColor: '#0f766e',
         goodsReturnTerms: 'Goods returned to supplier as per purchase terms.', goodsReturnNotes: '',
+        rmaPrefix: 'RMA', rmaDigits: 5,
+        rmaTitleColor: '#c2410c', rmaDividerColor: '#c2410c',
+        rmaTerms: 'RMA processed as per company warranty / service policy.', rmaNotes: '',
         defaultWarrantyPeriod: '1 year',
         quotationTerms: 'Standard terms and conditions apply.', quotationNotes: '',
         invoiceTerms: 'Standard invoice terms and conditions apply.', invoiceNotes: '',
@@ -81,6 +84,12 @@ const BusinessSettings = ({ currentUser, showToast }) => {
                     goodsReturnDividerColor: details.goodsReturnDividerColor || '#0f766e',
                     goodsReturnTerms: details.goodsReturnTerms || 'Goods returned to supplier as per purchase terms.',
                     goodsReturnNotes: details.goodsReturnNotes || '',
+                    rmaPrefix: details.rmaPrefix || 'RMA',
+                    rmaDigits: details.rmaDigits || 5,
+                    rmaTitleColor: details.rmaTitleColor || '#c2410c',
+                    rmaDividerColor: details.rmaDividerColor || '#c2410c',
+                    rmaTerms: details.rmaTerms || 'RMA processed as per company warranty / service policy.',
+                    rmaNotes: details.rmaNotes || '',
                     defaultWarrantyPeriod: details.defaultWarrantyPeriod || '1 year',
                     stores: details.stores || []
                 });
@@ -636,6 +645,36 @@ const BusinessSettings = ({ currentUser, showToast }) => {
                                         <div className="bs2-doc-right">
                                             <div><label>Goods Return Terms</label><textarea value={businessData.goodsReturnTerms} onChange={e => setBusinessData({ ...businessData, goodsReturnTerms: e.target.value })} disabled={!isEditMode} className={`${inpCls} bs2-ta`} placeholder="Enter standard goods return terms..." /></div>
                                             <div><label>Default Goods Return Notes</label><textarea value={businessData.goodsReturnNotes} onChange={e => setBusinessData({ ...businessData, goodsReturnNotes: e.target.value })} disabled={!isEditMode} className={`${inpCls} bs2-ta`} placeholder="Enter default notes..." /></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* RMA */}
+                            <div className="bs2-card">
+                                <div className="bs2-card-head">
+                                    <div>
+                                        <h3 className="bs2-card-title">RMA Process</h3>
+                                        <p className="bs2-card-desc">Job numbers, print colors and default terms for RMA notes.</p>
+                                    </div>
+                                    <ColorPreview titleColor={businessData.rmaTitleColor} dividerColor={businessData.rmaDividerColor} title="RMA NOTE" />
+                                    {isRoot && <><EditBtn /><SaveCancelBtns /></>}
+                                </div>
+                                <div className="bs2-card-body">
+                                    <div className="bs2-doc-grid">
+                                        <div className="bs2-doc-left">
+                                            <div className="bs2-grid bs2-grid-2">
+                                                <div><label>Prefix</label><input value={businessData.rmaPrefix || 'RMA'} onChange={e => setBusinessData({ ...businessData, rmaPrefix: e.target.value })} disabled={!isEditMode} className={inpCls} placeholder="e.g. RMA" /></div>
+                                                <div><label>Digits</label><input type="number" min="2" max="10" value={businessData.rmaDigits || 5} onChange={e => setBusinessData({ ...businessData, rmaDigits: parseInt(e.target.value, 10) || 5 })} disabled={!isEditMode} className={inpCls} placeholder="5" /></div>
+                                            </div>
+                                            <div className="bs2-grid bs2-grid-2" style={{ marginTop: '0.75rem' }}>
+                                                <ColorPicker label="Title Color" value={businessData.rmaTitleColor || '#c2410c'} onChange={v => setBusinessData({ ...businessData, rmaTitleColor: v })} disabled={!isEditMode} icon={Type} />
+                                                <ColorPicker label="Divider Color" value={businessData.rmaDividerColor || '#c2410c'} onChange={v => setBusinessData({ ...businessData, rmaDividerColor: v })} disabled={!isEditMode} icon={Minus} />
+                                            </div>
+                                        </div>
+                                        <div className="bs2-doc-right">
+                                            <div><label>RMA Terms</label><textarea value={businessData.rmaTerms || ''} onChange={e => setBusinessData({ ...businessData, rmaTerms: e.target.value })} disabled={!isEditMode} className={`${inpCls} bs2-ta`} placeholder="Enter standard RMA terms..." /></div>
+                                            <div><label>Default RMA Notes</label><textarea value={businessData.rmaNotes || ''} onChange={e => setBusinessData({ ...businessData, rmaNotes: e.target.value })} disabled={!isEditMode} className={`${inpCls} bs2-ta`} placeholder="Enter default notes..." /></div>
                                         </div>
                                     </div>
                                 </div>

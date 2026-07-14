@@ -67,6 +67,7 @@ const PurchaseOrderTemplate = React.forwardRef(({ po, business }, ref) => {
     /* ── Render ── */
     return (
         <div ref={ref} data-potemplate style={{
+            position: 'relative',
             background: '#fff',
             color: DARK,
             fontFamily: FONT,
@@ -81,8 +82,28 @@ const PurchaseOrderTemplate = React.forwardRef(({ po, business }, ref) => {
             padding: '12mm 14mm 14mm 14mm'
         }}>
 
+            {/* WATERMARK */}
+            {p.status === 'Cancelled' && (
+                <div style={{
+                    position: 'absolute',
+                    top: '40%',
+                    left: '50%',
+                    transform: 'translate(-50%, -50%) rotate(-30deg)',
+                    fontSize: '120px',
+                    fontWeight: '900',
+                    color: 'rgba(239, 68, 68, 0.12)',
+                    textTransform: 'uppercase',
+                    letterSpacing: '10px',
+                    pointerEvents: 'none',
+                    zIndex: 0,
+                    whiteSpace: 'nowrap'
+                }}>
+                    CANCELLED
+                </div>
+            )}
+
             {/* ── HEADER ── */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div style={{ position: 'relative', zIndex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
 
                 {/* Left: logo / company */}
                 <div style={{ maxWidth: '52%' }}>

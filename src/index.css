@@ -2,6 +2,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&display=swap');
 @import './styles/modern-table.css';
 @import './styles/catalog-layout.css';
+@import './styles/print-preview.css';
 
 :root {
   --primary: #0f172a;
@@ -13,6 +14,41 @@
   --text-muted: #94a3b8;
   --border: #e2e8f0;
   --accent: #6366f1;
+  /* Density tuned to match 14" laptop @ ~80% browser zoom */
+  --app-scale: 0.875;
+  --content-max: 1320px;
+  --sidebar-w: 250px;
+  --sidebar-collapsed: 80px;
+}
+
+/*
+  Base rem ≈ 14px (16 × 0.875) so desktop at 100% zoom matches
+  the denser 14"/80% look. Large screens stay equally dense;
+  phones get a slightly larger readable base.
+*/
+html {
+  font-size: calc(16px * var(--app-scale));
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+@media (min-width: 1600px) {
+  :root { --app-scale: 0.8125; } /* ~13px — large monitors */
+}
+
+@media (min-width: 1920px) {
+  :root { --app-scale: 0.8; } /* ~12.8px — ultrawide / 100% ≈ 80% of 16 */
+}
+
+@media (max-width: 1024px) {
+  :root {
+    --app-scale: 0.9375; /* ~15px tablets */
+    --content-max: 100%;
+  }
+}
+
+@media (max-width: 640px) {
+  :root { --app-scale: 1; } /* 16px phones — readable touch UI */
 }
 
 * {
@@ -26,8 +62,13 @@ body {
   background-color: var(--bg-main);
   color: var(--text-main);
   min-height: 100vh;
+  min-height: 100dvh;
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
+}
+
+img, svg, video, canvas {
+  max-width: 100%;
 }
 
 /* Scrollbar Styling */

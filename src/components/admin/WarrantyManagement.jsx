@@ -4,6 +4,7 @@ import { Shield, RefreshCw, Search, Calendar, Package, MapPin, Edit3, Trash2, X,
 import api from '../../api';
 import useSubmitGuard from '../../utils/useSubmitGuard';
 import './WarrantyManagement.css';
+import '../../styles/modern-table.css';
 
 const WarrantyManagement = ({ currentUser, showToast }) => {
     const [warranties, setWarranties] = useState([]);
@@ -151,9 +152,22 @@ const WarrantyManagement = ({ currentUser, showToast }) => {
                         <div className="pm-stat-label">Total Registry</div>
                     </div>
                 </div>
+                <div className="pm-stat-card amber">
+                    <div className="pm-stat-icon amber"><AlertTriangle size={22} /></div>
+                    <div className="pm-stat-body">
+                        <div className="pm-stat-value">
+                            {warranties.filter((w) => {
+                                if (!w.expiryDate) return false;
+                                const days = Math.ceil((new Date(w.expiryDate) - new Date()) / (1000 * 60 * 60 * 24));
+                                return days > 0 && days <= 30;
+                            }).length}
+                        </div>
+                        <div className="pm-stat-label">Expiring (30d)</div>
+                    </div>
+                </div>
             </div>
 
-            <div className="pm-card">
+            <div className="pm-card warranty-registry-card">
                 <div className="pm-card-header">
                     <div className="pm-card-title">
                         <div className="pm-card-icon green"><Shield size={22} /></div>
@@ -190,103 +204,107 @@ const WarrantyManagement = ({ currentUser, showToast }) => {
                 {loading ? (
                     <div className="pm-loading"><RefreshCw className="animate-spin" size={20} /> Loading warranties...</div>
                 ) : (
-                    <div className="modern-table-card">
-                        <div className="modern-table-scroll">
-                            <table className="modern-table">
-                                <thead>
-                                    <tr>
-                                        <th>Serial No</th>
-                                        <th>Product</th>
-                                        <th>Client</th>
-                                        <th>Project</th>
-                                        <th>Invoice</th>
-                                        <th>Warranty Period</th>
-                                        <th>Start Date</th>
-                                        <th>Expiry Date</th>
-                                        <th>Status</th>
-                                        {isAdmin && <th>Actions</th>}
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {filtered.map(w => {
-                                        const remaining = daysRemaining(w.expiryDate);
-                                        const clientName = w.clientRef ? `${w.clientRef.firstName} ${w.clientRef.lastName}` : w.invoiceRef?.manualClientDetails?.name || 'Walk-in Customer';
-                                        return (
-                                            <tr key={w._id}>
-                                                <td><span className="wm-badge wm-badge-serial">{w.serialNumber}</span></td>
-                                                <td>
-                                                    <div style={{ fontWeight: 700, color: 'var(--wm-t1)', fontSize: '0.88rem' }}>{w.productRef?.name || 'Unknown'}</div>
-                                                    <div style={{ fontSize: '0.72rem', color: 'var(--wm-t3)' }}>{w.productRef?.productId || ''}</div>
-                                                </td>
-                                                <td style={{ fontWeight: 700, color: 'var(--wm-t1)' }}>{clientName}</td>
-                                                <td>
-                                                    {w.projectRef ? (
-                                                        <div>
-                                                            <div style={{ fontWeight: 700, color: 'var(--wm-t1)', fontSize: '0.85rem' }}>{w.projectRef.name}</div>
-                                                            {(w.projectRef.location || w.projectLocation) && (
-                                                                <div style={{ fontSize: '0.72rem', color: 'var(--wm-t3)', display: 'flex', alignItems: 'center', gap: '0.2rem', marginTop: '0.15rem' }}>
-                                                                    <MapPin size={10} />{w.projectRef.location || w.projectLocation}
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    ) : (
-                                                        <span style={{ color: 'var(--wm-t3)', fontSize: '0.8rem' }}>—</span>
-                                                    )}
-                                                </td>
-                                                <td><span className="wm-badge wm-badge-id">{w.invoiceRef?.invoiceNumber || '—'}</span></td>
-                                                <td style={{ fontSize: '0.85rem', color: 'var(--wm-t2)' }}>{w.warrantyPeriod || '—'}</td>
-                                                <td style={{ fontSize: '0.85rem', color: 'var(--wm-t2)' }}>{fmt(w.startDate)}</td>
-                                                <td>
-                                                    <div style={{ fontSize: '0.85rem', color: 'var(--wm-t2)' }}>{fmt(w.expiryDate)}</div>
-                                                    {w.status === 'active' && remaining !== null && (
-                                                        <div style={{ fontSize: '0.7rem', fontWeight: 700, color: remaining <= 30 ? 'var(--wm-red)' : 'var(--wm-green)' }}>
-                                                            {remainingPeriod(w.expiryDate)}
-                                                        </div>
-                                                    )}
-                                                </td>
-                                                <td>
-                                                    <span className={`wm-badge ${w.status === 'active' ? 'wm-badge-active' : 'wm-badge-expired'}`}>{w.status}</span>
-                                                </td>
-                                                {isAdmin && (
-                                                    <td>
-                                                        <div className="modern-table-actions">
-                                                            <button
-                                                                className="modern-table-action edit"
-                                                                title="Edit Serial Number"
-                                                                onClick={async () => {
-                                                                    setEditSerialModal(w); setNewSerial(''); setSerialReason('');
-                                                                    setSerialsLoading(true); setAvailableSerials([]);
-                                                                    try {
-                                                                        const pId = w.productRef?._id;
-                                                                        if (pId) {
-                                                                            const res = await api.get(`/products/${pId}/stock`);
-                                                                            const allSerials = (res.data.data || []).flatMap(e => e.serialNumbers || []);
-                                                                            const unique = [...new Set(allSerials.map(s => s.toUpperCase()))];
-                                                                            setAvailableSerials(unique);
-                                                                        }
-                                                                    } catch { setAvailableSerials([]); }
-                                                                    finally { setSerialsLoading(false); }
-                                                                }}
-                                                            >
-                                                                <Edit3 size={13} />
-                                                            </button>
-                                                            <button
-                                                                className="modern-table-action delete"
-                                                                title="Void Warranty"
-                                                                onClick={() => setVoidModal(w)}
-                                                            >
-                                                                <Trash2 size={13} />
-                                                            </button>
-                                                        </div>
-                                                    </td>
+                    <div className="warranty-table-shell">
+                        <table className="modern-table warranty-table">
+                            <thead>
+                                <tr>
+                                    <th>Serial</th>
+                                    <th>Product</th>
+                                    <th>Client</th>
+                                    <th>Project</th>
+                                    <th>Invoice</th>
+                                    <th>Coverage</th>
+                                    <th>Status</th>
+                                    {isAdmin && <th className="text-center">Actions</th>}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {filtered.map(w => {
+                                    const remaining = daysRemaining(w.expiryDate);
+                                    const clientName = w.clientRef ? `${w.clientRef.firstName} ${w.clientRef.lastName}` : w.invoiceRef?.manualClientDetails?.name || 'Walk-in Customer';
+                                    return (
+                                        <tr key={w._id}>
+                                            <td><span className="wm-badge wm-badge-serial">{w.serialNumber}</span></td>
+                                            <td>
+                                                <div className="warranty-cell-title">{w.productRef?.name || 'Unknown'}</div>
+                                                <div className="warranty-cell-sub">{w.productRef?.productId || ''}</div>
+                                            </td>
+                                            <td><div className="warranty-cell-title">{clientName}</div></td>
+                                            <td>
+                                                {w.projectRef ? (
+                                                    <div>
+                                                        <div className="warranty-cell-title">{w.projectRef.name}</div>
+                                                        {(w.projectRef.location || w.projectLocation) && (
+                                                            <div className="warranty-cell-sub warranty-cell-location">
+                                                                <MapPin size={10} />
+                                                                <span>{w.projectRef.location || w.projectLocation}</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    <span className="warranty-cell-muted">—</span>
                                                 )}
-                                            </tr>
-                                        );
-                                    })}
-                                    {filtered.length === 0 && <tr><td colSpan={isAdmin ? 10 : 9}><div className="pm-empty">No warranties found in registry</div></td></tr>}
-                                </tbody>
-                            </table>
-                        </div>
+                                            </td>
+                                            <td><span className="wm-badge wm-badge-id">{w.invoiceRef?.invoiceNumber || '—'}</span></td>
+                                            <td>
+                                                <div className="warranty-cell-title">{w.warrantyPeriod || '—'}</div>
+                                                <div className="warranty-cell-sub">{fmt(w.startDate)} → {fmt(w.expiryDate)}</div>
+                                                {w.status === 'active' && remaining !== null && (
+                                                    <div className={`warranty-remaining ${remaining <= 30 ? 'is-urgent' : ''}`}>
+                                                        {remainingPeriod(w.expiryDate)}
+                                                    </div>
+                                                )}
+                                            </td>
+                                            <td>
+                                                <span className={`wm-badge ${w.status === 'active' ? 'wm-badge-active' : 'wm-badge-expired'}`}>{w.status}</span>
+                                            </td>
+                                            {isAdmin && (
+                                                <td className="text-center">
+                                                    <div className="modern-table-actions" style={{ justifyContent: 'center' }}>
+                                                        <button
+                                                            type="button"
+                                                            className="modern-table-action edit"
+                                                            title="Edit Serial Number"
+                                                            onClick={async () => {
+                                                                setEditSerialModal(w); setNewSerial(''); setSerialReason('');
+                                                                setSerialsLoading(true); setAvailableSerials([]);
+                                                                try {
+                                                                    const pId = w.productRef?._id;
+                                                                    if (pId) {
+                                                                        const res = await api.get(`/products/${pId}/stock`);
+                                                                        const allSerials = (res.data.data || []).flatMap(e => e.serialNumbers || []);
+                                                                        const unique = [...new Set(allSerials.map(s => s.toUpperCase()))];
+                                                                        setAvailableSerials(unique);
+                                                                    }
+                                                                } catch { setAvailableSerials([]); }
+                                                                finally { setSerialsLoading(false); }
+                                                            }}
+                                                        >
+                                                            <Edit3 size={13} />
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            className="modern-table-action delete"
+                                                            title="Void Warranty"
+                                                            onClick={() => setVoidModal(w)}
+                                                        >
+                                                            <Trash2 size={13} />
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            )}
+                                        </tr>
+                                    );
+                                })}
+                                {filtered.length === 0 && (
+                                    <tr>
+                                        <td colSpan={isAdmin ? 8 : 7}>
+                                            <div className="pm-empty">No warranties found in registry</div>
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
                     </div>
                 )}
             </div>

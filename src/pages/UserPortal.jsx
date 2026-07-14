@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
-import { LogOut, Printer, Bell, LayoutDashboard, FileText, ClipboardList, Package, Briefcase, Users, Shield, Settings, LogIn, Truck, Undo2, RotateCcw } from 'lucide-react';
+import { LogOut, Printer, Bell, LayoutDashboard, FileText, ClipboardList, Package, Briefcase, Users, Shield, Settings, LogIn, Truck, Undo2, RotateCcw, Menu, X, Wrench } from 'lucide-react';
 import api from '../api';
 import UserDashboard from '../components/user/UserDashboard';
 import ProductManagement from '../components/admin/ProductManagement';
@@ -15,6 +15,7 @@ import PurchaseOrderManagement from '../components/shared/PurchaseOrderManagemen
 import DeliveryNoteManagement from '../components/shared/DeliveryNoteManagement';
 import SalesReturnManagement from '../components/shared/SalesReturnManagement';
 import GoodsReturnManagement from '../components/shared/GoodsReturnManagement';
+import RmaManagement from '../components/shared/RmaManagement';
 import UserSettings from '../components/shared/UserSettings';
 
 import './UserPortal.css';
@@ -27,6 +28,7 @@ const NAV_ITEMS = [
     { key: 'Delivery Notes', label: 'Delivery Notes', icon: Truck, adminOnly: true },
     { key: 'Sales Returns', label: 'Sales Return Notes', icon: Undo2, adminOnly: true },
     { key: 'Goods Returns', label: 'Goods Return Notes', icon: RotateCcw, adminOnly: true },
+    { key: 'RMA', label: 'RMA Process', icon: Wrench },
     { key: 'Products', label: 'Products', icon: Package },
     { key: 'Projects', label: 'Projects', icon: Briefcase },
     { key: 'Clients', label: 'Clients', icon: Users },
@@ -41,6 +43,7 @@ const UserPortal = () => {
     const [notifications, setNotifications] = useState([]);
     const [showNotifications, setShowNotifications] = useState(false);
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
     const isAdminOrRoot = user?.role === 'admin' || user?.role === 'root';
     useEffect(() => {
@@ -59,6 +62,11 @@ const UserPortal = () => {
     const unreadCount = notifications.filter(n => !n.isRead).length;
 
     const visibleNavItems = NAV_ITEMS.filter(item => !item.adminOnly || isAdminOrRoot);
+
+    const goTab = (key) => {
+        setActiveTab(key);
+        setMobileMenuOpen(false);
+    };
 
     const showToast = (message, type = 'success') => {
         toast(message, {
@@ -99,6 +107,14 @@ const UserPortal = () => {
             <nav className="user-nav">
                 {/* Logo + Nav links */}
                 <div className="user-nav-brand">
+                    <button
+                        type="button"
+                        className="user-nav-menu-btn"
+                        aria-label="Open menu"
+                        onClick={() => setMobileMenuOpen((v) => !v)}
+                    >
+                        {mobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
+                    </button>
                     <div className="user-nav-logo">
                         <div className="user-nav-logo-icon">
                             <Printer size={19} color="#fff" />
@@ -111,7 +127,7 @@ const UserPortal = () => {
                         {visibleNavItems.map((item) => {
                             const Icon = item.icon;
                             return (
-                                <button key={item.key} onClick={() => setActiveTab(item.key)}
+                                <button key={item.key} onClick={() => goTab(item.key)}
                                     className={`user-nav-link ${activeTab === item.key ? 'active' : ''}`}
                                 >
                                     <Icon size={15} />
@@ -120,12 +136,11 @@ const UserPortal = () => {
                             );
                         })}
                     </div>
-
                 </div>
 
                 {/* Right side */}
                 <div className="user-nav-right">
-                    <div className="user-nav-user-section" onClick={() => setActiveTab('Settings')} title="My Profile Settings">
+                    <div className="user-nav-user-section" onClick={() => goTab('Settings')} title="My Profile Settings">
                         <div className="user-nav-avatar" style={user?.profilePicture ? { padding: 0, overflow: 'hidden' } : {}}>
                             {user?.profilePicture
                                 ? <img src={user.profilePicture} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -181,6 +196,54 @@ const UserPortal = () => {
                 </div>
             </nav>
 
+            <AnimatePresence>
+                {mobileMenuOpen && (
+                    <>
+                        <motion.button
+                            type="button"
+                            key="user-menu-backdrop"
+                            className="user-mobile-backdrop"
+                            aria-label="Close menu"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setMobileMenuOpen(false)}
+                        />
+                        <motion.div
+                            key="user-mobile-drawer"
+                            className="user-mobile-drawer"
+                            initial={{ x: '-100%' }}
+                            animate={{ x: 0 }}
+                            exit={{ x: '-100%' }}
+                            transition={{ type: 'tween', duration: 0.25 }}
+                        >
+                            <div className="user-mobile-drawer-head">
+                                <span>Menu</span>
+                                <button type="button" onClick={() => setMobileMenuOpen(false)} aria-label="Close">
+                                    <X size={18} />
+                                </button>
+                            </div>
+                            <div className="user-mobile-drawer-links">
+                                {visibleNavItems.map((item) => {
+                                    const Icon = item.icon;
+                                    return (
+                                        <button
+                                            key={item.key}
+                                            type="button"
+                                            onClick={() => goTab(item.key)}
+                                            className={`user-mobile-link ${activeTab === item.key ? 'active' : ''}`}
+                                        >
+                                            <Icon size={18} />
+                                            <span>{item.label}</span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </motion.div>
+                    </>
+                )}
+            </AnimatePresence>
+
             {/* ── Main Content ─────────────────────────── */}
             <main className="user-main">
                 <AnimatePresence mode="wait">
@@ -205,6 +268,8 @@ const UserPortal = () => {
                             <SalesReturnManagement currentUser={user} showToast={showToast} />
                         ) : activeTab === 'Goods Returns' ? (
                             <GoodsReturnManagement currentUser={user} showToast={showToast} />
+                        ) : activeTab === 'RMA' ? (
+                            <RmaManagement currentUser={user} showToast={showToast} />
                         ) : activeTab === 'Invoices' ? (
                             <InvoiceManagement currentUser={user} showToast={showToast} />
                         ) : activeTab === 'Clients' ? (

@@ -328,7 +328,6 @@ const AdminDashboard = ({ currentUser }) => {
                     { value: stats.clients, label: 'Clients', icon: Users, variant: 'black', i: 1 },
                     { value: stats.products, label: 'Products', icon: Package, variant: 'red', i: 2 },
                     { value: stats.projects, label: 'Projects', icon: Briefcase, variant: 'black', i: 3 },
-                    { value: stats.suppliers, label: 'Suppliers', icon: Truck, variant: 'white', i: 4 },
                 ].map(({ value, label, icon: Icon, variant, i }) => (
                     <motion.div key={label} className="ad-stat-card dash-card" style={{ '--i': i }} {...cardMotion(6 + i)}>
                         <div className={`ad-stat-icon ad-stat-icon--${variant}`}><Icon size={20} /></div>

@@ -314,10 +314,12 @@ const ProductManagement = ({ currentUser, showToast }) => {
       </div>
 
       {/* Tab Bar */}
-      <div className="pm-tabs">
-        {[['products','Products'],['categories','Categories']].map(([key,label]) => (
-          <button key={key} className={`pm-tab-btn ${activeTab===key?'active':''}`} onClick={()=>setActiveTab(key)}>{label}</button>
-        ))}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+        <div className="pm-tabs">
+          {[['products','Products'],['categories','Categories']].map(([key,label]) => (
+            <button key={key} className={`pm-tab-btn ${activeTab===key?'active':''}`} onClick={()=>setActiveTab(key)}>{label}</button>
+          ))}
+        </div>
       </div>
 
       {loading ? (

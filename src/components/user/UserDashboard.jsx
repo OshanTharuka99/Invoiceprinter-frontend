@@ -1,12 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import {
-    DollarSign, TrendingUp, Clock, AlertCircle, BarChart3,
+    DollarSign, TrendingUp, AlertCircle, BarChart3,
     Users, Package, FileText, Shield, ClipboardList,
-    CheckCircle, Search, Calendar, Activity, PiggyBank
+    CheckCircle, Search, Calendar, Activity, PiggyBank, Wrench
 } from 'lucide-react';
 import api from '../../api';
-import { sumInvoicesProfit } from '../../utils/invoiceProfit';
 import '../../styles/dashboard-shared.css';
 import './UserDashboard.css';
 
@@ -57,12 +56,26 @@ const cardMotion = (i = 0) => ({
     transition: { delay: i * 0.06, duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] },
 });
 
+const emptyRma = {
+    Open: 0, 'In Progress': 0, 'Awaiting Supplier': 0, Resolved: 0, Closed: 0, Cancelled: 0,
+};
+
 const UserDashboard = ({ currentUser, showToast }) => {
     const [loading, setLoading] = useState(true);
     const [invoices, setInvoices] = useState([]);
     const [myQuotations, setMyQuotations] = useState([]);
+    const [quotationByStatus, setQuotationByStatus] = useState({});
     const [myPurchaseOrders, setMyPurchaseOrders] = useState([]);
-    const [entityCounts, setEntityCounts] = useState({ clients: 0, products: 0, quotations: 0, purchaseOrders: 0, warranties: 0, projects: 0 });
+    const [poByStatus, setPoByStatus] = useState({});
+    const [entityCounts, setEntityCounts] = useState({
+        clients: 0, products: 0, quotations: 0, purchaseOrders: 0, warranties: 0, projects: 0,
+    });
+    const [rmaByStatus, setRmaByStatus] = useState(emptyRma);
+    const [totals, setTotals] = useState({ paid: 0, unpaid: 0, pending: 0, billed: 0 });
+    const [profitStats, setProfitStats] = useState({
+        totalCost: 0, totalRevenue: 0, totalProfit: 0, profitMargin: 0, paidProfit: 0,
+    });
+    const [statusBreakdown, setStatusBreakdown] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
 
@@ -70,43 +83,29 @@ const UserDashboard = ({ currentUser, showToast }) => {
         const fetchData = async () => {
             setLoading(true);
             try {
-                const [invRes, clRes, prRes, qtRes, poRes, wrRes, pjRes] = await Promise.all([
-                    api.get('/invoices'),
-                    api.get('/clients'),
-                    api.get('/products'),
-                    api.get('/quotations'),
-                    api.get('/purchase-orders'),
-                    api.get('/warranties'),
-                    api.get('/projects'),
-                ]);
-                const allInvoices = invRes.data.data || [];
-                const myInvoices = allInvoices.filter(inv => {
-                    const createdById = inv.createdBy?._id || inv.createdBy;
-                    return createdById === currentUser?._id;
-                });
-                setInvoices(myInvoices);
+                const res = await api.get('/dashboard/stats');
+                const data = res.data?.data;
+                if (!data) throw new Error('No dashboard data');
 
-                const allQuotations = qtRes.data.data || [];
-                const myQt = allQuotations.filter(q => {
-                    const cid = q.createdBy?._id || q.createdBy;
-                    return cid === currentUser?._id;
+                const ws = data.userWorkspace || {};
+                setInvoices(ws.myInvoices || []);
+                setMyQuotations(ws.quotations?.recent || []);
+                setQuotationByStatus(ws.quotations?.byStatus || {});
+                setMyPurchaseOrders(ws.purchaseOrders?.recent || []);
+                setPoByStatus(ws.purchaseOrders?.byStatus || {});
+                setTotals(ws.totals || { paid: 0, unpaid: 0, pending: 0, billed: 0 });
+                setProfitStats(ws.profit || {
+                    totalCost: 0, totalRevenue: 0, totalProfit: 0, profitMargin: 0, paidProfit: 0,
                 });
-                setMyQuotations(myQt);
-
-                const allPOs = poRes.data.data || [];
-                const myPo = allPOs.filter(p => {
-                    const cid = p.createdBy?._id || p.createdBy;
-                    return cid === currentUser?._id;
-                });
-                setMyPurchaseOrders(myPo);
-
+                setStatusBreakdown(ws.statusBreakdown || []);
+                setRmaByStatus(ws.myRmaByStatus || emptyRma);
                 setEntityCounts({
-                    clients: (clRes.data.data || []).length,
-                    products: (prRes.data.data || []).length,
-                    quotations: myQt.length,
-                    purchaseOrders: myPo.length,
-                    warranties: wrRes.data.data?.length || 0,
-                    projects: (pjRes.data.data || []).length,
+                    clients: data.counts?.clients ?? 0,
+                    products: data.counts?.products ?? 0,
+                    quotations: ws.quotations?.total ?? ws.myQuotations ?? 0,
+                    purchaseOrders: ws.purchaseOrders?.total ?? 0,
+                    warranties: data.counts?.warranties?.total ?? 0,
+                    projects: data.counts?.projects ?? 0,
                 });
             } catch (err) {
                 showToast?.('Failed to load dashboard', 'error');
@@ -124,26 +123,17 @@ const UserDashboard = ({ currentUser, showToast }) => {
 
     const fmt = (val, cur) => `${sym(cur || 'primary')} ${(val || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
 
-    const totalRevenue = invoices.filter(i => i.status === 'Paid').reduce((s, i) => s + (i.finalTotal || 0), 0);
-    const totalUnpaid = invoices.filter(i => i.status === 'Unpaid').reduce((s, i) => s + (i.finalTotal || 0), 0);
-    const totalPending = invoices.filter(i => i.status === 'Pending').reduce((s, i) => s + (i.finalTotal || 0), 0);
-    const totalBilled = invoices.reduce((s, i) => s + (i.finalTotal || 0), 0);
+    const totalRevenue = totals.paid;
+    const totalUnpaid = totals.unpaid;
+    const profitMargin = profitStats.profitMargin || 0;
 
-    const profitStats = sumInvoicesProfit(invoices);
-    const paidProfitStats = sumInvoicesProfit(invoices, { statusFilter: 'Paid' });
-    const profitMargin = profitStats.totalRevenue > 0
-        ? Math.round((profitStats.totalProfit / profitStats.totalRevenue) * 1000) / 10
-        : 0;
-
-    const statusBreakdown = ['Paid', 'Unpaid', 'Pending', 'Cancelled'].map(s => ({
-        _id: s, count: invoices.filter(i => i.status === s).length, total: invoices.filter(i => i.status === s).reduce((sum, inv) => sum + (inv.finalTotal || 0), 0)
-    }));
-
-    const totalInvoices = invoices.filter(i => i.status !== 'Cancelled').length;
     const statusCount = (status) => {
         const found = statusBreakdown.find(s => s._id === status);
         return found ? found.count : 0;
     };
+    const totalInvoices = statusBreakdown
+        .filter((s) => s._id !== 'Cancelled')
+        .reduce((sum, s) => sum + (s.count || 0), 0);
     const statusPct = (status) => {
         const total = totalInvoices || 1;
         return Math.round((statusCount(status) / total) * 100);
@@ -162,6 +152,11 @@ const UserDashboard = ({ currentUser, showToast }) => {
         return matchSearch && matchStatus;
     }).slice(0, 8);
 
+    const rmaTotal = Object.values(rmaByStatus).reduce((s, n) => s + (n || 0), 0);
+    const rmaCount = (key) => rmaByStatus[key] || 0;
+    const qtCount = (statuses) => statuses.reduce((s, st) => s + (quotationByStatus[st] || 0), 0);
+    const poCount = (statuses) => statuses.reduce((s, st) => s + (poByStatus[st] || 0), 0);
+
     if (loading) {
         return (
             <div className="dash-page ud-root">
@@ -174,9 +169,6 @@ const UserDashboard = ({ currentUser, showToast }) => {
     }
 
     const today = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-    const collectionRate = invoices.length > 0
-        ? Math.round((statusCount('Paid') / invoices.length) * 100)
-        : 0;
 
     return (
         <div className="dash-page ud-root">
@@ -195,7 +187,7 @@ const UserDashboard = ({ currentUser, showToast }) => {
                     </p>
                     <div className="dash-hero-chips">
                         <span className="dash-hero-chip"><PiggyBank size={12} /> {fmt(profitStats.totalProfit)} profit</span>
-                        <span className="dash-hero-chip"><DollarSign size={12} /> {fmt(paidProfitStats.totalProfit)} from paid</span>
+                        <span className="dash-hero-chip"><DollarSign size={12} /> {fmt(profitStats.paidProfit)} from paid</span>
                         <span className="dash-hero-chip"><Activity size={12} /> {profitMargin}% margin</span>
                     </div>
                 </motion.div>
@@ -345,8 +337,89 @@ const UserDashboard = ({ currentUser, showToast }) => {
                 <div className="dash-section-left">
                     <div className="dash-section-line" />
                     <div>
-                        <h2 className="dash-section-title">Documents & Orders</h2>
-                        <p className="dash-section-sub">Quotation and purchase order performance</p>
+                        <h2 className="dash-section-title">RMA Process</h2>
+                        <p className="dash-section-sub">Your assigned / related RMA status mix</p>
+                    </div>
+                </div>
+            </div>
+
+            <motion.div {...cardMotion(6.5)} className="ud-card dash-card">
+                <div className="dash-card-header">
+                    <div className="dash-card-icon ud-card-icon amber"><Wrench size={16} /></div>
+                    <h3>RMA Status</h3>
+                </div>
+                <div className="ud-status-body">
+                    <div className="ud-status-donut">
+                        <svg viewBox="0 0 42 42" style={{ width: '120px', height: '120px' }}>
+                            {(() => {
+                                const RMA_SEGS = [
+                                    { label: 'Open', key: 'Open', color: '#3b82f6' },
+                                    { label: 'In Progress', key: 'In Progress', color: '#f59e0b' },
+                                    { label: 'Awaiting Supplier', key: 'Awaiting Supplier', color: '#8b5cf6' },
+                                    { label: 'Resolved', key: 'Resolved', color: '#10b981' },
+                                    { label: 'Closed', key: 'Closed', color: '#64748b' },
+                                    { label: 'Cancelled', key: 'Cancelled', color: '#ef4444' },
+                                ];
+                                const total = rmaTotal || 1;
+                                let offset = 0;
+                                const r = 15.915;
+                                const c = 2 * Math.PI * r;
+                                return (
+                                    <>
+                                        {RMA_SEGS.map((seg, i) => {
+                                            const count = rmaCount(seg.key);
+                                            const pct = (count / total) * 100;
+                                            const length = (pct / 100) * c;
+                                            const dash = length > 0 ? `${Math.max(length, 0.5)} ${c - Math.max(length, 0.5)}` : `0 ${c}`;
+                                            const dashOffset = -offset;
+                                            offset += length;
+                                            return (
+                                                <circle key={i} cx="21" cy="21" r={r} fill="none" stroke={seg.color}
+                                                    strokeWidth="3" strokeDasharray={dash} strokeDashoffset={dashOffset}
+                                                    strokeLinecap="round" style={{ transition: 'stroke-dasharray 0.5s' }}
+                                                />
+                                            );
+                                        })}
+                                        <text x="21" y="20.5" textAnchor="middle" dominantBaseline="central" fontSize="6" fontWeight="800" fill="#0f172a">{rmaTotal}</text>
+                                        <text x="21" y="25.5" textAnchor="middle" dominantBaseline="central" fontSize="3" fontWeight="600" fill="#94a3b8">RMA</text>
+                                    </>
+                                );
+                            })()}
+                        </svg>
+                    </div>
+                    <div className="ud-status-rows">
+                        {[
+                            { label: 'Open', key: 'Open', color: '#3b82f6' },
+                            { label: 'In Progress', key: 'In Progress', color: '#f59e0b' },
+                            { label: 'Awaiting Supplier', key: 'Awaiting Supplier', color: '#8b5cf6' },
+                            { label: 'Resolved', key: 'Resolved', color: '#10b981' },
+                            { label: 'Closed', key: 'Closed', color: '#64748b' },
+                            { label: 'Cancelled', key: 'Cancelled', color: '#ef4444' },
+                        ].map((row, i) => {
+                            const count = rmaCount(row.key);
+                            const pct = rmaTotal > 0 ? Math.round((count / rmaTotal) * 100) : 0;
+                            return (
+                                <div key={i} className="ud-status-row">
+                                    <div className="ud-status-row-left">
+                                        <span className="ud-status-row-dot" style={{ background: row.color }} />
+                                        <span className="ud-status-row-label">{row.label}</span>
+                                    </div>
+                                    <span className="ud-status-row-count" style={{ color: row.color }}>
+                                        {count}<span className="ud-status-row-pct"> ({pct}%)</span>
+                                    </span>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            </motion.div>
+
+            <div className="dash-section">
+                <div className="dash-section-left">
+                    <div className="dash-section-line" />
+                    <div>
+                        <h2 className="dash-section-title">Your Documents</h2>
+                        <p className="dash-section-sub">Quotations & purchase orders you created</p>
                     </div>
                 </div>
             </div>
@@ -357,15 +430,15 @@ const UserDashboard = ({ currentUser, showToast }) => {
                         <div className="dash-card-icon ud-card-icon indigo"><FileText size={16} /></div>
                         <h3>Quotation Overview</h3>
                     </div>
-                    {myQuotations.length === 0 ? (
+                    {entityCounts.quotations === 0 ? (
                         <div className="dash-empty">No quotations yet</div>
                     ) : (
                         <div className="ud-entity-grid">
                             {[
-                                { label: 'Total', value: myQuotations.length, color: '#6366f1' },
-                                { label: 'Approved', value: myQuotations.filter(q => q.status === 'Approved').length, color: '#059669' },
-                                { label: 'Pending', value: myQuotations.filter(q => q.status === 'Pending' || q.status === 'Draft').length, color: '#d97706' },
-                                { label: 'Rejected', value: myQuotations.filter(q => q.status === 'Rejected').length, color: '#dc2626' },
+                                { label: 'Total', value: entityCounts.quotations, color: '#6366f1' },
+                                { label: 'Approved', value: qtCount(['Approved']), color: '#059669' },
+                                { label: 'Pending', value: qtCount(['Pending', 'Draft']), color: '#d97706' },
+                                { label: 'Rejected', value: qtCount(['Rejected']), color: '#dc2626' },
                             ].map((item, i) => (
                                 <div key={i} className="ud-entity-item">
                                     <div className="ud-entity-icon" style={{ background: `${item.color}12`, color: item.color }}>
@@ -386,15 +459,15 @@ const UserDashboard = ({ currentUser, showToast }) => {
                         <div className="dash-card-icon ud-card-icon green"><ClipboardList size={16} /></div>
                         <h3>Purchase Order Overview</h3>
                     </div>
-                    {myPurchaseOrders.length === 0 ? (
+                    {entityCounts.purchaseOrders === 0 ? (
                         <div className="dash-empty">No purchase orders yet</div>
                     ) : (
                         <div className="ud-entity-grid">
                             {[
-                                { label: 'Total', value: myPurchaseOrders.length, color: '#6366f1' },
-                                { label: 'Approved', value: myPurchaseOrders.filter(p => p.status === 'Approved').length, color: '#059669' },
-                                { label: 'Pending', value: myPurchaseOrders.filter(p => p.status === 'Pending' || p.status === 'Draft').length, color: '#d97706' },
-                                { label: 'Rejected', value: myPurchaseOrders.filter(p => p.status === 'Rejected').length, color: '#dc2626' },
+                                { label: 'Total', value: entityCounts.purchaseOrders, color: '#6366f1' },
+                                { label: 'Approved', value: poCount(['Approved']), color: '#059669' },
+                                { label: 'Pending', value: poCount(['Pending', 'Draft']), color: '#d97706' },
+                                { label: 'Rejected', value: poCount(['Rejected']), color: '#dc2626' },
                             ].map((item, i) => (
                                 <div key={i} className="ud-entity-item">
                                     <div className="ud-entity-icon" style={{ background: `${item.color}12`, color: item.color }}>
@@ -442,18 +515,18 @@ const UserDashboard = ({ currentUser, showToast }) => {
                                 {myQuotations.length === 0 ? (
                                     <tr><td colSpan={5} className="ud-empty">No quotations found</td></tr>
                                 ) : (
-                                    myQuotations.slice(0, 5).map((q, i) => {
+                                    myQuotations.map((q, i) => {
                                         const clientName = q.clientRef
                                             ? `${q.clientRef.firstName ?? ''} ${q.clientRef.lastName ?? ''}`.trim()
                                             : q.manualClientDetails?.name || '—';
-                                        const qDate = q.quotationDate ? new Date(q.quotationDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+                                        const qDate = q.createdAt ? new Date(q.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
                                         const st = (q.status || 'Pending').toLowerCase();
                                         return (
                                             <motion.tr key={q._id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.04 }}>
-                                                <td><span className="ud-inv-id">{q.quotationNumber || '—'}</span></td>
+                                                <td><span className="ud-inv-id">{q.quotationId || '—'}</span></td>
                                                 <td><span className="ud-inv-client">{clientName}</span></td>
                                                 <td><span className="ud-inv-date">{qDate}</span></td>
-                                                <td><span className="ud-inv-amount">{fmt(q.finalTotal, q.currencyType)}</span></td>
+                                                <td><span className="ud-inv-amount">{fmt(q.finalTotal, q.currency)}</span></td>
                                                 <td>
                                                     <span className={`ud-inv-status ud-status-${st}`} style={{
                                                         background: st === 'approved' ? '#ecfdf5' : st === 'rejected' ? '#fef2f2' : '#fffbeb',
@@ -490,18 +563,18 @@ const UserDashboard = ({ currentUser, showToast }) => {
                                 {myPurchaseOrders.length === 0 ? (
                                     <tr><td colSpan={5} className="ud-empty">No purchase orders found</td></tr>
                                 ) : (
-                                    myPurchaseOrders.slice(0, 5).map((po, i) => {
+                                    myPurchaseOrders.map((po, i) => {
                                         const supplierName = po.supplierRef
                                             ? `${po.supplierRef.firstName ?? ''} ${po.supplierRef.lastName ?? ''}`.trim() || po.supplierRef.name || '—'
                                             : '—';
-                                        const poDate = po.orderDate ? new Date(po.orderDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+                                        const poDate = po.poDate ? new Date(po.poDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
                                         const st = (po.status || 'Pending').toLowerCase();
                                         return (
                                             <motion.tr key={po._id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.04 }}>
-                                                <td><span className="ud-inv-id">{po.orderNumber || '—'}</span></td>
+                                                <td><span className="ud-inv-id">{po.poNumber || '—'}</span></td>
                                                 <td><span className="ud-inv-client">{supplierName}</span></td>
                                                 <td><span className="ud-inv-date">{poDate}</span></td>
-                                                <td><span className="ud-inv-amount">{fmt(po.finalTotal, po.currencyType)}</span></td>
+                                                <td><span className="ud-inv-amount">{fmt(po.finalTotal, po.currency)}</span></td>
                                                 <td>
                                                     <span className={`ud-inv-status ud-status-${st}`} style={{
                                                         background: st === 'approved' ? '#ecfdf5' : st === 'rejected' ? '#fef2f2' : '#fffbeb',
@@ -560,7 +633,7 @@ const UserDashboard = ({ currentUser, showToast }) => {
                                             <td><span className="ud-inv-id">{inv.invoiceNumber || '—'}</span></td>
                                             <td><span className="ud-inv-client">{getClientName(inv)}</span></td>
                                             <td><span className="ud-inv-date">{invDate}</span></td>
-                                            <td><span className="ud-inv-amount">{fmt(inv.finalTotal, inv.currencyType)}</span></td>
+                                            <td><span className="ud-inv-amount">{fmt(inv.finalTotal, inv.currency)}</span></td>
                                             <td>
                                                 <span className="ud-inv-status" style={{ background: sc.bg, color: sc.color, border: `1px solid ${sc.border}` }}>{sc.label}</span>
                                             </td>

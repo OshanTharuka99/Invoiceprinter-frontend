@@ -98,7 +98,7 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
             const [invRes, cRes, pRes, bRes, prRes, dnRes, qRes] = await Promise.all([
                 api.get('/invoices'),
                 api.get('/clients'),
-                api.get('/products'),
+                api.get('/products?includeSerials=true'),
                 api.get('/business'),
                 api.get('/projects'),
                 api.get('/delivery-notes'),

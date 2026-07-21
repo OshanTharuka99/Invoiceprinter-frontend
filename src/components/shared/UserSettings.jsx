@@ -87,6 +87,8 @@ const UserSettings = ({ currentUser, showToast, onUserUpdate }) => {
 
     return (
         <div className="us-root">
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
+            </div>
             {/* PROFILE CARD */}
             <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="us-card">
                 <div className="us-card-header">

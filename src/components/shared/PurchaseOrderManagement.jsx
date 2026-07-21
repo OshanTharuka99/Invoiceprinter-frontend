@@ -77,7 +77,7 @@ const PurchaseOrderManagement = ({ currentUser, showToast }) => {
             const [poRes, sRes, pRes, bRes] = await Promise.all([
                 api.get('/purchase-orders'),
                 api.get('/suppliers'),
-                api.get('/products'),
+                api.get('/products?includeSerials=true'),
                 api.get('/business')
             ]);
             setPurchaseOrders(poRes.data.data);

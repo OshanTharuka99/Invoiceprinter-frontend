@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
-import { LogOut, Printer, Bell, LayoutDashboard, FileText, ClipboardList, Package, Briefcase, Users, Shield, Settings, LogIn, Truck, Undo2, RotateCcw, Menu, X, Wrench } from 'lucide-react';
+import { LogOut, Printer, Bell, LayoutDashboard, FileText, ClipboardList, ScrollText, Package, Briefcase, Users, Shield, Settings, LogIn, Truck, Undo2, RotateCcw, Menu, X, Wrench, LifeBuoy } from 'lucide-react';
 import api from '../api';
 import UserDashboard from '../components/user/UserDashboard';
 import ProductManagement from '../components/admin/ProductManagement';
@@ -16,13 +16,16 @@ import DeliveryNoteManagement from '../components/shared/DeliveryNoteManagement'
 import SalesReturnManagement from '../components/shared/SalesReturnManagement';
 import GoodsReturnManagement from '../components/shared/GoodsReturnManagement';
 import RmaManagement from '../components/shared/RmaManagement';
+import PromainvoiceManagemnt from '../components/shared/PromainvoiceManagemnt';
 import UserSettings from '../components/shared/UserSettings';
+import SupportCenter from '../components/manuals/SupportCenter';
 
 import './UserPortal.css';
 
 const NAV_ITEMS = [
     { key: 'Dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { key: 'Invoices', label: 'Invoices', icon: FileText },
+    { key: 'Proma Invoices', label: 'Proma Invoice', icon: ScrollText },
     { key: 'Quotations', label: 'Quotations', icon: ClipboardList },
     { key: 'Purchase Orders', label: 'Purchase Orders', icon: Package, adminOnly: true },
     { key: 'Delivery Notes', label: 'Delivery Notes', icon: Truck, adminOnly: true },
@@ -33,6 +36,7 @@ const NAV_ITEMS = [
     { key: 'Projects', label: 'Projects', icon: Briefcase },
     { key: 'Clients', label: 'Clients', icon: Users },
     { key: 'Warranty', label: 'Warranty', icon: Shield },
+    { key: 'Support', label: 'Support', icon: LifeBuoy },
     { key: 'Settings', label: 'Settings', icon: Settings },
 ];
 
@@ -272,12 +276,16 @@ const UserPortal = () => {
                             <RmaManagement currentUser={user} showToast={showToast} />
                         ) : activeTab === 'Invoices' ? (
                             <InvoiceManagement currentUser={user} showToast={showToast} />
+                        ) : activeTab === 'Proma Invoices' ? (
+                            <PromainvoiceManagemnt currentUser={user} showToast={showToast} />
                         ) : activeTab === 'Clients' ? (
                             <UserClientManagement showToast={showToast} />
                         ) : activeTab === 'Projects' ? (
                             <UserProjectCatalog />
                         ) : activeTab === 'Warranty' ? (
                             <WarrantyManagement currentUser={user} showToast={showToast} />
+                        ) : activeTab === 'Support' ? (
+                            <SupportCenter currentUser={user} />
                         ) : activeTab === 'Settings' ? (
                             <UserSettings currentUser={user} showToast={showToast} onUserUpdate={updateUser} />
                         ) : (

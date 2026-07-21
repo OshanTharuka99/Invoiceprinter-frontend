@@ -1,12 +1,12 @@
 import React from 'react';
 
-const InvoiceTemplate = React.forwardRef(({ invoice, business }, ref) => {
-    if (!invoice || !business) return null;
+const PromainvoiceTemplate = React.forwardRef(({ promaInvoice, business }, ref) => {
+    if (!promaInvoice || !business) return null;
 
     const b = business;
-    const inv = invoice;
+    const doc = promaInvoice;
 
-    const currencySymbol = inv.currency === 'primary'
+    const currencySymbol = doc.currency === 'primary'
         ? (b.primaryCurrency?.symbol || 'Rs.')
         : (b.secondaryCurrency?.symbol || '$');
 
@@ -18,11 +18,9 @@ const InvoiceTemplate = React.forwardRef(({ invoice, business }, ref) => {
     const money = (n) =>
         parseFloat(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-    const discountTotal = inv.discountTotal || (inv.appliedDiscounts || []).reduce((sum, d) => sum + (d.amount || 0), 0);
-
     const getClient = () => {
-        if (inv.clientRef) {
-            const c = inv.clientRef;
+        if (doc.clientRef) {
+            const c = doc.clientRef;
             const isOrg = c.clientType === 'Organization';
             return {
                 org: isOrg ? c.firstName : '',
@@ -30,7 +28,7 @@ const InvoiceTemplate = React.forwardRef(({ invoice, business }, ref) => {
                 address: c.address || '', phone: c.telephoneNumber || '', email: c.emailAddress || ''
             };
         }
-        const m = inv.manualClientDetails || {};
+        const m = doc.manualClientDetails || {};
         const isOrg = m.title === 'Organization';
         return {
             org: m.organization || (isOrg ? m.name : ''),
@@ -41,17 +39,20 @@ const InvoiceTemplate = React.forwardRef(({ invoice, business }, ref) => {
 
     const client = getClient();
 
-    const showTerms = b.invoiceTerms && b.invoiceTerms.trim() !== '';
-    const showNotes = b.invoiceNotes && b.invoiceNotes.trim() !== '';
+    const termsText = (b.promaInvoiceTerms && b.promaInvoiceTerms.trim()) || (b.invoiceTerms && b.invoiceTerms.trim()) || '';
+    const notesText = (b.promaInvoiceNotes && b.promaInvoiceNotes.trim()) || (b.invoiceNotes && b.invoiceNotes.trim()) || '';
+    const showTerms = termsText !== '';
+    const showNotes = notesText !== '';
     const showVatNo = b.isVatRegistered && b.vatNumber && b.vatNumber.trim() !== '';
     const showBank = !!(b.bankAccountNumber || b.bankName);
-    const hasDeliveryAddress = inv.deliveryAddress && inv.deliveryAddress.trim() !== '';
+    const hasDeliveryAddress = doc.deliveryAddress && doc.deliveryAddress.trim() !== '';
 
-    const FONT = "'Arial', 'Helvetica Neue', sans-serif";
-    const DARK = '#0f172a';
+    const DARK = b.promaInvoiceTitleColor || b.invoiceTitleColor || '#0f172a';
+    const DIVIDER = b.promaInvoiceDividerColor || b.invoiceDividerColor || DARK;
     const MID = '#475569';
     const LIGHT = '#94a3b8';
     const BORDER = '#e2e8f0';
+    const FONT = "'Arial', 'Helvetica Neue', sans-serif";
 
     const sectionTitle = {
         fontSize: '10px',
@@ -72,7 +73,7 @@ const InvoiceTemplate = React.forwardRef(({ invoice, business }, ref) => {
     };
 
     return (
-        <div ref={ref} data-invoicetemplate style={{
+        <div ref={ref} data-promainvoicetemplate style={{
             position: 'relative',
             background: '#fff',
             color: DARK,
@@ -87,8 +88,7 @@ const InvoiceTemplate = React.forwardRef(({ invoice, business }, ref) => {
             flexDirection: 'column',
             padding: '12mm 14mm 14mm 14mm'
         }}>
-            {/* WATERMARK */}
-            {inv.status === 'Cancelled' && (
+            {doc.status === 'Cancelled' && (
                 <div style={{
                     position: 'absolute',
                     top: '40%',
@@ -107,7 +107,6 @@ const InvoiceTemplate = React.forwardRef(({ invoice, business }, ref) => {
                 </div>
             )}
 
-            {/* HEADER */}
             <div style={{ position: 'relative', zIndex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div style={{ maxWidth: '52%' }}>
                     {b.quotationLogo
@@ -125,19 +124,20 @@ const InvoiceTemplate = React.forwardRef(({ invoice, business }, ref) => {
                 </div>
 
                 <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontFamily: FONT, fontSize: '28px', fontWeight: '900', color: DARK, letterSpacing: '2px', textTransform: 'uppercase', marginBottom: '12px' }}>
-                        INVOICE
+                    <div style={{ fontFamily: FONT, fontSize: '26px', fontWeight: '900', color: DARK, letterSpacing: '2px', textTransform: 'uppercase', marginBottom: '12px' }}>
+                        PROMA INVOICE
                     </div>
                     <table style={{ marginLeft: 'auto', borderCollapse: 'collapse' }}>
                         <tbody>
                             {[
-                                { label: 'Invoice No', value: inv.invoiceNumber, mono: true, large: true },
-                                { label: 'Date', value: fmt(inv.invoiceDate || inv.createdAt || new Date()) },
-                                { label: 'Payment', value: paymentLabels[inv.paymentMethod] || inv.paymentMethod },
-                                inv.paymentMethod === 'credit' && inv.creditPeriod?.duration > 0
-                                    ? { label: 'Credit Terms', value: `${inv.creditPeriod.duration} ${inv.creditPeriod.unit}` }
+                                { label: 'Document No', value: doc.promaInvoiceNumber, mono: true, large: true },
+                                { label: 'Date', value: fmt(doc.invoiceDate || doc.createdAt || new Date()) },
+                                { label: 'Payment', value: paymentLabels[doc.paymentMethod] || doc.paymentMethod },
+                                doc.paymentMethod === 'credit' && doc.creditPeriod?.duration > 0
+                                    ? { label: 'Credit Terms', value: `${doc.creditPeriod.duration} ${doc.creditPeriod.unit}` }
                                     : null,
-                                { label: 'Status', value: inv.status || 'Unpaid' }
+                                doc.customerPO ? { label: 'Customer PO', value: doc.customerPO } : null,
+                                { label: 'Status', value: doc.status || 'Unpaid' }
                             ].filter(Boolean).map(({ label, value, mono, large }) => (
                                 <tr key={label}>
                                     <td style={{ fontFamily: FONT, padding: '3px 10px 3px 0', color: LIGHT, fontWeight: '600', fontSize: '11px', textAlign: 'right', whiteSpace: 'nowrap' }}>
@@ -159,10 +159,8 @@ const InvoiceTemplate = React.forwardRef(({ invoice, business }, ref) => {
                 </div>
             </div>
 
-            {/* DIVIDER */}
-            <div style={{ height: '4px', background: DARK, margin: '14px 0 16px' }} />
+            <div style={{ height: '4px', background: DIVIDER, margin: '14px 0 16px' }} />
 
-            {/* BILL TO & DELIVERY ADDRESS */}
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '18px' }}>
                 <div style={{ flex: 1 }}>
                     <div style={{ fontFamily: FONT, fontSize: '10px', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.12em', color: LIGHT, marginBottom: '7px' }}>
@@ -183,7 +181,7 @@ const InvoiceTemplate = React.forwardRef(({ invoice, business }, ref) => {
                             Delivery Address
                         </div>
                         <div style={{ fontFamily: FONT, lineHeight: '1.8', color: MID, fontSize: '12px' }}>
-                            {inv.deliveryAddress.split('\n').map((line, i) => (
+                            {doc.deliveryAddress.split('\n').map((line, i) => (
                                 <div key={i}>{line}</div>
                             ))}
                         </div>
@@ -191,20 +189,18 @@ const InvoiceTemplate = React.forwardRef(({ invoice, business }, ref) => {
                 )}
             </div>
 
-            {/* ITEMS TABLE */}
             <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '20px' }}>
                 <thead>
                     <tr style={{ background: DARK, color: '#fff' }}>
                         <th style={{ fontFamily: FONT, padding: '9px 10px', textAlign: 'left', fontWeight: '700', fontSize: '11.5px', width: '5%' }}>No</th>
-                        <th style={{ fontFamily: FONT, padding: '9px 10px', textAlign: 'left', fontWeight: '700', fontSize: '11.5px', width: '40%' }}>Description</th>
-                        <th style={{ fontFamily: FONT, padding: '9px 10px', textAlign: 'center', fontWeight: '700', fontSize: '11.5px', width: '8%' }}>Qty</th>
+                        <th style={{ fontFamily: FONT, padding: '9px 10px', textAlign: 'left', fontWeight: '700', fontSize: '11.5px', width: '50%' }}>Description</th>
+                        <th style={{ fontFamily: FONT, padding: '9px 10px', textAlign: 'center', fontWeight: '700', fontSize: '11.5px', width: '10%' }}>Qty</th>
                         <th style={{ fontFamily: FONT, padding: '9px 10px', textAlign: 'right', fontWeight: '700', fontSize: '11.5px', width: '17%' }}>Unit Price ({currencySymbol})</th>
-                        <th style={{ fontFamily: FONT, padding: '9px 10px', textAlign: 'right', fontWeight: '700', fontSize: '11.5px', width: '15%' }}>Amount ({currencySymbol})</th>
-                        <th style={{ fontFamily: FONT, padding: '9px 10px', textAlign: 'left', fontWeight: '700', fontSize: '11.5px', width: '15%' }}>Serial No(s)</th>
+                        <th style={{ fontFamily: FONT, padding: '9px 10px', textAlign: 'right', fontWeight: '700', fontSize: '11.5px', width: '18%' }}>Amount ({currencySymbol})</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {inv.items.map((item, i) => (
+                    {doc.items.map((item, i) => (
                         <tr key={i} style={{ background: i % 2 === 0 ? '#f8fafc' : '#fff', borderBottom: `1px solid ${BORDER}` }}>
                             <td style={{ fontFamily: FONT, padding: '8px 10px', color: LIGHT, fontSize: '12px' }}>{i + 1}</td>
                             <td style={{ fontFamily: FONT, padding: '8px 10px', color: DARK, fontSize: '12px', fontWeight: '600' }}>
@@ -213,23 +209,19 @@ const InvoiceTemplate = React.forwardRef(({ invoice, business }, ref) => {
                             <td style={{ fontFamily: FONT, padding: '8px 10px', color: MID, fontSize: '12px', textAlign: 'center' }}>{item.quantity}</td>
                             <td style={{ fontFamily: FONT, padding: '8px 10px', color: MID, fontSize: '12px', textAlign: 'right' }}>{money(item.unitPrice)}</td>
                             <td style={{ fontFamily: FONT, padding: '8px 10px', color: DARK, fontSize: '12px', fontWeight: '700', textAlign: 'right' }}>{money(item.lineTotal)}</td>
-                            <td style={{ fontFamily: FONT, padding: '8px 10px', color: MID, fontSize: '10px' }}>
-                                {item.serialNumbers?.length > 0 ? item.serialNumbers.join(', ') : '—'}
-                            </td>
                         </tr>
                     ))}
                 </tbody>
             </table>
 
-            {/* TOTALS */}
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '24px' }}>
                 <table style={{ width: '360px', borderCollapse: 'collapse', border: `1px solid ${BORDER}` }}>
                     <tbody>
                         <tr>
                             <td style={{ fontFamily: FONT, color: MID, fontWeight: '600', fontSize: '12.5px', padding: '8px 14px', background: '#f8fafc', borderBottom: `1px solid ${BORDER}` }}>Subtotal</td>
-                            <td style={{ fontFamily: FONT, color: DARK, fontWeight: '700', fontSize: '12.5px', padding: '8px 14px', background: '#f8fafc', borderBottom: `1px solid ${BORDER}`, textAlign: 'right' }}>{currencySymbol} {money(inv.subTotal)}</td>
+                            <td style={{ fontFamily: FONT, color: DARK, fontWeight: '700', fontSize: '12.5px', padding: '8px 14px', background: '#f8fafc', borderBottom: `1px solid ${BORDER}`, textAlign: 'right' }}>{currencySymbol} {money(doc.subTotal)}</td>
                         </tr>
-                        {inv.appliedDiscounts?.map((disc, i) => (
+                        {doc.appliedDiscounts?.map((disc, i) => (
                             <tr key={`d-${i}`}>
                                 <td style={{ fontFamily: FONT, color: DARK, fontWeight: '600', fontSize: '12.5px', padding: '8px 14px', background: '#f8fafc', borderBottom: `1px solid ${BORDER}` }}>
                                     Discount ({disc.name} {disc.type === 'percentage' ? disc.value + '%' : ''})
@@ -237,7 +229,7 @@ const InvoiceTemplate = React.forwardRef(({ invoice, business }, ref) => {
                                 <td style={{ fontFamily: FONT, color: DARK, fontWeight: '700', fontSize: '12.5px', padding: '8px 14px', background: '#f8fafc', borderBottom: `1px solid ${BORDER}`, textAlign: 'right' }}>− {currencySymbol} {money(disc.amount)}</td>
                             </tr>
                         ))}
-                        {inv.hasTax && inv.appliedTaxes?.length > 0 && inv.appliedTaxes.map((tax, i) => (
+                        {doc.hasTax && doc.appliedTaxes?.length > 0 && doc.appliedTaxes.map((tax, i) => (
                             <tr key={`t-${i}`}>
                                 <td style={{ fontFamily: FONT, color: DARK, fontWeight: '600', fontSize: '12.5px', padding: '8px 14px', background: '#f8fafc', borderBottom: `1px solid ${BORDER}` }}>
                                     {tax.name} {tax.type === 'percentage' ? `(${tax.value}%)` : ''}
@@ -247,36 +239,32 @@ const InvoiceTemplate = React.forwardRef(({ invoice, business }, ref) => {
                         ))}
                         <tr>
                             <td style={{ fontFamily: FONT, color: '#fff', fontWeight: '900', fontSize: '13.5px', padding: '12px 14px', background: DARK }}>Total Amount</td>
-                            <td style={{ fontFamily: FONT, color: '#fff', fontWeight: '900', fontSize: '14.5px', padding: '12px 14px', background: DARK, textAlign: 'right' }}>{currencySymbol} {money(inv.finalTotal)}</td>
+                            <td style={{ fontFamily: FONT, color: '#fff', fontWeight: '900', fontSize: '14.5px', padding: '12px 14px', background: DARK, textAlign: 'right' }}>{currencySymbol} {money(doc.finalTotal)}</td>
                         </tr>
                     </tbody>
                 </table>
             </div>
 
-            {/* DIVIDER */}
-            <div style={{ height: '4px', background: DARK, margin: '14px 0 16px' }} />
+            <div style={{ height: '4px', background: DIVIDER, margin: '14px 0 16px' }} />
 
-            {/* TERMS */}
             {showTerms && (
                 <div style={{ marginBottom: '14px', paddingBottom: '14px' }}>
                     <div style={{ ...sectionTitle, fontFamily: FONT }}>Terms & Conditions</div>
                     <div style={{ fontFamily: FONT, fontSize: '11.5px', color: MID, lineHeight: '1.75', whiteSpace: 'pre-wrap' }}>
-                        {b.invoiceTerms}
+                        {termsText}
                     </div>
                 </div>
             )}
 
-            {/* NOTES */}
             {showNotes && (
                 <div style={{ marginBottom: '14px', paddingBottom: '14px' }}>
                     <div style={{ ...sectionTitle, fontFamily: FONT }}>Notes</div>
                     <div style={{ fontFamily: FONT, fontSize: '11.5px', color: MID, lineHeight: '1.75', whiteSpace: 'pre-wrap' }}>
-                        {b.invoiceNotes}
+                        {notesText}
                     </div>
                 </div>
             )}
 
-            {/* BANK DETAILS */}
             {showBank && (
                 <div style={{ marginBottom: '18px' }}>
                     <div style={{ ...sectionTitle, fontFamily: FONT }}>Bank Details for Transfer</div>
@@ -297,7 +285,6 @@ const InvoiceTemplate = React.forwardRef(({ invoice, business }, ref) => {
                 </div>
             )}
 
-            {/* AUTHORIZED SIGNATURES */}
             <div style={{ marginTop: '40px', display: 'flex', justifyContent: 'space-between', paddingTop: '20px' }}>
                 <div style={{ textAlign: 'center', width: '200px' }}>
                     <div style={{ borderBottom: `1px solid ${BORDER}`, marginBottom: '8px', height: '50px' }}></div>
@@ -309,19 +296,17 @@ const InvoiceTemplate = React.forwardRef(({ invoice, business }, ref) => {
                 </div>
             </div>
 
-            {/* FOOTER */}
-            <div className="invoice-print-footer" style={{ borderTop: `1px solid ${BORDER}`, paddingTop: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '40px', background: '#fff' }}>
+            <div className="pi-print-footer" style={{ borderTop: `1px solid ${BORDER}`, paddingTop: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '40px', background: '#fff' }}>
                 <div style={{ fontFamily: FONT, fontSize: '10px', color: LIGHT, fontStyle: 'italic' }}>
                     <span className="page-number-target"></span>
                 </div>
                 <div style={{ fontFamily: FONT, fontSize: '10px', color: LIGHT, textAlign: 'right' }}>
-                    {b.businessName} &nbsp;|&nbsp; {fmt(inv.createdAt || new Date())}
+                    {b.businessName} &nbsp;|&nbsp; {fmt(doc.createdAt || new Date())}
                 </div>
             </div>
 
-            {/* PRINT CSS */}
             <style>{`
-                .invoice-print-footer { marginTop: auto !important; }
+                .pi-print-footer { marginTop: auto !important; }
 
                 @media print {
                     @page {
@@ -335,7 +320,7 @@ const InvoiceTemplate = React.forwardRef(({ invoice, business }, ref) => {
                         print-color-adjust: exact;
                         color-adjust: exact;
                     }
-                    div[data-invoicetemplate] {
+                    div[data-promainvoicetemplate] {
                         padding: 0 !important;
                         width: 100% !important;
                         margin: 0 !important;
@@ -344,7 +329,7 @@ const InvoiceTemplate = React.forwardRef(({ invoice, business }, ref) => {
                     * { box-shadow: none !important; }
                     tr { page-break-inside: avoid; }
 
-                    .invoice-print-footer {
+                    .pi-print-footer {
                         position: fixed !important;
                         bottom: 0 !important;
                         left: 0 !important;
@@ -364,6 +349,6 @@ const InvoiceTemplate = React.forwardRef(({ invoice, business }, ref) => {
     );
 });
 
-InvoiceTemplate.displayName = 'InvoiceTemplate';
+PromainvoiceTemplate.displayName = 'PromainvoiceTemplate';
 
-export default InvoiceTemplate;
+export default PromainvoiceTemplate;

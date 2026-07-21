@@ -69,7 +69,7 @@ const QuotationManagement = ({ currentUser, showToast }) => {
             const [qRes, cRes, pRes, bRes, prRes] = await Promise.all([
                 api.get('/quotations'),
                 api.get('/clients'),
-                api.get('/products'),
+                api.get('/products?includeSerials=true'),
                 api.get('/business'),
                 api.get('/projects')
             ]);

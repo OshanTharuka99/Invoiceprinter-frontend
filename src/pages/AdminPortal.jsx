@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import {
     Users, ShieldCheck, LayoutDashboard, FileText, Settings,
-    TrendingUp, LogOut, Bell, Package, Briefcase, Truck, ShieldAlert, ScrollText, Printer, Shield, X,     Undo2, RotateCcw, Menu, Wrench
+    TrendingUp, LogOut, Bell, Package, Briefcase, Truck, ShieldAlert, ScrollText, Printer, Shield, X,     Undo2, RotateCcw, Menu, Wrench, LifeBuoy
 } from 'lucide-react';
 import api from '../api';
 import { toast, Toaster } from 'react-hot-toast';
@@ -25,7 +25,9 @@ import DeliveryNoteManagement from '../components/shared/DeliveryNoteManagement'
 import SalesReturnManagement from '../components/shared/SalesReturnManagement';
 import GoodsReturnManagement from '../components/shared/GoodsReturnManagement';
 import RmaManagement from '../components/shared/RmaManagement';
+import PromainvoiceManagemnt from '../components/shared/PromainvoiceManagemnt';
 import UserSettings from '../components/shared/UserSettings';
+import SupportCenter from '../components/manuals/SupportCenter';
 
 
 
@@ -86,12 +88,14 @@ const AdminPortal = () => {
         { id: 'users', label: 'User Management', icon: ShieldCheck },
         { id: 'business', label: 'General Settings', icon: Settings },
         { id: 'invoices', label: 'Invoice Engine', icon: FileText },
+        { id: 'proma_invoices', label: 'Proma Invoice', icon: ScrollText },
         { id: 'warranty', label: 'Warranty Management', icon: ShieldCheck },
         { id: 'purchase_orders', label: 'Purchase Orders', icon: ScrollText },
         { id: 'delivery_notes', label: 'Delivery Notes', icon: Truck },
         { id: 'sales_returns', label: 'Sales Return Notes', icon: Undo2 },
         { id: 'goods_returns', label: 'Goods Return Notes', icon: RotateCcw },
         { id: 'rma', label: 'RMA Process', icon: Wrench },
+        { id: 'support', label: 'Support', icon: LifeBuoy },
     ];
 
 
@@ -169,12 +173,14 @@ const AdminPortal = () => {
             case 'suppliers': return <SupplierManagement currentUser={user} showToast={showToast} />;
             case 'quotations': return <QuotationManagement currentUser={user} showToast={showToast} />;
             case 'invoices': return <InvoiceManagement currentUser={user} showToast={showToast} />;
+            case 'proma_invoices': return <PromainvoiceManagemnt currentUser={user} showToast={showToast} />;
             case 'warranty': return <WarrantyManagement currentUser={user} showToast={showToast} />;
             case 'purchase_orders': return <PurchaseOrderManagement currentUser={user} showToast={showToast} />;
             case 'delivery_notes': return <DeliveryNoteManagement currentUser={user} showToast={showToast} />;
             case 'sales_returns': return <SalesReturnManagement currentUser={user} showToast={showToast} />;
             case 'goods_returns': return <GoodsReturnManagement currentUser={user} showToast={showToast} />;
             case 'rma': return <RmaManagement currentUser={user} showToast={showToast} />;
+            case 'support': return <SupportCenter currentUser={user} />;
             case 'analytics': return <AdminDashboard currentUser={user} />;
             default: return <div className="admin-empty-module">Module under development...</div>;
         }

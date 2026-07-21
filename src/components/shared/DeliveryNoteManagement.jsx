@@ -58,7 +58,7 @@ const DeliveryNoteManagement = ({ currentUser, showToast }) => {
             const [dnRes, cRes, pRes, bRes, prRes] = await Promise.all([
                 api.get('/delivery-notes'),
                 api.get('/clients'),
-                api.get('/products'),
+                api.get('/products?includeSerials=true'),
                 api.get('/business'),
                 api.get('/projects')
             ]);

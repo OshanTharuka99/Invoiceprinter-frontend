@@ -8,6 +8,7 @@ import api from '../../api';
 import useSubmitGuard from '../../utils/useSubmitGuard';
 import { openA4PrintWindow, buildPrintFileName } from '../../utils/printDocument';
 import '../../styles/modern-table.css';
+import '../../styles/print-preview.css';
 import RmaTemplate from './RmaTemplate';
 
 const inputStyle = {
@@ -52,13 +53,14 @@ const RmaManagement = ({ currentUser, showToast }) => {
     const [faultComment, setFaultComment] = useState('');
 
     const [viewRma, setViewRma] = useState(null);
+    const [statusOpen, setStatusOpen] = useState(false);
     const [statusNote, setStatusNote] = useState('');
     const [statusValue, setStatusValue] = useState('In Progress');
     const [diagnosis, setDiagnosis] = useState('');
 
     const [replaceOpen, setReplaceOpen] = useState(false);
     const [replaceForm, setReplaceForm] = useState({
-        source: 'stock', newSerialNumber: '', newWarrantyPeriod: '',
+        source: 'stock', newSerialNumber: '', newWarrantyPeriod: '', warrantyNa: false,
     });
 
     const [signOpen, setSignOpen] = useState(false);
@@ -69,12 +71,13 @@ const RmaManagement = ({ currentUser, showToast }) => {
 
     const [removeFaulty, setRemoveFaulty] = useState(null);
     const [removeNote, setRemoveNote] = useState('');
+    const [detailLoading, setDetailLoading] = useState(false);
 
-    const fetchAll = async () => {
-        setLoading(true);
+    const fetchAll = async ({ quiet = false } = {}) => {
+        if (!quiet) setLoading(true);
         try {
             const reqs = [
-                api.get('/rma'),
+                api.get('/rma?light=true'),
                 api.get('/rma/users'),
                 api.get('/business'),
             ];
@@ -87,7 +90,7 @@ const RmaManagement = ({ currentUser, showToast }) => {
         } catch (err) {
             showToast?.(err.response?.data?.message || 'Failed to load RMA data', 'error');
         } finally {
-            setLoading(false);
+            if (!quiet) setLoading(false);
         }
     };
 
@@ -96,14 +99,19 @@ const RmaManagement = ({ currentUser, showToast }) => {
     const filteredJobs = useMemo(() => {
         const term = searchTerm.toLowerCase();
         return jobs.filter((j) => {
-            const isCancelled = j.status === 'Cancelled' || j.status === 'Closed';
-            const matchesTab = activeTab === 'Active' ? !isCancelled : isCancelled;
+            // Closed tab = jobs that have ended (Resolved / Closed / Cancelled)
+            const isEnded = j.status === 'Cancelled' || j.status === 'Closed' || j.status === 'Resolved';
+            const matchesTab = activeTab === 'Active' ? !isEnded : isEnded;
             if (!matchesTab) return false;
+            const customerName = j.customerDetails?.name
+                || (j.clientRef ? `${j.clientRef.firstName || ''} ${j.clientRef.lastName || ''}`.trim() : '')
+                || '';
+            const productName = j.productName || j.productRef?.name || '';
             return (
                 (j.jobNumber || '').toLowerCase().includes(term)
                 || (j.serialNumber || '').toLowerCase().includes(term)
-                || (j.customerDetails?.name || '').toLowerCase().includes(term)
-                || (j.productName || '').toLowerCase().includes(term)
+                || customerName.toLowerCase().includes(term)
+                || productName.toLowerCase().includes(term)
             );
         });
     }, [jobs, searchTerm, activeTab]);
@@ -224,34 +232,23 @@ const RmaManagement = ({ currentUser, showToast }) => {
     const submitStatus = async () => {
         if (!viewRma) return;
         if (!statusNote.trim()) return showToast?.('Status comment is required', 'error');
+        if (['Resolved', 'Closed'].includes(statusValue) && !(diagnosis.trim() || viewRma.diagnosis || viewRma.faultComment)) {
+            return showToast?.('Fault diagnosis is required to resolve or close this RMA', 'error');
+        }
         await runGuarded(async () => {
             try {
                 const res = await api.post(`/rma/${viewRma._id}/status`, {
                     status: statusValue,
                     note: statusNote.trim(),
-                    diagnosis: diagnosis || undefined,
+                    diagnosis: diagnosis.trim() || undefined,
                 });
                 setViewRma(res.data.data);
                 setStatusNote('');
+                setStatusOpen(false);
                 showToast?.('Status updated', 'success');
-                fetchAll();
+                fetchAll({ quiet: true });
             } catch (err) {
                 showToast?.(err.response?.data?.message || 'Status update failed', 'error');
-            }
-        });
-    };
-
-    const submitDiagnosis = async () => {
-        if (!viewRma) return;
-        if (!diagnosis.trim()) return showToast?.('Diagnosis is required', 'error');
-        await runGuarded(async () => {
-            try {
-                const res = await api.put(`/rma/${viewRma._id}/diagnosis`, { diagnosis: diagnosis.trim() });
-                setViewRma(res.data.data);
-                showToast?.('Diagnosis saved', 'success');
-                fetchAll();
-            } catch (err) {
-                showToast?.(err.response?.data?.message || 'Failed to save diagnosis', 'error');
             }
         });
     };
@@ -261,11 +258,16 @@ const RmaManagement = ({ currentUser, showToast }) => {
         if (!replaceForm.newSerialNumber.trim()) return showToast?.('New serial is required', 'error');
         await runGuarded(async () => {
             try {
-                const res = await api.put(`/rma/${viewRma._id}/replace`, replaceForm);
+                const payload = {
+                    source: replaceForm.source,
+                    newSerialNumber: replaceForm.newSerialNumber.trim(),
+                    newWarrantyPeriod: replaceForm.warrantyNa ? 'N/A' : replaceForm.newWarrantyPeriod.trim(),
+                };
+                const res = await api.put(`/rma/${viewRma._id}/replace`, payload);
                 setViewRma(res.data.data);
                 setReplaceOpen(false);
                 showToast?.('Device replaced', 'success');
-                fetchAll();
+                fetchAll({ quiet: true });
             } catch (err) {
                 showToast?.(err.response?.data?.message || 'Replace failed', 'error');
             }
@@ -274,16 +276,20 @@ const RmaManagement = ({ currentUser, showToast }) => {
 
     const submitSign = async () => {
         if (!viewRma) return;
-        if (!signForm.customerName.trim() || !signForm.idCardNumber.trim() || !signForm.destination.trim()) {
-            return showToast?.('Customer name, ID card and destination are required', 'error');
+        if (!signForm.customerName.trim() || !signForm.idCardNumber.trim()) {
+            return showToast?.('Customer name and ID card are required', 'error');
         }
         await runGuarded(async () => {
             try {
-                const res = await api.put(`/rma/${viewRma._id}/signature`, signForm);
+                const res = await api.put(`/rma/${viewRma._id}/signature`, {
+                    customerName: signForm.customerName.trim(),
+                    idCardNumber: signForm.idCardNumber.trim(),
+                    destination: signForm.destination.trim(),
+                });
                 setViewRma(res.data.data);
                 setSignOpen(false);
                 showToast?.('Signature details saved — ready to print', 'success');
-                fetchAll();
+                fetchAll({ quiet: true });
             } catch (err) {
                 showToast?.(err.response?.data?.message || 'Failed to save signature', 'error');
             }
@@ -300,7 +306,7 @@ const RmaManagement = ({ currentUser, showToast }) => {
                 setAssignOpen(false);
                 setExtraAssignees([]);
                 showToast?.('Users assigned & notified', 'success');
-                fetchAll();
+                fetchAll({ quiet: true });
             } catch (err) {
                 showToast?.(err.response?.data?.message || 'Assign failed', 'error');
             }
@@ -316,32 +322,89 @@ const RmaManagement = ({ currentUser, showToast }) => {
                 showToast?.('Faulty device removed as loss', 'success');
                 setRemoveFaulty(null);
                 setRemoveNote('');
-                fetchAll();
+                fetchAll({ quiet: true });
             } catch (err) {
                 showToast?.(err.response?.data?.message || 'Remove failed', 'error');
             }
         });
     };
 
-    const openReplace = async () => {
-        if (!viewRma) return;
-        setReplaceForm({ source: 'stock', newSerialNumber: '', newWarrantyPeriod: viewRma.productRef?.warrantyPeriod || '' });
+    const applyDetailState = (job) => {
+        setStatusValue(job.status === 'Open' ? 'In Progress' : (job.status || 'In Progress'));
+        setDiagnosis(job.diagnosis || '');
+        setStatusNote('');
+        setSignForm({
+            customerName: job.customerSignature?.customerName || job.customerDetails?.name || '',
+            idCardNumber: job.customerSignature?.idCardNumber || job.customerDetails?.idCardNumber || '',
+            destination: job.customerSignature?.destination || job.customerDetails?.destination || '',
+        });
+    };
+
+    const openStatus = (e) => {
+        e?.preventDefault?.();
+        e?.stopPropagation?.();
+        if (!viewRma || detailLoading) return;
+        applyDetailState(viewRma);
+        setStatusOpen(true);
+    };
+
+    const openReplace = async (e) => {
+        e?.preventDefault?.();
+        e?.stopPropagation?.();
+        if (!viewRma || detailLoading) return;
+        setReplaceForm({
+            source: 'stock',
+            newSerialNumber: '',
+            newWarrantyPeriod: viewRma.productRef?.warrantyPeriod || '',
+            warrantyNa: false,
+        });
+        setReplaceOpen(true);
         try {
             const res = await api.get(`/rma/lookup/${encodeURIComponent(viewRma.serialNumber)}`);
             setLookupData(res.data.data);
         } catch {
             /* optional */
         }
-        setReplaceOpen(true);
     };
+
+    const openDetail = async (job) => {
+        if (!job?._id) return;
+        setStatusOpen(false);
+        setReplaceOpen(false);
+        setAssignOpen(false);
+        setSignOpen(false);
+        setDetailLoading(true);
         setViewRma(job);
-        setStatusValue(job.status === 'Open' ? 'In Progress' : job.status);
-        setDiagnosis(job.diagnosis || '');
-        setSignForm({
-            customerName: job.customerSignature?.customerName || job.customerDetails?.name || '',
-            idCardNumber: job.customerSignature?.idCardNumber || job.customerDetails?.idCardNumber || '',
-            destination: job.customerSignature?.destination || job.customerDetails?.destination || '',
-        });
+        applyDetailState(job);
+
+        try {
+            let biz = businessData;
+            if (!biz) {
+                const bRes = await api.get('/business');
+                biz = bRes.data?.data?.details || null;
+                if (biz) setBusinessData(biz);
+            }
+
+            const res = await api.get(`/rma/${job._id}`);
+            const full = res.data?.data;
+            if (!full) throw new Error('RMA job not found');
+            setViewRma(full);
+            applyDetailState(full);
+        } catch (err) {
+            showToast?.(err.response?.data?.message || err.message || 'Failed to open RMA', 'error');
+            setViewRma(null);
+        } finally {
+            setDetailLoading(false);
+        }
+    };
+
+    const closeDetail = () => {
+        setViewRma(null);
+        setStatusOpen(false);
+        setReplaceOpen(false);
+        setAssignOpen(false);
+        setSignOpen(false);
+        setDetailLoading(false);
     };
 
     return (
@@ -352,7 +415,7 @@ const RmaManagement = ({ currentUser, showToast }) => {
                         <div className="pm-card-icon amber"><Wrench size={22} /></div>
                         <div>
                             <h3>RMA Process</h3>
-                            <div className="pm-card-subtitle">Serial lookup → warranty check → assign users → replace & print note</div>
+                            <div className="pm-card-subtitle">Serial lookup → assign → update status / replace → print RMA report</div>
                         </div>
                     </div>
                     <div className="pm-card-actions">
@@ -448,12 +511,16 @@ const RmaManagement = ({ currentUser, showToast }) => {
                                         <tr key={j._id}>
                                             <td style={{ fontWeight: 800, color: '#c2410c' }}>{j.jobNumber}</td>
                                             <td style={{ fontFamily: 'monospace' }}>{j.serialNumber}</td>
-                                            <td>{j.customerDetails?.name || '—'}</td>
+                                            <td>{j.customerDetails?.name || (j.clientRef ? `${j.clientRef.firstName || ''} ${j.clientRef.lastName || ''}`.trim() : '') || '—'}</td>
                                             <td>{j.productName || j.productRef?.name || '—'}</td>
                                             <td>
-                                                <span className={`modern-table-status ${j.underWarranty || j.replacement?.newWarrantyPeriod ? 'active' : 'cancelled'}`}>
+                                                <span className={`modern-table-status ${
+                                                    j.replacement?.replaced
+                                                        ? (j.replacement.newWarrantyPeriod && j.replacement.newWarrantyPeriod.toUpperCase() !== 'N/A' ? 'active' : 'cancelled')
+                                                        : (j.underWarranty ? 'active' : 'cancelled')
+                                                }`}>
                                                     {j.replacement?.replaced
-                                                        ? (j.replacement.newWarrantyPeriod ? 'New under warranty' : 'Replaced')
+                                                        ? (j.replacement.newWarrantyPeriod && j.replacement.newWarrantyPeriod.toUpperCase() !== 'N/A' ? 'New under warranty' : 'Replaced (N/A)')
                                                         : (j.underWarranty ? 'Under warranty' : 'No / Expired')}
                                                 </span>
                                             </td>
@@ -534,8 +601,8 @@ const RmaManagement = ({ currentUser, showToast }) => {
                                             <input style={inputStyle} value={customerDetails.emailAddress} onChange={(e) => setCustomerDetails({ ...customerDetails, emailAddress: e.target.value })} />
                                         </div>
                                         <div>
-                                            <label style={labelStyle}>Destination</label>
-                                            <input style={inputStyle} value={customerDetails.destination} onChange={(e) => setCustomerDetails({ ...customerDetails, destination: e.target.value })} />
+                                            <label style={labelStyle}>Destination (optional)</label>
+                                            <input style={inputStyle} value={customerDetails.destination} onChange={(e) => setCustomerDetails({ ...customerDetails, destination: e.target.value })} placeholder="Leave empty if not needed" />
                                         </div>
                                         <div>
                                             <label style={labelStyle}>Project</label>
@@ -596,36 +663,92 @@ const RmaManagement = ({ currentUser, showToast }) => {
             </AnimatePresence>
 
             {/* DETAIL / PRINT */}
-            {viewRma && businessData && (
-                <div className="app-print-overlay" style={{ zIndex: 1100 }}>
-                    <div className="app-print-shell" style={{ maxWidth: '920px' }}>
-                        <div className="app-print-toolbar" style={{ flexWrap: 'wrap' }}>
-                            <motion.button whileTap={{ scale: 0.95 }} type="button" className="app-print-btn" onClick={handlePrint}>
+            {viewRma && (
+                <div
+                    className="app-print-overlay"
+                    style={{ zIndex: 1200 }}
+                    onClick={(e) => { if (e.target === e.currentTarget) closeDetail(); }}
+                >
+                    <div className="app-print-shell" style={{ maxWidth: '920px' }} onClick={(e) => e.stopPropagation()}>
+                        <div className="app-print-toolbar" style={{ flexWrap: 'wrap', gap: '0.5rem', justifyContent: 'flex-start' }}>
+                            <motion.button whileTap={{ scale: 0.95 }} type="button" className="app-print-btn" onClick={handlePrint} disabled={detailLoading || !businessData}>
                                 <Printer size={18} /> A4 Print / PDF
                             </motion.button>
-                            <button type="button" className="pm-btn pm-btn-outline" onClick={() => setAssignOpen(true)}><UserPlus size={15} /> Assign</button>
-                            <button type="button" className="pm-btn pm-btn-outline" onClick={openReplace} disabled={!!viewRma.replacement?.replaced}><Replace size={15} /> Replace Device</button>
-                            <button type="button" className="pm-btn pm-btn-outline" onClick={() => setSignOpen(true)}><Shield size={15} /> Customer Sign</button>
-                            <motion.button whileTap={{ scale: 0.95 }} type="button" className="app-print-close" onClick={() => setViewRma(null)}><X size={20} /></motion.button>
+                            <button type="button" className="pm-btn pm-btn-primary" onClick={openStatus} disabled={detailLoading} style={{ background: '#0f172a', color: '#fff', border: 'none' }}>
+                                <MessageSquare size={15} /> Update Status
+                            </button>
+                            <button type="button" className="pm-btn pm-btn-outline" onClick={openReplace} disabled={detailLoading || !!viewRma.replacement?.replaced} style={{ background: '#fff', color: '#0f172a', border: '1.5px solid #e2e8f0' }}>
+                                <Replace size={15} /> Replace Device
+                            </button>
+                            <button type="button" className="pm-btn pm-btn-outline" onClick={(e) => { e.preventDefault(); e.stopPropagation(); if (!detailLoading) setAssignOpen(true); }} disabled={detailLoading} style={{ background: '#fff', color: '#0f172a', border: '1.5px solid #e2e8f0' }}>
+                                <UserPlus size={15} /> Assign
+                            </button>
+                            <button type="button" className="pm-btn pm-btn-outline" onClick={(e) => { e.preventDefault(); e.stopPropagation(); if (!detailLoading) setSignOpen(true); }} disabled={detailLoading} style={{ background: '#fff', color: '#0f172a', border: '1.5px solid #e2e8f0' }}>
+                                <Shield size={15} /> Customer Sign
+                            </button>
+                            <motion.button whileTap={{ scale: 0.95 }} type="button" className="app-print-close" onClick={closeDetail} style={{ marginLeft: 'auto' }}>
+                                <X size={20} />
+                            </motion.button>
                         </div>
 
-                        <div style={{ background: '#fff', borderRadius: 16, padding: '1rem', marginBottom: '1rem', boxShadow: '0 10px 30px rgba(0,0,0,0.15)' }}>
-                            <div style={{ fontWeight: 900, marginBottom: '0.75rem' }}><MessageSquare size={16} /> Status update</div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '180px 1fr auto', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                                <select style={inputStyle} value={statusValue} onChange={(e) => setStatusValue(e.target.value)}>
-                                    {STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
-                                </select>
-                                <input style={inputStyle} value={statusNote} onChange={(e) => setStatusNote(e.target.value)} placeholder="e.g. Faulty device given to supplier on 2026.07.14 / In-house check done" />
-                                <button type="button" className="pm-btn pm-btn-primary" onClick={submitStatus} disabled={isSubmitting}>Post</button>
+                        {detailLoading ? (
+                            <div style={{ background: '#fff', borderRadius: 16, padding: '3rem', textAlign: 'center', color: '#64748b', fontWeight: 700 }}>
+                                Loading RMA report...
                             </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '0.5rem' }}>
-                                <input style={inputStyle} value={diagnosis} onChange={(e) => setDiagnosis(e.target.value)} placeholder="Fault cause / diagnosis after check" />
-                                <button type="button" className="pm-btn pm-btn-outline" onClick={submitDiagnosis} disabled={isSubmitting}>Save Diagnosis</button>
+                        ) : !businessData ? (
+                            <div style={{ background: '#fff', borderRadius: 16, padding: '2rem', textAlign: 'center', color: '#b91c1c', fontWeight: 700 }}>
+                                Business settings not loaded. Close and reopen, or refresh the page.
                             </div>
-                        </div>
+                        ) : (
+                            <div className="app-print-doc" ref={printRef}>
+                                <RmaTemplate rma={viewRma} business={businessData} />
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
 
-                        <div className="app-print-doc" ref={printRef}>
-                            <RmaTemplate rma={viewRma} business={businessData} />
+            {/* UPDATE STATUS */}
+            {statusOpen && viewRma && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.6)', zIndex: 1300, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+                    <div style={{ background: '#fff', borderRadius: 16, padding: '1.5rem', width: '100%', maxWidth: 520 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                            <h3 style={{ margin: 0 }}>Update Status</h3>
+                            <button type="button" className="pm-btn pm-btn-outline" onClick={() => setStatusOpen(false)}><X size={16} /></button>
+                        </div>
+                        <p style={{ margin: '0 0 1rem', color: '#64748b', fontSize: '0.85rem' }}>
+                            Job Number: <strong style={{ color: '#0f172a' }}>{viewRma.jobNumber}</strong>
+                        </p>
+                        <label style={labelStyle}>Status</label>
+                        <select style={{ ...inputStyle, marginBottom: '0.75rem' }} value={statusValue} onChange={(e) => setStatusValue(e.target.value)}>
+                            {STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
+                        </select>
+                        <label style={labelStyle}>Comment</label>
+                        <input style={{ ...inputStyle, marginBottom: '0.75rem' }} value={statusNote} onChange={(e) => setStatusNote(e.target.value)} placeholder="e.g. In-house check done / sent to supplier" />
+                        <label style={labelStyle}>
+                            Fault diagnosis {['Resolved', 'Closed'].includes(statusValue) ? '(required to end RMA)' : '(optional)'}
+                        </label>
+                        <textarea
+                            style={{ ...inputStyle, minHeight: 80, resize: 'vertical', marginBottom: '0.85rem' }}
+                            value={diagnosis}
+                            onChange={(e) => setDiagnosis(e.target.value)}
+                            placeholder="Record the fault / cause before closing the job"
+                        />
+                        {!viewRma.replacement?.replaced && (
+                            <button
+                                type="button"
+                                className="pm-btn pm-btn-outline"
+                                style={{ width: '100%', justifyContent: 'center', marginBottom: '0.85rem' }}
+                                onClick={() => { setStatusOpen(false); openReplace(); }}
+                            >
+                                <Replace size={15} /> Replace Device
+                            </button>
+                        )}
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                            <button type="button" className="pm-btn pm-btn-outline" style={{ flex: 1, background: '#fff', color: '#0f172a', border: '1.5px solid #e2e8f0' }} onClick={() => setStatusOpen(false)}>Cancel</button>
+                            <button type="button" className="pm-btn pm-btn-primary" style={{ flex: 1, background: '#0f172a', color: '#fff', border: 'none' }} onClick={submitStatus} disabled={isSubmitting}>
+                                {isSubmitting ? 'Saving...' : 'Update Status'}
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -654,7 +777,47 @@ const RmaManagement = ({ currentUser, showToast }) => {
                             <input style={{ ...inputStyle, marginBottom: '0.75rem' }} placeholder="Or type stock serial..." value={replaceForm.newSerialNumber} onChange={(e) => setReplaceForm({ ...replaceForm, newSerialNumber: e.target.value.toUpperCase() })} />
                         )}
                         <label style={labelStyle}>New Warranty Period</label>
-                        <input style={{ ...inputStyle, marginBottom: '1rem' }} placeholder="e.g. 1 year" value={replaceForm.newWarrantyPeriod} onChange={(e) => setReplaceForm({ ...replaceForm, newWarrantyPeriod: e.target.value })} />
+                        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                            <button
+                                type="button"
+                                className="pm-btn pm-btn-outline"
+                                style={{
+                                    flex: 1,
+                                    background: replaceForm.warrantyNa ? '#0f172a' : undefined,
+                                    color: replaceForm.warrantyNa ? '#fff' : undefined,
+                                    borderColor: replaceForm.warrantyNa ? '#0f172a' : undefined,
+                                }}
+                                onClick={() => setReplaceForm({ ...replaceForm, warrantyNa: true, newWarrantyPeriod: 'N/A' })}
+                            >
+                                N/A
+                            </button>
+                            <button
+                                type="button"
+                                className="pm-btn pm-btn-outline"
+                                style={{
+                                    flex: 1,
+                                    background: !replaceForm.warrantyNa ? '#0f172a' : undefined,
+                                    color: !replaceForm.warrantyNa ? '#fff' : undefined,
+                                    borderColor: !replaceForm.warrantyNa ? '#0f172a' : undefined,
+                                }}
+                                onClick={() => setReplaceForm({
+                                    ...replaceForm,
+                                    warrantyNa: false,
+                                    newWarrantyPeriod: replaceForm.newWarrantyPeriod === 'N/A' ? (viewRma.productRef?.warrantyPeriod || '') : replaceForm.newWarrantyPeriod,
+                                })}
+                            >
+                                Set Period
+                            </button>
+                        </div>
+                        {!replaceForm.warrantyNa && (
+                            <input
+                                style={{ ...inputStyle, marginBottom: '1rem' }}
+                                placeholder="e.g. 1 year"
+                                value={replaceForm.newWarrantyPeriod}
+                                onChange={(e) => setReplaceForm({ ...replaceForm, newWarrantyPeriod: e.target.value, warrantyNa: false })}
+                            />
+                        )}
+                        {replaceForm.warrantyNa && <div style={{ marginBottom: '1rem', color: '#64748b', fontSize: '0.85rem' }}>Warranty set to N/A — no new warranty record will be created.</div>}
                         <div style={{ display: 'flex', gap: '0.5rem' }}>
                             <button type="button" className="pm-btn pm-btn-outline" style={{ flex: 1 }} onClick={() => setReplaceOpen(false)}>Cancel</button>
                             <button type="button" className="pm-btn pm-btn-primary" style={{ flex: 1 }} onClick={submitReplace} disabled={isSubmitting}>Replace</button>
@@ -672,8 +835,8 @@ const RmaManagement = ({ currentUser, showToast }) => {
                         <input style={{ ...inputStyle, marginBottom: '0.75rem' }} value={signForm.customerName} onChange={(e) => setSignForm({ ...signForm, customerName: e.target.value })} />
                         <label style={labelStyle}>ID Card Number</label>
                         <input style={{ ...inputStyle, marginBottom: '0.75rem' }} value={signForm.idCardNumber} onChange={(e) => setSignForm({ ...signForm, idCardNumber: e.target.value })} />
-                        <label style={labelStyle}>Destination</label>
-                        <input style={{ ...inputStyle, marginBottom: '1rem' }} value={signForm.destination} onChange={(e) => setSignForm({ ...signForm, destination: e.target.value })} />
+                        <label style={labelStyle}>Destination (optional)</label>
+                        <input style={{ ...inputStyle, marginBottom: '1rem' }} value={signForm.destination} onChange={(e) => setSignForm({ ...signForm, destination: e.target.value })} placeholder="Leave empty if not needed" />
                         <div style={{ display: 'flex', gap: '0.5rem' }}>
                             <button type="button" className="pm-btn pm-btn-outline" style={{ flex: 1 }} onClick={() => setSignOpen(false)}>Cancel</button>
                             <button type="button" className="pm-btn pm-btn-primary" style={{ flex: 1 }} onClick={submitSign} disabled={isSubmitting}>Save</button>
@@ -736,6 +899,7 @@ const RmaManagement = ({ currentUser, showToast }) => {
                     </div>
                 </div>
             )}
+
         </div>
     );
 };

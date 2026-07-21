@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Users, Package, Briefcase, Truck, FileText, DollarSign, BarChart3, Calendar, TrendingUp, CheckCircle2, Activity, PiggyBank } from 'lucide-react';
+import { Users, Package, Briefcase, Truck, FileText, DollarSign, BarChart3, Calendar, TrendingUp, CheckCircle2, Activity, PiggyBank, Wrench } from 'lucide-react';
 import api from '../../api';
 import '../../styles/dashboard-shared.css';
 import './AdminDashboard.css';
@@ -71,47 +71,36 @@ const AdminDashboard = ({ currentUser }) => {
     });
     const [invoiceStats, setInvoiceStats] = useState(null);
     const [recentInvoices, setRecentInvoices] = useState([]);
+    const [rmaByStatus, setRmaByStatus] = useState({
+        Open: 0, 'In Progress': 0, 'Awaiting Supplier': 0, Resolved: 0, Closed: 0, Cancelled: 0,
+    });
 
     useEffect(() => {
         const fetchData = async () => {
             setLoading(true);
             try {
-                const [entityRes, invoiceStatsRes, businessRes] = await Promise.all([
-                    Promise.all([
-                        api.get('/users'),
-                        api.get('/clients'),
-                        api.get('/products'),
-                        api.get('/projects'),
-                        api.get('/suppliers'),
-                        api.get('/quotations'),
-                        api.get('/warranties'),
-                    ]),
-                    api.get(`/invoices/stats?period=${period}`),
-                    api.get('/business'),
-                ]);
+                const res = await api.get(`/dashboard/stats?period=${period}`);
+                const data = res.data?.data;
+                if (!data) return;
 
-                const [usersRes, clientsRes, productsRes,
-                    projectsRes, suppliersRes, quotationsRes,
-                    warrantiesRes] = entityRes;
-
-                const biz = businessRes.data?.data?.details ?? businessRes.data?.business ?? null;
-                if (biz) setOrg(biz);
+                if (data.business) setOrg(data.business);
 
                 setStats({
-                    users: usersRes.data?.data?.length ?? usersRes.data?.length ?? 0,
-                    clients: clientsRes.data?.data?.length ?? clientsRes.data?.length ?? 0,
-                    products: productsRes.data?.data?.length ?? productsRes.data?.length ?? 0,
-                    projects: projectsRes.data?.data?.length ?? projectsRes.data?.length ?? 0,
-                    suppliers: suppliersRes.data?.data?.length ?? suppliersRes.data?.length ?? 0,
-                    quotations: quotationsRes.data?.data?.length ?? quotationsRes.data?.length ?? 0,
-                    warranties: warrantiesRes.data?.stats ?? { total: 0, active: 0, expired: 0 },
+                    users: data.counts?.users ?? 0,
+                    clients: data.counts?.clients ?? 0,
+                    products: data.counts?.products ?? 0,
+                    projects: data.counts?.projects ?? 0,
+                    suppliers: data.counts?.suppliers ?? 0,
+                    quotations: data.counts?.quotations ?? 0,
+                    warranties: data.counts?.warranties ?? { total: 0, active: 0, expired: 0 },
                 });
 
-                const data = invoiceStatsRes.data?.data;
-                if (data) {
-                    setInvoiceStats(data);
-                    setRecentInvoices(data.recentInvoices?.slice(0, 6) ?? []);
+                if (data.invoices) {
+                    setInvoiceStats(data.invoices);
+                    setRecentInvoices(data.invoices.recentInvoices?.slice(0, 6) ?? []);
                 }
+
+                if (data.rmaByStatus) setRmaByStatus(data.rmaByStatus);
             } catch (err) {
                 console.error('Dashboard fetch error:', err);
             } finally {
@@ -178,6 +167,31 @@ const AdminDashboard = ({ currentUser }) => {
     const paidRate = invoiceStats?.totalInvoices > 0
         ? Math.round((statusCount('Paid') / invoiceStats.totalInvoices) * 100)
         : 0;
+
+    const RMA_SEGMENTS = [
+        { key: 'Open', label: 'Open', color: '#3b82f6' },
+        { key: 'In Progress', label: 'In Progress', color: '#f59e0b' },
+        { key: 'Awaiting Supplier', label: 'Awaiting Supplier', color: '#8b5cf6' },
+        { key: 'Resolved', label: 'Resolved', color: '#10b981' },
+        { key: 'Closed', label: 'Closed', color: '#64748b' },
+        { key: 'Cancelled', label: 'Cancelled', color: '#ef4444' },
+    ];
+    const rmaTotal = Object.values(rmaByStatus).reduce((s, n) => s + (n || 0), 0);
+    const rmaCount = (status) => rmaByStatus[status] || 0;
+    const rmaPct = (status) => (rmaTotal > 0 ? Math.round((rmaCount(status) / rmaTotal) * 100) : 0);
+    const rmaGradientStops = (() => {
+        let cursor = 0;
+        const parts = [];
+        RMA_SEGMENTS.forEach((seg) => {
+            const pct = rmaPct(seg.key);
+            if (pct <= 0) return;
+            parts.push(`${seg.color} ${cursor}% ${cursor + pct}%`);
+            cursor += pct;
+        });
+        if (parts.length === 0) return '#e2e8f0 0% 100%';
+        if (cursor < 100) parts.push(`#e2e8f0 ${cursor}% 100%`);
+        return parts.join(', ');
+    })();
 
     return (
         <div className="dash-page ad-root">
@@ -513,6 +527,54 @@ const AdminDashboard = ({ currentUser }) => {
                     </div>
                 </motion.div>
             </div>
+
+            <div className="dash-section">
+                <div className="dash-section-left">
+                    <div className="dash-section-line" />
+                    <div>
+                        <h2 className="dash-section-title">RMA Process</h2>
+                        <p className="dash-section-sub">Status distribution across all RMA jobs</p>
+                    </div>
+                </div>
+                <span className="dash-section-badge">{rmaTotal} Jobs</span>
+            </div>
+
+            <motion.div className="ad-status-card dash-card ad-rma-pie-card" {...cardMotion(12.5)}>
+                <div className="ad-status-header">
+                    <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <Wrench size={16} color="#c2410c" /> RMA Status
+                    </h3>
+                </div>
+                <div className="ad-status-body">
+                    <div className="ad-donut-wrap">
+                        <div
+                            className="ad-donut"
+                            style={{ background: `conic-gradient(${rmaGradientStops})` }}
+                        >
+                            <div className="ad-donut-hole">
+                                <span className="ad-donut-total">{rmaTotal}</span>
+                                <span className="ad-donut-label">RMA</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="ad-status-right">
+                        <div className="ad-status-rows">
+                            {RMA_SEGMENTS.map((seg) => (
+                                <div className="ad-status-row" key={seg.key}>
+                                    <div className="ad-status-row-left">
+                                        <span className="ad-status-row-bar" style={{ background: seg.color }} />
+                                        <span className="ad-status-row-label">{seg.label}</span>
+                                    </div>
+                                    <span className="ad-status-row-count" style={{ color: seg.color }}>
+                                        {rmaCount(seg.key)}
+                                        <span className="ad-status-row-pct">({rmaPct(seg.key)}%)</span>
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            </motion.div>
 
             <div className="dash-section">
                 <div className="dash-section-left">

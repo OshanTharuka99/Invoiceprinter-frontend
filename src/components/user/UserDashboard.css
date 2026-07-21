@@ -33,6 +33,7 @@
 .ud-card-icon.indigo { background: #eef2ff; color: #6366f1; }
 .ud-card-icon.green { background: #ecfdf5; color: #059669; }
 .ud-card-icon.red { background: #eef2ff; color: #6366f1; }
+.ud-card-icon.amber { background: #fff7ed; color: #c2410c; }
 
 .ud-card-spacer { flex: 1; }
 

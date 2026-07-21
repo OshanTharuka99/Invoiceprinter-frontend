@@ -942,3 +942,16 @@
         grid-template-columns: repeat(2, 1fr);
     }
 }
+
+.ad-rma-pie-card {
+    margin-bottom: var(--dash-gap-section, 2.25rem);
+}
+
+.ad-rma-pie-card .ad-status-body {
+    gap: 1.5rem;
+}
+
+.ad-rma-pie-card .ad-donut {
+    width: 132px;
+    height: 132px;
+}

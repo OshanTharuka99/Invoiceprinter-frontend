@@ -28,6 +28,9 @@ const BusinessSettings = ({ currentUser, showToast }) => {
         quotationTitleColor: '#0f172a', quotationDividerColor: '#0f172a',
         invoicePrefix: 'INV', invoiceDigits: 5,
         invoiceTitleColor: '#0f172a', invoiceDividerColor: '#0f172a',
+        promaInvoicePrefix: 'PI', promaInvoiceDigits: 5,
+        promaInvoiceTitleColor: '#0f172a', promaInvoiceDividerColor: '#0f172a',
+        promaInvoiceTerms: 'This is a proforma / estimate document only. It does not affect stock or warranties.', promaInvoiceNotes: '',
         purchaseOrderPrefix: 'PO', purchaseOrderDigits: 5,
         purchaseOrderTitleColor: '#0284c7', purchaseOrderDividerColor: '#0284c7',
         deliveryNotePrefix: 'DN', deliveryNoteDigits: 5,
@@ -176,13 +179,15 @@ const BusinessSettings = ({ currentUser, showToast }) => {
     return (
         <div className="bs2">
 
-            <div className="bs2-tabs">
-                <button onClick={() => setActiveSubTab('business')} className={`bs2-tab${activeSubTab === 'business' ? ' active' : ''}`}>
-                    <Building2 size={16} />Business Settings
-                </button>
-                <button onClick={() => setActiveSubTab('quotation')} className={`bs2-tab${activeSubTab === 'quotation' ? ' active' : ''}`}>
-                    <Receipt size={16} />Document Format
-                </button>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap', marginBottom: '0.5rem' }}>
+                <div className="bs2-tabs">
+                    <button onClick={() => setActiveSubTab('business')} className={`bs2-tab${activeSubTab === 'business' ? ' active' : ''}`}>
+                        <Building2 size={16} />Business Settings
+                    </button>
+                    <button onClick={() => setActiveSubTab('quotation')} className={`bs2-tab${activeSubTab === 'quotation' ? ' active' : ''}`}>
+                        <Receipt size={16} />Document Format
+                    </button>
+                </div>
             </div>
 
             <AnimatePresence mode="wait">
@@ -532,6 +537,36 @@ const BusinessSettings = ({ currentUser, showToast }) => {
                                 </div>
                             </div>
 
+                            {/* Proma Invoice */}
+                            <div className="bs2-card">
+                                <div className="bs2-card-head">
+                                    <div className="bs2-card-head-left">
+                                        <span className="bs2-icon" style={{ background: '#4f46e515', color: '#4f46e5' }}><Receipt size={20} /></span>
+                                        <h3>Proma Invoice Settings</h3>
+                                    </div>
+                                    <ColorPreview titleColor={businessData.promaInvoiceTitleColor} dividerColor={businessData.promaInvoiceDividerColor} title="PROMA INVOICE" />
+                                    {isRoot && <><EditBtn /><SaveCancelBtns /></>}
+                                </div>
+                                <div className="bs2-card-body">
+                                    <div className="bs2-doc-grid">
+                                        <div className="bs2-doc-left">
+                                            <div className="bs2-grid bs2-grid-2">
+                                                <div><label>Prefix</label><input value={businessData.promaInvoicePrefix || 'PI'} onChange={e => setBusinessData({ ...businessData, promaInvoicePrefix: e.target.value })} disabled={!isEditMode} className={inpCls} placeholder="e.g. PI" /></div>
+                                                <div><label>Digits</label><input type="number" min="2" max="10" value={businessData.promaInvoiceDigits ?? 5} onChange={e => setBusinessData({ ...businessData, promaInvoiceDigits: parseInt(e.target.value, 10) || 5 })} disabled={!isEditMode} className={inpCls} placeholder="5" /></div>
+                                            </div>
+                                            <div className="bs2-grid bs2-grid-2" style={{ marginTop: '0.75rem' }}>
+                                                <ColorPicker label="Title Color" value={businessData.promaInvoiceTitleColor || '#0f172a'} onChange={v => setBusinessData({ ...businessData, promaInvoiceTitleColor: v })} disabled={!isEditMode} icon={Type} />
+                                                <ColorPicker label="Divider Color" value={businessData.promaInvoiceDividerColor || '#0f172a'} onChange={v => setBusinessData({ ...businessData, promaInvoiceDividerColor: v })} disabled={!isEditMode} icon={Minus} />
+                                            </div>
+                                        </div>
+                                        <div className="bs2-doc-right">
+                                            <div><label>Proma Invoice Terms & Conditions</label><textarea value={businessData.promaInvoiceTerms || ''} onChange={e => setBusinessData({ ...businessData, promaInvoiceTerms: e.target.value })} disabled={!isEditMode} className={`${inpCls} bs2-ta`} placeholder="Enter standard terms..." /></div>
+                                            <div><label>Default Proma Invoice Notes</label><textarea value={businessData.promaInvoiceNotes || ''} onChange={e => setBusinessData({ ...businessData, promaInvoiceNotes: e.target.value })} disabled={!isEditMode} className={`${inpCls} bs2-ta`} placeholder="Enter default notes..." /></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
                             {/* Delivery Note */}
                             <div className="bs2-card">
                                 <div className="bs2-card-head">
@@ -655,9 +690,9 @@ const BusinessSettings = ({ currentUser, showToast }) => {
                                 <div className="bs2-card-head">
                                     <div>
                                         <h3 className="bs2-card-title">RMA Process</h3>
-                                        <p className="bs2-card-desc">Job numbers, print colors and default terms for RMA notes.</p>
+                                        <p className="bs2-card-desc">Job numbers, print colors and default terms for RMA reports.</p>
                                     </div>
-                                    <ColorPreview titleColor={businessData.rmaTitleColor} dividerColor={businessData.rmaDividerColor} title="RMA NOTE" />
+                                    <ColorPreview titleColor={businessData.rmaTitleColor} dividerColor={businessData.rmaDividerColor} title="RMA REPORT" />
                                     {isRoot && <><EditBtn /><SaveCancelBtns /></>}
                                 </div>
                                 <div className="bs2-card-body">

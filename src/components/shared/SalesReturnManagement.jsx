@@ -1,12 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { RefreshCw, Search, Undo2, Plus, FileSearch, Printer, X, BookOpen, Edit3, Trash2, Clock, ShieldAlert } from 'lucide-react';
+import { RefreshCw, Search, Undo2, Plus, FileSearch, Printer, X, Edit3, Trash2, Clock, ShieldAlert } from 'lucide-react';
 import api from '../../api';
 import useSubmitGuard from '../../utils/useSubmitGuard';
 import { openA4PrintWindow, buildPrintFileName } from '../../utils/printDocument';
 import '../../styles/modern-table.css';
 import SalesReturnTemplate from './SalesReturnTemplate';
-import SalesReturnUserManual from './SalesReturnUserManual';
 
 const SalesReturnManagement = ({ currentUser, showToast }) => {
     const [returns, setReturns] = useState([]);
@@ -26,7 +25,6 @@ const SalesReturnManagement = ({ currentUser, showToast }) => {
     const [stores, setStores] = useState([]);
     const [businessData, setBusinessData] = useState(null);
     const [previewReturn, setPreviewReturn] = useState(null);
-    const [showManual, setShowManual] = useState(false);
     const [activeTab, setActiveTab] = useState('Active');
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
     const [noteToDelete, setNoteToDelete] = useState(null);
@@ -37,7 +35,6 @@ const SalesReturnManagement = ({ currentUser, showToast }) => {
     const [editNote, setEditNote] = useState('');
     const [historyNote, setHistoryNote] = useState(null);
     const printRef = useRef();
-    const manualPrintRef = useRef();
 
     const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'root';
     const isRoot = currentUser?.role === 'root';
@@ -238,13 +235,6 @@ const SalesReturnManagement = ({ currentUser, showToast }) => {
     const openPreview = (note) => setPreviewReturn(note);
     const closePreview = () => setPreviewReturn(null);
 
-    const handlePrintManual = () => {
-        openA4PrintWindow(
-            manualPrintRef.current,
-            `Sales_Return_User_Manual_${new Date().toISOString().slice(0, 10)}`,
-        );
-    };
-
     return (
         <div className="pm-root">
             <div className="pm-card">
@@ -257,14 +247,6 @@ const SalesReturnManagement = ({ currentUser, showToast }) => {
                         </div>
                     </div>
                     <div className="pm-card-actions">
-                        <motion.button
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() => setShowManual(true)}
-                            className="pm-btn pm-btn-outline"
-                            title="Open user manual"
-                        >
-                            <BookOpen size={16} /> User Manual
-                        </motion.button>
                         {!createMode && (
                             <motion.button
                                 whileTap={{ scale: 0.95 }}
@@ -516,24 +498,6 @@ const SalesReturnManagement = ({ currentUser, showToast }) => {
                         </div>
                         <div className="app-print-doc" ref={printRef}>
                             <SalesReturnTemplate salesReturn={previewReturn} business={businessData} />
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {showManual && (
-                <div className="app-print-overlay">
-                    <div className="app-print-shell" style={{ maxWidth: '210mm' }}>
-                        <div className="app-print-toolbar">
-                            <motion.button whileTap={{ scale: 0.95 }} type="button" onClick={handlePrintManual} className="app-print-btn">
-                                <Printer size={18} /> A4 Print / PDF
-                            </motion.button>
-                            <motion.button whileTap={{ scale: 0.95 }} type="button" onClick={() => setShowManual(false)} className="app-print-close">
-                                <X size={20} />
-                            </motion.button>
-                        </div>
-                        <div className="app-print-doc" ref={manualPrintRef}>
-                            <SalesReturnUserManual business={businessData} />
                         </div>
                     </div>
                 </div>

@@ -1,5 +1,10 @@
 import React from 'react';
 
+const isNoWarranty = (period) => {
+    const p = String(period || '').trim().toUpperCase();
+    return !p || p === 'N/A' || p === 'NA' || p === 'NONE';
+};
+
 const RmaTemplate = React.forwardRef(({ rma, business }, ref) => {
     if (!rma || !business) return null;
 
@@ -26,12 +31,18 @@ const RmaTemplate = React.forwardRef(({ rma, business }, ref) => {
     const assignees = (rma.assignees || [])
         .map((u) => `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.username)
         .filter(Boolean);
+
+    const replacementHasWarranty = rma.replacement?.replaced && !isNoWarranty(rma.replacement?.newWarrantyPeriod);
     const underWarrantyLabel = rma.replacement?.replaced
-        ? (rma.replacement.newWarrantyPeriod ? 'Under Warranty (New Device)' : 'Warranty N/A')
+        ? (replacementHasWarranty ? 'Under Warranty (New Device)' : 'Warranty N/A')
         : (rma.underWarranty ? 'Under Warranty' : 'Out of Warranty / No Warranty');
+    const warrantyBadgeActive = rma.replacement?.replaced
+        ? replacementHasWarranty
+        : !!rma.underWarranty;
 
     const docTerms = (rma.terms && rma.terms.trim()) ? rma.terms.trim() : (b.rmaTerms || '');
     const docNotes = (rma.notes && rma.notes.trim()) ? rma.notes.trim() : (b.rmaNotes || '');
+    const destination = rma.customerSignature?.destination || rma.customerDetails?.destination || '';
 
     return (
         <div ref={ref} data-rmatemplate style={{
@@ -75,13 +86,14 @@ const RmaTemplate = React.forwardRef(({ rma, business }, ref) => {
                     </div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: '26px', fontWeight: 900, color: TITLE_COLOR, letterSpacing: '1px' }}>RMA NOTE</div>
-                    <div style={{ marginTop: '8px', fontWeight: 800 }}>{rma.jobNumber}</div>
+                    <div style={{ fontSize: '26px', fontWeight: 900, color: TITLE_COLOR, letterSpacing: '1px' }}>RMA REPORT</div>
+                    <div style={{ marginTop: '8px', color: MID, fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Job Number</div>
+                    <div style={{ fontWeight: 800, fontSize: '16px' }}>{rma.jobNumber}</div>
                     <div style={{ color: MID, fontSize: '11px' }}>Date: {fmt(rma.createdAt)}</div>
                     <div style={{
                         marginTop: '8px', display: 'inline-block', padding: '3px 10px', borderRadius: '999px',
-                        background: rma.underWarranty || rma.replacement?.newWarrantyPeriod ? '#d1fae5' : '#fee2e2',
-                        color: rma.underWarranty || rma.replacement?.newWarrantyPeriod ? '#047857' : '#b91c1c',
+                        background: warrantyBadgeActive ? '#d1fae5' : '#fee2e2',
+                        color: warrantyBadgeActive ? '#047857' : '#b91c1c',
                         fontWeight: 800, fontSize: '10px',
                     }}>
                         {underWarrantyLabel}
@@ -102,11 +114,10 @@ const RmaTemplate = React.forwardRef(({ rma, business }, ref) => {
                     )}
                 </div>
                 <div style={{ border: `1px solid ${BORDER}`, borderRadius: '8px', padding: '10px 12px' }}>
-                    <div style={{ fontSize: '10px', fontWeight: 800, color: TITLE_COLOR, textTransform: 'uppercase', marginBottom: '6px' }}>Project / Supplier</div>
+                    <div style={{ fontSize: '10px', fontWeight: 800, color: TITLE_COLOR, textTransform: 'uppercase', marginBottom: '6px' }}>Project</div>
                     <div><strong>Project:</strong> {rma.projectDetails?.name || rma.projectRef?.name || '—'}</div>
                     <div style={{ color: MID }}>{rma.projectDetails?.location || rma.projectRef?.location || ''}</div>
-                    <div style={{ marginTop: '6px' }}><strong>Supplier:</strong> {rma.supplierDetails?.name || rma.supplierRef?.name || '—'}</div>
-                    <div style={{ color: MID }}>{rma.supplierDetails?.telephoneNumber || rma.supplierRef?.telephoneNumber || ''}</div>
+                    <div style={{ marginTop: '6px' }}><strong>Status:</strong> {rma.status || '—'}</div>
                 </div>
             </div>
 
@@ -121,7 +132,7 @@ const RmaTemplate = React.forwardRef(({ rma, business }, ref) => {
                     <div style={{ marginTop: '10px', paddingTop: '8px', borderTop: `1px dashed ${BORDER}` }}>
                         <div style={{ fontWeight: 800, color: '#047857' }}>Replaced Device</div>
                         <div>New SN: <strong style={{ fontFamily: 'monospace' }}>{rma.replacement.newSerialNumber}</strong></div>
-                        <div>Warranty Period: <strong>{rma.replacement.newWarrantyPeriod || '—'}</strong></div>
+                        <div>Warranty Period: <strong>{isNoWarranty(rma.replacement.newWarrantyPeriod) ? 'N/A' : rma.replacement.newWarrantyPeriod}</strong></div>
                         <div>Source: <strong>{rma.replacement.source === 'stock' ? 'Shop Stock' : 'Supplier'}</strong></div>
                     </div>
                 )}
@@ -195,9 +206,9 @@ const RmaTemplate = React.forwardRef(({ rma, business }, ref) => {
                     <div style={{ color: MID, fontSize: '11px' }}>
                         ID: {rma.customerSignature?.idCardNumber || rma.customerDetails?.idCardNumber || '____________________'}
                     </div>
-                    <div style={{ color: MID, fontSize: '11px' }}>
-                        Destination: {rma.customerSignature?.destination || rma.customerDetails?.destination || '____________________'}
-                    </div>
+                    {destination ? (
+                        <div style={{ color: MID, fontSize: '11px' }}>Destination: {destination}</div>
+                    ) : null}
                 </div>
             </div>
         </div>

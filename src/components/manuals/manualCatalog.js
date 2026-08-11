@@ -23,8 +23,9 @@ export const MODULE_MANUALS = {
                     s(2, 'Choose Automatic (products from catalog) or Manual client/items as required.'),
                     s(3, 'Select client & project (or enter walk-in details).'),
                     s(4, 'Add line items, quantities, prices, and serial numbers when stock is serial-tracked.'),
-                    s(5, 'Apply discounts/taxes, set payment method, then Save.'),
-                    s(6, 'Use A4 Print / PDF on the preview to print or save the invoice.'),
+                    s(5, 'If the customer already paid an advance, tick the advance checkbox and enter the amount — it is deducted from the balance due on the invoice and printout.'),
+                    s(6, 'Apply discounts/taxes, set payment method, then Save.'),
+                    s(7, 'Use A4 Print / PDF on the preview to print or save the invoice.'),
                 ],
             },
             {

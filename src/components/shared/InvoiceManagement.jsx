@@ -70,6 +70,9 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
         discountTotal: 0,
         hasTax: false, appliedTaxes: [], taxTotal: 0,
         finalTotal: 0,
+        hasAdvancePayment: false,
+        advanceAmount: 0,
+        balanceDue: 0,
         currency: 'primary',
         status: 'Unpaid',
         invoiceDate: new Date().toISOString().split('T')[0],
@@ -141,7 +144,14 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
         );
     };
 
-    const calculateTotals = calculateDocumentTotals;
+    const applyFormTotals = (currentForm) => {
+        const withTotals = calculateDocumentTotals(currentForm);
+        const advance = withTotals.hasAdvancePayment ? (parseFloat(withTotals.advanceAmount) || 0) : 0;
+        const balanceDue = Math.max(0, (withTotals.finalTotal || 0) - advance);
+        return { ...withTotals, advanceAmount: advance, balanceDue };
+    };
+
+    const calculateTotals = applyFormTotals;
 
     const openCreation = (mode, source = 'blank', sourceId = null) => {
         if (mode === 'manual' && !isAdmin) {
@@ -395,6 +405,14 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
         if (form.items.length === 0) return showToast?.('Insert at least 1 item', 'error');
         if (!form.paymentMethod) return showToast?.('Select payment method', 'error');
         if (!form.projectId) return showToast?.('A project must be selected before generating an invoice', 'error');
+        if (form.hasAdvancePayment) {
+            if (!form.advanceAmount || form.advanceAmount <= 0) {
+                return showToast?.('Enter the advance amount paid by the customer', 'error');
+            }
+            if (form.advanceAmount > form.finalTotal) {
+                return showToast?.('Advance amount cannot exceed the invoice total', 'error');
+            }
+        }
 
         // Validate serial numbers must exactly match item quantity
         for (const item of form.items) {
@@ -469,6 +487,9 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
             appliedTaxes: inv.appliedTaxes || [],
             taxTotal: inv.taxTotal || 0,
             finalTotal: inv.finalTotal,
+            hasAdvancePayment: inv.hasAdvancePayment || false,
+            advanceAmount: inv.advanceAmount || 0,
+            balanceDue: inv.balanceDue ?? inv.finalTotal,
             currency: inv.currency || 'primary',
             status: inv.status,
             invoiceDate: new Date(inv.invoiceDate).toISOString().split('T')[0]
@@ -695,8 +716,13 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
                                         </td>
                                         <td className="text-right">
                                             <span style={{ fontWeight: 800, color: '#059669', fontSize: '0.95rem' }}>
-                                                {businessData?.primaryCurrency?.symbol || 'Rs.'} {parseFloat(inv.finalTotal).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                                                {businessData?.primaryCurrency?.symbol || 'Rs.'} {parseFloat(inv.hasAdvancePayment && inv.advanceAmount > 0 ? (inv.balanceDue ?? inv.finalTotal - inv.advanceAmount) : inv.finalTotal).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                                             </span>
+                                            {inv.hasAdvancePayment && inv.advanceAmount > 0 && (
+                                                <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600, marginTop: '0.15rem' }}>
+                                                    Total {businessData?.primaryCurrency?.symbol || 'Rs.'} {parseFloat(inv.finalTotal).toLocaleString('en-US', { minimumFractionDigits: 2 })} · Adv. −{parseFloat(inv.advanceAmount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                                                </div>
+                                            )}
                                         </td>
                                         <td className="text-center">
                                             <span
@@ -936,6 +962,43 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
                                             onChange={e => setForm({ ...form, customerPO: e.target.value })}
                                             placeholder="PO-12345"
                                             style={{ ...inputStyle, background: '#fff' }} />
+                                    </div>
+                                    <div style={{ marginTop: '1.25rem', padding: '1rem', borderRadius: '12px', background: '#fff', border: '1px solid #e2e8f0' }}>
+                                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', cursor: 'pointer', fontWeight: 800, color: '#0f172a', fontSize: '0.85rem' }}>
+                                            <input
+                                                type="checkbox"
+                                                checked={form.hasAdvancePayment}
+                                                onChange={e => {
+                                                    const checked = e.target.checked;
+                                                    setForm(prev => applyFormTotals({
+                                                        ...prev,
+                                                        hasAdvancePayment: checked,
+                                                        advanceAmount: checked ? prev.advanceAmount : 0,
+                                                    }));
+                                                }}
+                                                style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                                            />
+                                            Has the customer already paid an advance?
+                                        </label>
+                                        {form.hasAdvancePayment && (
+                                            <div style={{ marginTop: '0.85rem' }}>
+                                                <label style={labelStyle}>Advance Amount Paid</label>
+                                                <div style={{ position: 'relative', maxWidth: '240px' }}>
+                                                    <span style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', fontSize: '0.75rem' }}>
+                                                        {businessData?.primaryCurrency?.symbol || 'Rs.'}
+                                                    </span>
+                                                    <PriceInput
+                                                        value={form.advanceAmount}
+                                                        onChange={v => setForm(prev => applyFormTotals({ ...prev, advanceAmount: v }))}
+                                                        style={{ ...inputStyle, background: '#fff', padding: '0.6rem 0.75rem 0.6rem 2rem', textAlign: 'right' }}
+                                                        required
+                                                    />
+                                                </div>
+                                                <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '0.35rem', fontWeight: 600 }}>
+                                                    This amount will be deducted from the balance due on the invoice.
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
 
@@ -1279,9 +1342,36 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
                                 )}
 
                                 {/* FINAL TOTAL */}
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.5rem', background: '#0f172a', borderRadius: '16px', color: '#fff', marginBottom: '2rem' }}>
-                                    <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '2px', fontWeight: 900, color: '#94a3b8' }}>Final Total</div>
-                                    <div style={{ fontSize: '2rem', fontWeight: 900, letterSpacing: '-1px' }}>{form.finalTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
+                                <div style={{ padding: '1.5rem', background: '#0f172a', borderRadius: '16px', color: '#fff', marginBottom: '2rem' }}>
+                                    {form.hasAdvancePayment && form.advanceAmount > 0 ? (
+                                        <>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                                                <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '2px', fontWeight: 900, color: '#94a3b8' }}>Invoice Total</div>
+                                                <div style={{ fontSize: '1.35rem', fontWeight: 800, letterSpacing: '-0.5px' }}>
+                                                    {businessData?.primaryCurrency?.symbol || 'Rs.'} {form.finalTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                                                </div>
+                                            </div>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid rgba(148,163,184,0.25)' }}>
+                                                <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 800, color: '#fca5a5' }}>Less Advance Paid</div>
+                                                <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#fca5a5' }}>
+                                                    − {businessData?.primaryCurrency?.symbol || 'Rs.'} {form.advanceAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                                                </div>
+                                            </div>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.75rem', borderTop: '1px solid rgba(148,163,184,0.25)' }}>
+                                                <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '2px', fontWeight: 900, color: '#94a3b8' }}>Balance Due</div>
+                                                <div style={{ fontSize: '2rem', fontWeight: 900, letterSpacing: '-1px' }}>
+                                                    {businessData?.primaryCurrency?.symbol || 'Rs.'} {form.balanceDue.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                                                </div>
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '2px', fontWeight: 900, color: '#94a3b8' }}>Final Total</div>
+                                            <div style={{ fontSize: '2rem', fontWeight: 900, letterSpacing: '-1px' }}>
+                                                {businessData?.primaryCurrency?.symbol || 'Rs.'} {form.finalTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
 
                                 <motion.button

@@ -259,6 +259,18 @@ const InvoiceTemplate = React.forwardRef(({ invoice, business }, ref) => {
                             <td style={{ fontFamily: FONT, color: '#fff', fontWeight: '900', fontSize: '13.5px', padding: '12px 14px', background: DIVIDER_COLOR }}>Total Amount</td>
                             <td style={{ fontFamily: FONT, color: '#fff', fontWeight: '900', fontSize: '14.5px', padding: '12px 14px', background: DIVIDER_COLOR, textAlign: 'right' }}>{currencySymbol} {money(inv.finalTotal)}</td>
                         </tr>
+                        {inv.hasAdvancePayment && inv.advanceAmount > 0 && (
+                            <>
+                                <tr>
+                                    <td style={{ fontFamily: FONT, color: DARK, fontWeight: '600', fontSize: '12.5px', padding: '8px 14px', background: '#f8fafc', borderBottom: `1px solid ${BORDER}` }}>Advance Paid</td>
+                                    <td style={{ fontFamily: FONT, color: DARK, fontWeight: '700', fontSize: '12.5px', padding: '8px 14px', background: '#f8fafc', borderBottom: `1px solid ${BORDER}`, textAlign: 'right' }}>− {currencySymbol} {money(inv.advanceAmount)}</td>
+                                </tr>
+                                <tr>
+                                    <td style={{ fontFamily: FONT, color: '#fff', fontWeight: '900', fontSize: '13.5px', padding: '12px 14px', background: DIVIDER_COLOR }}>Balance Due</td>
+                                    <td style={{ fontFamily: FONT, color: '#fff', fontWeight: '900', fontSize: '14.5px', padding: '12px 14px', background: DIVIDER_COLOR, textAlign: 'right' }}>{currencySymbol} {money(inv.balanceDue ?? (inv.finalTotal - inv.advanceAmount))}</td>
+                                </tr>
+                            </>
+                        )}
                     </tbody>
                 </table>
             </div>

@@ -7,6 +7,7 @@ import PriceInput from '../../utils/PriceInput';
 import { calculateDocumentTotals } from '../../utils/calculateDocumentTotals';
 import { openA4PrintWindow, buildPrintFileName } from '../../utils/printDocument';
 import InvoiceTemplate from './InvoiceTemplate';
+import InvoiceTemplate2 from './InvoiceTemplate2';
 import './InvoiceManagement.css';
 import '../../styles/modern-table.css';
 
@@ -1670,7 +1671,11 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
                                 </motion.button>
                             </div>
                             <div className="app-print-doc">
-                                <InvoiceTemplate ref={printRef} invoice={viewInvoice} business={businessData} />
+                                {businessData?.invoiceTemplateFormat === 'format2' ? (
+                                    <InvoiceTemplate2 ref={printRef} invoice={viewInvoice} business={businessData} />
+                                ) : (
+                                    <InvoiceTemplate ref={printRef} invoice={viewInvoice} business={businessData} />
+                                )}
                             </div>
                         </div>
                     </div>

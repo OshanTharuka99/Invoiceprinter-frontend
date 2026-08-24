@@ -7,6 +7,7 @@ import PriceInput from '../../utils/PriceInput';
 import { calculateDocumentTotals } from '../../utils/calculateDocumentTotals';
 import { openA4PrintWindow, buildPrintFileName } from '../../utils/printDocument';
 import QuotationTemplate from './QuotationTemplate';
+import QuotationTemplate2 from './QuotationTemplate2';
 import './QuotationManagement.css';
 import '../../styles/modern-table.css';
 
@@ -893,7 +894,11 @@ const QuotationManagement = ({ currentUser, showToast }) => {
                                         </motion.button>
                                     </div>
                                     <div className="app-print-doc">
-                                        <QuotationTemplate ref={printRef} quotation={viewQuotation} business={businessData} />
+                                        {businessData?.quotationTemplateFormat === 'format2' ? (
+                                            <QuotationTemplate2 ref={printRef} quotation={viewQuotation} business={businessData} />
+                                        ) : (
+                                            <QuotationTemplate ref={printRef} quotation={viewQuotation} business={businessData} />
+                                        )}
                                     </div>
                                 </div>
                             </div>

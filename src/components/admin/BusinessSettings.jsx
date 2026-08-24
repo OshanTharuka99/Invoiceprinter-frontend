@@ -26,8 +26,10 @@ const BusinessSettings = ({ currentUser, showToast }) => {
         ],
         quotationPrefix: 'QN', quotationDigits: 5,
         quotationTitleColor: '#0f172a', quotationDividerColor: '#0f172a',
+        quotationTemplateFormat: 'format1',
         invoicePrefix: 'INV', invoiceDigits: 5,
         invoiceTitleColor: '#0f172a', invoiceDividerColor: '#0f172a',
+        invoiceTemplateFormat: 'format1',
         promaInvoicePrefix: 'PI', promaInvoiceDigits: 5,
         promaInvoiceTitleColor: '#0f172a', promaInvoiceDividerColor: '#0f172a',
         promaInvoiceTerms: 'This is a proforma / estimate document only. It does not affect stock or warranties.', promaInvoiceNotes: '',
@@ -65,6 +67,8 @@ const BusinessSettings = ({ currentUser, showToast }) => {
                     ...details,
                     invoiceTerms: details.invoiceTerms || 'Standard invoice terms and conditions apply.',
                     invoiceNotes: details.invoiceNotes || '',
+                    invoiceTemplateFormat: details.invoiceTemplateFormat || 'format1',
+                    quotationTemplateFormat: details.quotationTemplateFormat || 'format1',
                     purchaseOrderTerms: details.purchaseOrderTerms || 'Standard purchase order terms and conditions apply.',
                     purchaseOrderNotes: details.purchaseOrderNotes || '',
                     deliveryNotePrefix: details.deliveryNotePrefix || 'DN',
@@ -468,6 +472,18 @@ const BusinessSettings = ({ currentUser, showToast }) => {
                                                 <ColorPicker label="Title Color" value={businessData.quotationTitleColor} onChange={v => setBusinessData({ ...businessData, quotationTitleColor: v })} disabled={!isEditMode} icon={Type} />
                                                 <ColorPicker label="Divider Color" value={businessData.quotationDividerColor} onChange={v => setBusinessData({ ...businessData, quotationDividerColor: v })} disabled={!isEditMode} icon={Minus} />
                                             </div>
+                                            <div style={{ marginTop: '0.75rem' }}>
+                                                <label>Quotation Table Format</label>
+                                                <select
+                                                    value={businessData.quotationTemplateFormat || 'format1'}
+                                                    onChange={e => setBusinessData({ ...businessData, quotationTemplateFormat: e.target.value })}
+                                                    disabled={!isEditMode}
+                                                    className={inpCls}
+                                                >
+                                                    <option value="format1">Modern/Detailed Table (Format 1)</option>
+                                                    <option value="format2">Simple Bordered Table (Format 2)</option>
+                                                </select>
+                                            </div>
                                         </div>
                                         <div className="bs2-doc-right">
                                             <div><label>Quotation Terms & Conditions</label><textarea value={businessData.quotationTerms} onChange={e => setBusinessData({ ...businessData, quotationTerms: e.target.value })} disabled={!isEditMode} className={`${inpCls} bs2-ta`} placeholder="Enter standard terms..." /></div>
@@ -527,6 +543,18 @@ const BusinessSettings = ({ currentUser, showToast }) => {
                                             <div className="bs2-grid bs2-grid-2" style={{ marginTop: '0.75rem' }}>
                                                 <ColorPicker label="Title Color" value={businessData.invoiceTitleColor} onChange={v => setBusinessData({ ...businessData, invoiceTitleColor: v })} disabled={!isEditMode} icon={Type} />
                                                 <ColorPicker label="Divider Color" value={businessData.invoiceDividerColor} onChange={v => setBusinessData({ ...businessData, invoiceDividerColor: v })} disabled={!isEditMode} icon={Minus} />
+                                            </div>
+                                            <div style={{ marginTop: '0.75rem' }}>
+                                                <label>Invoice Table Format</label>
+                                                <select
+                                                    value={businessData.invoiceTemplateFormat || 'format1'}
+                                                    onChange={e => setBusinessData({ ...businessData, invoiceTemplateFormat: e.target.value })}
+                                                    disabled={!isEditMode}
+                                                    className={inpCls}
+                                                >
+                                                    <option value="format1">Modern/Detailed Table (Format 1)</option>
+                                                    <option value="format2">Simple Bordered Table (Format 2)</option>
+                                                </select>
                                             </div>
                                         </div>
                                         <div className="bs2-doc-right">

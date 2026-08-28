@@ -1026,12 +1026,19 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
                                             {form.items.map((it, idx) => (
                                                 <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
                                                     <td style={{ padding: '0.75rem 0.5rem' }}>
-                                                        <select required value={it.productRef} onChange={e => updateItem(idx, 'productRef', e.target.value)}
-                                                            disabled={!!(invoiceSource === 'delivery_note' && form.deliveryNoteRef)}
-                                                            style={{ ...inputStyle, background: (invoiceSource === 'delivery_note' && form.deliveryNoteRef) ? '#f1f5f9' : '#fff', padding: '0.6rem 1rem', fontSize: '0.85rem', cursor: (invoiceSource === 'delivery_note' && form.deliveryNoteRef) ? 'not-allowed' : 'pointer' }}>
-                                                            <option value="" disabled>Select Product...</option>
-                                                            {products.map(p => <option key={p._id} value={p._id}>{p.name} [{p.productId}]</option>)}
-                                                        </select>
+                                                        {creationMode === 'manual' && invoiceSource === 'blank' ? (
+                                                            <input required type="text" placeholder="Type item name manually..."
+                                                                value={it.manualName || ''}
+                                                                onChange={e => updateItem(idx, 'manualName', e.target.value)}
+                                                                style={{ ...inputStyle, background: '#fff', padding: '0.6rem 1rem', fontSize: '0.85rem' }} />
+                                                        ) : (
+                                                            <select required value={it.productRef} onChange={e => updateItem(idx, 'productRef', e.target.value)}
+                                                                disabled={!!(invoiceSource === 'delivery_note' && form.deliveryNoteRef)}
+                                                                style={{ ...inputStyle, background: (invoiceSource === 'delivery_note' && form.deliveryNoteRef) ? '#f1f5f9' : '#fff', padding: '0.6rem 1rem', fontSize: '0.85rem', cursor: (invoiceSource === 'delivery_note' && form.deliveryNoteRef) ? 'not-allowed' : 'pointer' }}>
+                                                                <option value="" disabled>Select Product...</option>
+                                                                {products.map(p => <option key={p._id} value={p._id}>{p.name} [{p.productId}]</option>)}
+                                                            </select>
+                                                        )}
                                                     </td>
                                                     <td style={{ padding: '0.75rem 0.5rem' }}>
                                                         <input required type="number" min="1" value={it.quantity}
@@ -1113,7 +1120,7 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
                                                             </motion.button>
                                                         )}
                                                         {creationMode === 'manual' && !it.productRef && (
-                                                            <div style={{ color: '#94a3b8', fontSize: '0.7rem', fontStyle: 'italic' }}>Select product</div>
+                                                            <div style={{ color: '#94a3b8', fontSize: '0.7rem', fontStyle: 'italic' }}>—</div>
                                                         )}
                                                     </td>
                                                     <td style={{ padding: '0.75rem 0.5rem', textAlign: 'right' }}>

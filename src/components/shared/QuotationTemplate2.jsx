@@ -45,7 +45,7 @@ const QuotationTemplate2 = React.forwardRef(({ quotation, business }, ref) => {
 
     const showTerms = b.quotationTerms && b.quotationTerms.trim() !== '';
     const showNotes = b.quotationNotes && b.quotationNotes.trim() !== '';
-    const showVatNo = b.isVatRegistered && b.vatNumber && b.vatNumber.trim() !== '';
+    const showBusinessTin = b.businessTinNumber && b.businessTinNumber.trim() !== '';
     const showValidDate = !!q.validDate;
     const showBank = !!(b.bankAccountNumber || b.bankName);
 
@@ -186,7 +186,7 @@ const QuotationTemplate2 = React.forwardRef(({ quotation, business }, ref) => {
                             <strong>Address:</strong> {b.address}<br />
                             {b.phoneNumber && <><strong>Tel:</strong> {b.phoneNumber}<br /></>}
                             {b.email && <><strong>Email:</strong> {b.email}<br /></>}
-                            {showVatNo && <><strong>Supplier's TIN:</strong> {b.vatNumber}<br /></>}
+                            {showBusinessTin && <><strong>Supplier's TIN:</strong> {b.businessTinNumber}<br /></>}
                             {b.registrationNumber && <><strong>Supplier's BRC:</strong> {b.registrationNumber}<br /></>}
                         </td>
                         <td style={{ padding: '6px 8px', verticalAlign: 'top', lineHeight: '1.5' }}>

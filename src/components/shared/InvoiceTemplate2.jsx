@@ -45,7 +45,7 @@ const InvoiceTemplate2 = React.forwardRef(({ invoice, business }, ref) => {
 
     const showTerms = b.invoiceTerms && b.invoiceTerms.trim() !== '';
     const showNotes = b.invoiceNotes && b.invoiceNotes.trim() !== '';
-    const showVatNo = b.isVatRegistered && b.vatNumber && b.vatNumber.trim() !== '';
+    const showBusinessTin = b.businessTinNumber && b.businessTinNumber.trim() !== '';
     const showBank = !!(b.bankAccountNumber || b.bankName);
 
     const FONT = "'Arial', 'Helvetica Neue', sans-serif";
@@ -192,7 +192,7 @@ const InvoiceTemplate2 = React.forwardRef(({ invoice, business }, ref) => {
                             <strong>Address:</strong> {b.address}<br />
                             {b.phoneNumber && <><strong>Tel:</strong> {b.phoneNumber}<br /></>}
                             {b.email && <><strong>Email:</strong> {b.email}<br /></>}
-                            {showVatNo && <><strong>Supplier's TIN:</strong> {b.vatNumber}<br /></>}
+                            {showBusinessTin && <><strong>Supplier's TIN:</strong> {b.businessTinNumber}<br /></>}
                             {b.registrationNumber && <><strong>Supplier's BRC:</strong> {b.registrationNumber}<br /></>}
                         </td>
                         <td style={{ padding: '6px 8px', verticalAlign: 'top', lineHeight: '1.5' }}>

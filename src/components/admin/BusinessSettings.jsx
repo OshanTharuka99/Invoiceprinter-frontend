@@ -18,7 +18,7 @@ const BusinessSettings = ({ currentUser, showToast }) => {
         country: 'Sri Lanka', city: '',
         primaryCurrency: { code: 'LKR', symbol: 'Rs.' },
         secondaryCurrency: { code: 'USD', symbol: '$' },
-        isVatRegistered: false, vatNumber: '', vatPercentage: 18,
+        isVatRegistered: false, businessTinNumber: '', vatNumber: '', vatPercentage: 18,
         otherTaxes: [],
         discountProfiles: [
             { name: 'Summer Sale', type: 'percentage', value: 10, minBillAmount: 10000 },
@@ -251,6 +251,22 @@ const BusinessSettings = ({ currentUser, showToast }) => {
                                         <div><label>Business Name</label><input value={businessData.businessName} onChange={e => setBusinessData({ ...businessData, businessName: e.target.value })} disabled={!isEditMode} className={inpCls} /></div>
                                         <div><label>Business Type</label><select value={businessData.businessType} onChange={e => setBusinessData({ ...businessData, businessType: e.target.value })} disabled={!isEditMode} className={inpCls}>{["Owner", "Partnership", "Private Limited", "Public Limited", "NGO"].map(t => <option key={t} value={t}>{t}</option>)}</select></div>
                                         <div><label>Registry Key</label><input value={businessData.registrationNumber} onChange={e => setBusinessData({ ...businessData, registrationNumber: e.target.value })} disabled={!isEditMode} className={inpCls} /></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Business TIN */}
+                            <div className="bs2-card">
+                                <div className="bs2-card-head">
+                                    <div className="bs2-card-head-left">
+                                        <span className="bs2-icon" style={{ background: '#dc262615', color: '#dc2626' }}><Receipt size={20} /></span>
+                                        <h3>Business TIN</h3>
+                                    </div>
+                                    {isRoot && <><EditBtn /><SaveCancelBtns /></>}
+                                </div>
+                                <div className="bs2-card-body">
+                                    <div className="bs2-grid bs2-grid-3">
+                                        <div className="bs2-span-3"><label>Business TIN Number</label><input value={businessData.businessTinNumber} onChange={e => setBusinessData({ ...businessData, businessTinNumber: e.target.value })} disabled={!isEditMode} placeholder="e.g. TIN-123456789" className={inpCls} /></div>
                                     </div>
                                 </div>
                             </div>

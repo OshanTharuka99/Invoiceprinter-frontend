@@ -490,6 +490,32 @@ textarea.bs2-inp {
   margin: 0;
 }
 
+.bs2-id-format-preview {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 0.65rem 0.85rem;
+  color: #334155;
+}
+
+.bs2-id-format-preview code {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #4f46e5;
+  background: #eef2ff;
+  padding: 0.15rem 0.5rem;
+  border-radius: 6px;
+}
+
+.bs2-id-format-preview span {
+  font-size: 0.75rem;
+  color: var(--bs-t3);
+  font-weight: 600;
+}
+
 /* ── Document Format Layout ──────────────────────────── */
 .bs2-doc-grid {
   display: grid;

@@ -117,7 +117,7 @@ const ProductManagement = ({ currentUser, showToast }) => {
     if (e) e.preventDefault();
     const run = async () => {
       if (inline) {
-        const res = await api.post('/products/categories', { name:inlineCatForm.name, code:inlineCatForm.code });
+        const res = await api.post('/products/categories', { name:inlineCatForm.name });
         showToast?.('Category created', 'success');
         fetchData();
         return res.data.data;
@@ -174,7 +174,7 @@ const ProductManagement = ({ currentUser, showToast }) => {
       try {
         let catId = prodForm.category;
         if (inlineCat) {
-          if (!inlineCatForm.name || !inlineCatForm.code) return showToast?.('Fill category name & code','error');
+          if (!inlineCatForm.name) return showToast?.('Fill category name','error');
           const nc = await saveCat(null, true);
           if (!nc) return;
           catId = nc._id;
@@ -672,7 +672,7 @@ const ProductManagement = ({ currentUser, showToast }) => {
               </div>
               <form className="pm-form" onSubmit={e=>saveCat(e,false)}>
                 <div><label className="pm-label">Category Name *</label><input className="pm-input" required value={catForm.name} onChange={e=>setCatForm({...catForm,name:e.target.value})} placeholder="e.g. Laptops"/></div>
-                <div><label className="pm-label">Short Code *</label><input className="pm-input" required value={catForm.code} onChange={e=>setCatForm({...catForm,code:e.target.value.toUpperCase()})} placeholder="e.g. LAP"/></div>
+                <div><label className="pm-label">{editCat ? 'Short Code' : 'Short Code (auto-generated)'}</label><input className="pm-input" disabled value={catForm.code} onChange={e=>setCatForm({...catForm,code:e.target.value.toUpperCase()})} placeholder={editCat ? 'e.g. LAP' : 'Auto: ORG/CAT/00001'}/></div>
                 <div><label className="pm-label">Parent Category</label>
                   <select className="pm-input pm-select-input" value={catForm.parentCategory} onChange={e=>setCatForm({...catForm,parentCategory:e.target.value})}>
                     <option value="">— None (top-level) —</option>
@@ -705,7 +705,7 @@ const ProductManagement = ({ currentUser, showToast }) => {
                   {inlineCat ? (
                     <div className="pm-form-row pm-form-row-2" style={{marginTop:'0.75rem'}}>
                       <input className="pm-input" placeholder="Category name" value={inlineCatForm.name} onChange={e=>setInlineCatForm({...inlineCatForm,name:e.target.value})}/>
-                      <input className="pm-input" placeholder="Code (e.g. LAP)" value={inlineCatForm.code} onChange={e=>setInlineCatForm({...inlineCatForm,code:e.target.value.toUpperCase()})}/>
+                      <input className="pm-input" placeholder="Code auto-generated" value={inlineCatForm.code} disabled onChange={()=>{}}/>
                     </div>
                   ) : (
                     <select className="pm-input pm-select-input" style={{marginTop:'0.75rem'}} value={prodForm.category} onChange={e=>setProdForm({...prodForm,category:e.target.value})}>

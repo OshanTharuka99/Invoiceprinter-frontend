@@ -348,7 +348,7 @@ const InvoiceTemplate2 = React.forwardRef(({ invoice, business }, ref) => {
 
             {/* MODE OF PAYMENT / BANK DETAILS */}
             <div style={{ border: '1px solid #000', padding: '8px', fontSize: '10.5px', marginBottom: '15px', lineHeight: '1.5' }}>
-                <strong>Mode of Payment:</strong>
+                <strong>Thank you for choosing us. Please make your payment as follows:</strong>
                 <div style={{ marginTop: '4px' }}>
                     {showBank ? (
                         <>

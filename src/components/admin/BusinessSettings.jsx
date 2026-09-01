@@ -4,7 +4,8 @@ import {
     Building2, Phone, MapPin, Coins, Receipt, Tag, Save,
     Edit3, CheckCircle, PlusCircle, MinusCircle, AlertCircle,
     Check, RefreshCw, Hash, Mail, Globe, Landmark, DollarSign,
-    ChevronDown, Settings2, Shield, Award, Type, Minus, Store, X
+    ChevronDown, Settings2, Shield, Award, Type, Minus, Store, X,
+    FileText, KeyRound
 } from 'lucide-react';
 import api from '../../api';
 import useSubmitGuard from '../../utils/useSubmitGuard';
@@ -14,6 +15,7 @@ const BusinessSettings = ({ currentUser, showToast }) => {
     const [activeSubTab, setActiveSubTab] = useState('business');
     const [businessData, setBusinessData] = useState({
         businessName: '', businessType: 'Owner', registrationNumber: '',
+        organizationCode: '', organizationCodeDocument: '',
         address: '', phoneNumber: '', email: '', fax: '',
         country: 'Sri Lanka', city: '',
         primaryCurrency: { code: 'LKR', symbol: 'Rs.' },
@@ -251,6 +253,58 @@ const BusinessSettings = ({ currentUser, showToast }) => {
                                         <div><label>Business Name</label><input value={businessData.businessName} onChange={e => setBusinessData({ ...businessData, businessName: e.target.value })} disabled={!isEditMode} className={inpCls} /></div>
                                         <div><label>Business Type</label><select value={businessData.businessType} onChange={e => setBusinessData({ ...businessData, businessType: e.target.value })} disabled={!isEditMode} className={inpCls}>{["Owner", "Partnership", "Private Limited", "Public Limited", "NGO"].map(t => <option key={t} value={t}>{t}</option>)}</select></div>
                                         <div><label>Registry Key</label><input value={businessData.registrationNumber} onChange={e => setBusinessData({ ...businessData, registrationNumber: e.target.value })} disabled={!isEditMode} className={inpCls} /></div>
+                                    </div>
+                                    <div className="bs2-grid bs2-grid-3" style={{ marginTop: '0.75rem' }}>
+                                        <div>
+                                            <label>Organization Code</label>
+                                            <input value={businessData.organizationCode} onChange={e => setBusinessData({ ...businessData, organizationCode: e.target.value })} disabled={!isEditMode} placeholder="e.g. mybussiness" className={inpCls} />
+                                        </div>
+                                        <div className="bs2-span-2">
+                                            <label>Object ID Format</label>
+                                            <div className="bs2-id-format-preview">
+                                                <KeyRound size={16} />
+                                                <code>{businessData.organizationCode || 'ORG'}/CLI/00001</code>
+                                                <span>All IDs use this pattern</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Organization Code Support Document */}
+                            <div className="bs2-card">
+                                <div className="bs2-card-head">
+                                    <div className="bs2-card-head-left">
+                                        <span className="bs2-icon" style={{ background: '#6366f115', color: '#6366f1' }}><FileText size={20} /></span>
+                                        <h3>Organization Code Support Document</h3>
+                                    </div>
+                                    {isRoot && <><EditBtn /><SaveCancelBtns /></>}
+                                </div>
+                                <div className="bs2-card-body">
+                                    <div className="bs2-logo-row">
+                                        <div className="bs2-logo-box">
+                                            {businessData.organizationCodeDocument ? (
+                                                <img src={businessData.organizationCodeDocument} alt="Support Document" />
+                                            ) : (
+                                                <div className="bs2-logo-empty">
+                                                    <PlusCircle size={32} />
+                                                    <span>No Document</span>
+                                                </div>
+                                            )}
+                                            {isEditMode && (
+                                                <input type="file" accept="image/*,application/pdf" onChange={(e) => {
+                                                    const file = e.target.files[0];
+                                                    if (file) {
+                                                        const reader = new FileReader();
+                                                        reader.onloadend = () => setBusinessData({ ...businessData, organizationCodeDocument: reader.result });
+                                                        reader.readAsDataURL(file);
+                                                    }
+                                                }} className="bs2-logo-input" title="Upload support document" />
+                                            )}
+                                        </div>
+                                        <p className="bs2-logo-hint">
+                                            Upload a supporting document (e.g. business registration, TIN certificate) that verifies the Organization Code.
+                                        </p>
                                     </div>
                                 </div>
                             </div>

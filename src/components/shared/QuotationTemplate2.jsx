@@ -53,18 +53,13 @@ const QuotationTemplate2 = React.forwardRef(({ quotation, business }, ref) => {
     const PAGE_W = b.pageWidth || 210;
     const PAGE_H = b.pageHeight || 297;
 
-    // Helper function to convert numeric totals to English Words
-    const numberToWords = (num) => {
+    // Helper function to convert a number to English Words
+    const intToWords = (num) => {
         const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
         const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
         const scales = ['', 'Thousand', 'Million', 'Billion', 'Trillion'];
 
         if (num === 0) return 'Zero';
-
-        const numStr = num.toFixed(2);
-        const parts = numStr.split('.');
-        const integerPart = parseInt(parts[0], 10);
-        const decimalPart = parseInt(parts[1], 10);
 
         const convertSection = (n) => {
             let str = '';
@@ -84,34 +79,49 @@ const QuotationTemplate2 = React.forwardRef(({ quotation, business }, ref) => {
 
         let result = '';
         let scaleIndex = 0;
-        let tempNum = integerPart;
+        let tempNum = num;
 
-        if (integerPart === 0) {
-            result = 'Zero';
-        } else {
-            while (tempNum > 0) {
-                const section = tempNum % 1000;
-                if (section > 0) {
-                    const sectionStr = convertSection(section);
-                    result = sectionStr + ' ' + (scales[scaleIndex] ? scales[scaleIndex] + ' ' : '') + result;
-                }
-                tempNum = Math.floor(tempNum / 1000);
-                scaleIndex++;
+        while (tempNum > 0) {
+            const section = tempNum % 1000;
+            if (section > 0) {
+                const sectionStr = convertSection(section);
+                result = sectionStr + ' ' + (scales[scaleIndex] ? scales[scaleIndex] + ' ' : '') + result;
             }
+            tempNum = Math.floor(tempNum / 1000);
+            scaleIndex++;
         }
 
-        result = result.trim();
+        return result.trim();
+    };
 
-        if (decimalPart > 0) {
-            const dOnes = ['Zero', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
-            const firstDigit = Math.floor(decimalPart / 10);
-            const secondDigit = decimalPart % 10;
-            result += ' point ' + dOnes[firstDigit] + ' ' + dOnes[secondDigit];
-        } else {
-            result += ' point Zero Zero';
-        }
+    // Currency-aware words: e.g. "Thirty Rupees and Thirty Cents"
+    const CURRENCY_WORDS = {
+        LKR: { main: 'Rupees', sub: 'Cents' },
+        USD: { main: 'Dollars', sub: 'Cents' },
+        EUR: { main: 'Euros', sub: 'Cents' },
+        GBP: { main: 'Pounds', sub: 'Pence' },
+        AUD: { main: 'Dollars', sub: 'Cents' },
+        CAD: { main: 'Dollars', sub: 'Cents' },
+        AED: { main: 'Dirhams', sub: 'Fils' },
+        SAR: { main: 'Riyals', sub: 'Halalas' },
+        INR: { main: 'Rupees', sub: 'Paise' },
+        JPY: { main: 'Yen', sub: 'Sen' },
+        CNY: { main: 'Yuan', sub: 'Fen' }
+    };
 
-        return result;
+    const numberToCurrencyWords = (num, currencyCode = 'LKR') => {
+        const code = String(currencyCode || 'LKR').toUpperCase();
+        const units = CURRENCY_WORDS[code] || { main: code, sub: 'Cents' };
+
+        const numStr = num.toFixed(2);
+        const parts = numStr.split('.');
+        const whole = parseInt(parts[0], 10) || 0;
+        const cents = parseInt(parts[1] || '00', 10);
+
+        const wholeWords = intToWords(whole);
+        const centsWords = intToWords(cents);
+
+        return `${wholeWords} ${units.main} and ${centsWords} ${units.sub}`;
     };
 
     const amountColumnHeader = q.hasTax
@@ -303,17 +313,16 @@ const QuotationTemplate2 = React.forwardRef(({ quotation, business }, ref) => {
 
             {/* AMOUNT IN WORDS */}
             <div style={{ fontSize: '11px', marginBottom: '12px', lineHeight: '1.4' }}>
-                <strong>Total Amount in words :</strong> {numberToWords(q.finalTotal)}
+                <strong>Total Amount in words :</strong> {numberToCurrencyWords(q.finalTotal, currencyCode)}
             </div>
 
             {/* BANK DETAILS */}
             {showBank && (
                 <div style={{ border: '1px solid #000', padding: '8px', fontSize: '10.5px', marginBottom: '15px', lineHeight: '1.5' }}>
                     <strong>Bank Details for Transfer:</strong>
-                    <div style={{ marginTop: '4px' }}>
-                        <div><strong>Bank:</strong> {b.bankName} — Account No: <strong>{b.bankAccountNumber}</strong> {b.branchName && `(Branch: ${b.branchName})`}</div>
-                        <div><strong>Account Name:</strong> {b.bankAccountName || b.businessName}</div>
-                    </div>
+                    <div style={{ marginTop: '4px', paddingLeft: '12px' }}>•&nbsp;&nbsp;Bank Name: {b.bankName} {b.branchName && `(Branch: ${b.branchName})`}</div>
+                    <div style={{ paddingLeft: '12px' }}>•&nbsp;&nbsp;Account Name: {b.bankAccountName || b.businessName}</div>
+                    <div style={{ paddingLeft: '12px' }}>•&nbsp;&nbsp;Account Number: {b.bankAccountNumber}</div>
                 </div>
             )}
 

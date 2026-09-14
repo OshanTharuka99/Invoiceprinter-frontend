@@ -480,6 +480,21 @@ const QuotationManagement = ({ currentUser, showToast }) => {
                                             </div>
                                         </div>
 
+                                        {/* PROJECT SELECT */}
+                                        <div style={{ marginBottom: '1.5rem' }}>
+                                            <label style={labelStyle}>Project</label>
+                                            <select
+                                                value={form.projectId}
+                                                onChange={e => setForm(prev => ({ ...prev, projectId: e.target.value }))}
+                                                style={{ ...inputStyle, background: '#fff' }}
+                                            >
+                                                <option value="">N/A — No Project</option>
+                                                {projects.map(p => (
+                                                    <option key={p._id} value={p._id}>{p.name} ({p.projectId})</option>
+                                                ))}
+                                            </select>
+                                        </div>
+
                                         {/* QUOTATION VALIDITY */}
                                         <div style={{ marginBottom: '1.5rem', padding: '1.5rem', borderRadius: '16px', background: '#f8fafc', border: '1px solid #e2e8f0' }}>
                                             <h4 style={{ margin: '0 0 1rem 0', color: '#0f172a' }}>2. Quotation Validity</h4>

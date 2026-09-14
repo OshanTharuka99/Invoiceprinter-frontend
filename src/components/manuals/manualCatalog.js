@@ -442,6 +442,59 @@ export const MODULE_MANUALS = {
             },
         ],
     },
+
+    cash_receipt: {
+        title: 'Cash Receipts',
+        accent: '#0f172a',
+        overview: 'Record money collected from customers as cash, bank transfer, or cheque, and print a professional one-page A4 cash receipt. Link the receipt to a project, quotation, and invoice for full traceability.',
+        sections: [
+            {
+                title: 'Access',
+                blocks: [
+                    b('Available in the Admin portal under Cash Receipts.'),
+                    b('Admin and Root can create, view, and void cash receipts.'),
+                ],
+            },
+            {
+                title: 'Create a Cash Receipt',
+                blocks: [
+                    s(1, 'Open Cash Receipts → Create Receipt.'),
+                    s(2, 'Choose Select Client (uses the client directory) or Manual Entry for a walk-in customer.'),
+                    s(3, 'Select the Project, Quotation No (optional), and Invoice No (optional). Use N/A when not linked.'),
+                    s(4, 'Enter the Amount Received. The amount in words is generated automatically.'),
+                    s(5, 'Select the Payment Method: Cash, Bank, or Cheque.'),
+                    s(6, 'If Cheque is selected, enter the Cheque No (shown on the receipt).'),
+                    s(7, 'Add a Purpose of Payment note describing what the money is for.'),
+                    s(8, 'Save, then use A4 Print / PDF to print or save the receipt.'),
+                ],
+            },
+            {
+                title: 'Linking Documents',
+                blocks: [
+                    b('Project, Quotation, and Invoice lists are filtered by the selected client — pick the right one for the payment.'),
+                    b('Quotation and invoice numbers print in their own sections on the receipt.'),
+                    b('Receipt numbers are generated automatically from the prefix / digits configured in General Settings → Document Format.'),
+                ],
+            },
+            {
+                title: 'Void a Receipt',
+                blocks: [
+                    s(1, 'Open the receipt from the list.'),
+                    s(2, 'Choose Void from the receipt actions.'),
+                    s(3, 'Enter a Void Note (reason).'),
+                    s(4, 'Save — the receipt shows a VOID watermark and keeps the note on printouts.'),
+                    b('Voided receipts stay visible on the list for audit and cannot be silently deleted.'),
+                ],
+            },
+            {
+                title: 'Document Format',
+                blocks: [
+                    b('Customize title/divider colors, logo, terminology, and number prefix/digits in General Settings → Document Format → Cash Receipt Settings.'),
+                    b('If no separate cash receipt logo is uploaded, the organization logo is used.'),
+                ],
+            },
+        ],
+    },
 };
 
 export function getModuleManual(id) {

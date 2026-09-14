@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import {
     LifeBuoy, FileText, ScrollText, Package, Truck, Undo2, RotateCcw,
     Wrench, Users, Briefcase, Shield, ShieldCheck, Settings, LayoutDashboard,
-    Search, ChevronRight, BookOpen,
+    Search, ChevronRight, BookOpen, Banknote,
 } from 'lucide-react';
 import api from '../../api';
 import { MODULE_MANUALS } from './manualCatalog';
@@ -13,6 +13,7 @@ import './SupportCenter.css';
 const MANUAL_META = [
     { id: 'dashboard', label: 'Dashboard', blurb: 'KPIs, periods, and status charts', icon: LayoutDashboard, roles: ['all'] },
     { id: 'invoice', label: 'Invoice Engine', blurb: 'Create, edit, cancel, and print invoices', icon: FileText, roles: ['all'] },
+    { id: 'cash_receipt', label: 'Cash Receipts', blurb: 'Record payments, link & print receipts', icon: Banknote, roles: ['admin', 'root'] },
     { id: 'proma_invoice', label: 'Proma Invoice', blurb: 'Proforma estimates — no stock or warranty', icon: ScrollText, roles: ['all'] },
     { id: 'quotation', label: 'Quotation Engine', blurb: 'Quotes, approval status, convert flow', icon: ScrollText, roles: ['all'] },
     { id: 'purchase_order', label: 'Purchase Orders', blurb: 'Supplier orders and PO printouts', icon: Package, roles: ['admin', 'root'] },

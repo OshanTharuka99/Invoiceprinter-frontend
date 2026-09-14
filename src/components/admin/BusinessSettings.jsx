@@ -50,6 +50,9 @@ const BusinessSettings = ({ currentUser, showToast }) => {
         rmaPrefix: 'RMA', rmaDigits: 5,
         rmaTitleColor: '#c2410c', rmaDividerColor: '#c2410c',
         rmaTerms: 'RMA processed as per company warranty / service policy.', rmaNotes: '',
+        cashReceiptPrefix: 'CR', cashReceiptDigits: 5,
+        cashReceiptTitleColor: '#0f172a', cashReceiptDividerColor: '#0f172a',
+        cashReceiptTerms: '', cashReceiptNotes: '',
         defaultWarrantyPeriod: '1 year',
         quotationTerms: 'Standard terms and conditions apply.', quotationNotes: '',
         invoiceTerms: 'Standard invoice terms and conditions apply.', invoiceNotes: '',
@@ -99,6 +102,12 @@ const BusinessSettings = ({ currentUser, showToast }) => {
                     rmaDividerColor: details.rmaDividerColor || '#c2410c',
                     rmaTerms: details.rmaTerms || 'RMA processed as per company warranty / service policy.',
                     rmaNotes: details.rmaNotes || '',
+                    cashReceiptPrefix: details.cashReceiptPrefix || 'CR',
+                    cashReceiptDigits: details.cashReceiptDigits || 5,
+                    cashReceiptTitleColor: details.cashReceiptTitleColor || '#0f172a',
+                    cashReceiptDividerColor: details.cashReceiptDividerColor || '#0f172a',
+                    cashReceiptTerms: details.cashReceiptTerms || '',
+                    cashReceiptNotes: details.cashReceiptNotes || '',
                     defaultWarrantyPeriod: details.defaultWarrantyPeriod || '1 year',
                     stores: details.stores || []
                 });
@@ -234,6 +243,29 @@ const BusinessSettings = ({ currentUser, showToast }) => {
                                         </div>
                                         <p className="bs2-logo-hint">
                                             Upload a high-quality logo. This logo will be cleanly embedded into all dynamically generated PDF quotations.
+                                        </p>
+                                        <div className="bs2-logo-box">
+                                            {businessData.cashReceiptLogo ? (
+                                                <img src={businessData.cashReceiptLogo} alt="Cash Receipt Logo" />
+                                            ) : (
+                                                <div className="bs2-logo-empty">
+                                                    <PlusCircle size={32} />
+                                                    <span>Empty</span>
+                                                </div>
+                                            )}
+                                            {isEditMode && (
+                                                <input type="file" accept="image/*" onChange={(e) => {
+                                                    const file = e.target.files[0];
+                                                    if (file) {
+                                                        const reader = new FileReader();
+                                                        reader.onloadend = () => setBusinessData({ ...businessData, cashReceiptLogo: reader.result });
+                                                        reader.readAsDataURL(file);
+                                                    }
+                                                }} className="bs2-logo-input" title="Upload new Cash Receipt logo" />
+                                            )}
+                                        </div>
+                                        <p className="bs2-logo-hint">
+                                            Cash Receipt logo (optional). If not set, the quotation logo above is used on receipts.
                                         </p>
                                     </div>
                                 </div>
@@ -808,6 +840,36 @@ const BusinessSettings = ({ currentUser, showToast }) => {
                                         <div className="bs2-doc-right">
                                             <div><label>RMA Terms</label><textarea value={businessData.rmaTerms || ''} onChange={e => setBusinessData({ ...businessData, rmaTerms: e.target.value })} disabled={!isEditMode} className={`${inpCls} bs2-ta`} placeholder="Enter standard RMA terms..." /></div>
                                             <div><label>Default RMA Notes</label><textarea value={businessData.rmaNotes || ''} onChange={e => setBusinessData({ ...businessData, rmaNotes: e.target.value })} disabled={!isEditMode} className={`${inpCls} bs2-ta`} placeholder="Enter default notes..." /></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Cash Receipt */}
+                            <div className="bs2-card">
+                                <div className="bs2-card-head">
+                                    <div className="bs2-card-head-left">
+                                        <span className="bs2-icon" style={{ background: '#0f172a15', color: '#0f172a' }}><Receipt size={20} /></span>
+                                        <h3>Cash Receipt Settings</h3>
+                                    </div>
+                                    <ColorPreview titleColor={businessData.cashReceiptTitleColor} dividerColor={businessData.cashReceiptDividerColor} title="CASH RECEIPT" />
+                                    {isRoot && <><EditBtn /><SaveCancelBtns /></>}
+                                </div>
+                                <div className="bs2-card-body">
+                                    <div className="bs2-doc-grid">
+                                        <div className="bs2-doc-left">
+                                            <div className="bs2-grid bs2-grid-2">
+                                                <div><label>Prefix</label><input value={businessData.cashReceiptPrefix} onChange={e => setBusinessData({ ...businessData, cashReceiptPrefix: e.target.value })} disabled={!isEditMode} className={inpCls} placeholder="e.g. CR" /></div>
+                                                <div><label>Digits</label><input type="number" min="2" max="10" value={businessData.cashReceiptDigits} onChange={e => setBusinessData({ ...businessData, cashReceiptDigits: parseInt(e.target.value, 10) || 5 })} disabled={!isEditMode} className={inpCls} placeholder="5" /></div>
+                                            </div>
+                                            <div className="bs2-grid bs2-grid-2" style={{ marginTop: '0.75rem' }}>
+                                                <ColorPicker label="Title Color" value={businessData.cashReceiptTitleColor} onChange={v => setBusinessData({ ...businessData, cashReceiptTitleColor: v })} disabled={!isEditMode} icon={Type} />
+                                                <ColorPicker label="Divider Color" value={businessData.cashReceiptDividerColor} onChange={v => setBusinessData({ ...businessData, cashReceiptDividerColor: v })} disabled={!isEditMode} icon={Minus} />
+                                            </div>
+                                        </div>
+                                        <div className="bs2-doc-right">
+                                            <div><label>Cash Receipt Terms</label><textarea value={businessData.cashReceiptTerms } onChange={e => setBusinessData({ ...businessData, cashReceiptTerms: e.target.value })} disabled={!isEditMode} className={`${inpCls} bs2-ta`} placeholder="Enter standard receipt terms..." /></div>
+                                            <div><label>Default Cash Receipt Notes</label><textarea value={businessData.cashReceiptNotes} onChange={e => setBusinessData({ ...businessData, cashReceiptNotes: e.target.value })} disabled={!isEditMode} className={`${inpCls} bs2-ta`} placeholder="Enter default notes..." /></div>
                                         </div>
                                     </div>
                                 </div>

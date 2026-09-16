@@ -5,6 +5,7 @@ import api from '../../api';
 import useSubmitGuard from '../../utils/useSubmitGuard';
 import PriceInput from '../../utils/PriceInput';
 import { calculateDocumentTotals } from '../../utils/calculateDocumentTotals';
+import { currencyLabel, formatNumber } from '../../utils/currency';
 import { openA4PrintWindow, buildPrintFileName } from '../../utils/printDocument';
 import InvoiceTemplate from './InvoiceTemplate';
 import InvoiceTemplate2 from './InvoiceTemplate2';
@@ -81,6 +82,8 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
         quotationRef: null
     };
     const [form, setForm] = useState(initialForm);
+    const [availableAdvances, setAvailableAdvances] = useState([]);
+    const [selectedAdvanceIds, setSelectedAdvanceIds] = useState([]);
     const [applyDiscountMode, setApplyDiscountMode] = useState(false);
     const [customDiscount, setCustomDiscount] = useState({ type: 'percentage', value: 0 });
 
@@ -154,6 +157,57 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
 
     const calculateTotals = applyFormTotals;
 
+    const fetchAdvancesForProject = async (projectId, { includeInvoiceReceipts = [] } = {}) => {
+        if (!projectId) {
+            setAvailableAdvances([]);
+            setSelectedAdvanceIds([]);
+            return;
+        }
+        try {
+            const res = await api.get('/cash-receipts/advances', { params: { projectId } });
+            let list = res.data?.data || [];
+            const present = new Set(list.map(r => String(r._id)));
+            (includeInvoiceReceipts || []).forEach(ir => {
+                const ref = ir.receiptRef;
+                if (ref?._id && !present.has(String(ref._id))) {
+                    list = [...list, {
+                        _id: ref._id,
+                        receiptNumber: ref.receiptNumber || 'CR',
+                        receiptDate: ref.receiptDate || null,
+                        amountReceived: Number(ir.amount) || Number(ref.amountReceived) || 0,
+                        paymentMethod: ref.paymentMethod || 'cash',
+                        alreadyApplied: true
+                    }];
+                    present.add(String(ref._id));
+                }
+            });
+            setAvailableAdvances(list);
+            setSelectedAdvanceIds(includeInvoiceReceipts
+                .map(ir => (ir.receiptRef?._id ? String(ir.receiptRef._id) : null)).filter(Boolean));
+        } catch (err) {
+            setAvailableAdvances([]);
+            setSelectedAdvanceIds([]);
+        }
+    };
+
+    const CR = currencyLabel(businessData?.primaryCurrency);
+
+    const selectedAdvanceSum = availableAdvances
+        .filter(r => selectedAdvanceIds.includes(String(r._id)))
+        .reduce((s, r) => s + (Number(r.amountReceived) || 0), 0);
+
+    const toggleAdvanceReceipt = (receipt) => {
+        const id = String(receipt._id);
+        const next = selectedAdvanceIds.includes(id)
+            ? selectedAdvanceIds.filter(x => x !== id)
+            : [...selectedAdvanceIds, id];
+        setSelectedAdvanceIds(next);
+        const sum = availableAdvances
+            .filter(r => next.includes(String(r._id)))
+            .reduce((s, r) => s + (Number(r.amountReceived) || 0), 0);
+        setForm(f => applyFormTotals({ ...f, hasAdvancePayment: true, advanceAmount: sum }));
+    };
+
     const openCreation = (mode, source = 'blank', sourceId = null) => {
         if (mode === 'manual' && !isAdmin) {
             showToast?.('Manual invoice creation is restricted to admin users', 'error');
@@ -184,6 +238,8 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
             taxTotal: 0,
             items: mode === 'automatic' ? form.items : []
         });
+        setAvailableAdvances([]);
+        setSelectedAdvanceIds([]);
         setSelectedSerialsPerItem({});
         setManualSerialInput('');
         setIsCreateModalOpen(true);
@@ -303,6 +359,7 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
                 deliveryNoteRef: null,
                 quotationRef: qData.quotationId
             }));
+            if (qData.projectId) fetchAdvancesForProject(qData.projectId);
             showToast?.(`Loaded from ${qData.quotationNumber}`);
         } catch (error) {
             showToast?.(error.response?.data?.message || 'Failed to load quotation', 'error');
@@ -349,6 +406,7 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
                 deliveryNoteRef: dnData.deliveryNoteId,
                 quotationRef: null
             }));
+            if (dnData.projectId) fetchAdvancesForProject(dnData.projectId);
             showToast?.(`Loaded from ${dnData.deliveryNoteNumber}`);
         } catch (error) {
             showToast?.('Failed to load delivery note', 'error');
@@ -391,6 +449,12 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
             return;
         }
         setForm({ ...form, projectId: value });
+        if (value) {
+            fetchAdvancesForProject(value);
+        } else {
+            setAvailableAdvances([]);
+            setSelectedAdvanceIds([]);
+        }
     };
 
     const isClientProjectLocked = !!(
@@ -436,7 +500,12 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
 
         await runGuarded(async () => {
             try {
-                const payload = { ...form, creationMethod: creationMode };
+                const advanceReceipts = selectedAdvanceIds
+                    .map(id => availableAdvances.find(r => String(r._id) === String(id)))
+                    .filter(Boolean)
+                    .map(r => ({ receiptRef: r._id, amount: Number(r.amountReceived) || 0 }));
+
+                const payload = { ...form, creationMethod: creationMode, advanceReceipts };
                 if (payload.paymentMethod === 'cash') {
                     payload.status = 'Paid';
                 }
@@ -494,6 +563,11 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
             currency: inv.currency || 'primary',
             status: inv.status,
             invoiceDate: new Date(inv.invoiceDate).toISOString().split('T')[0]
+        });
+        setAvailableAdvances([]);
+        setSelectedAdvanceIds([]);
+        fetchAdvancesForProject(inv.projectId?._id || inv.projectId || '', {
+            includeInvoiceReceipts: inv.advanceReceipts || []
         });
         setIsCreateModalOpen(true);
     };
@@ -971,6 +1045,7 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
                                                 checked={form.hasAdvancePayment}
                                                 onChange={e => {
                                                     const checked = e.target.checked;
+                                                    if (!checked) setSelectedAdvanceIds([]);
                                                     setForm(prev => applyFormTotals({
                                                         ...prev,
                                                         hasAdvancePayment: checked,
@@ -983,10 +1058,39 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
                                         </label>
                                         {form.hasAdvancePayment && (
                                             <div style={{ marginTop: '0.85rem' }}>
+                                                {availableAdvances.length > 0 && (
+                                                    <>
+                                                        <label style={labelStyle}>
+                                                            Select Advance Receipts {form.projectId && projects.find(pp => String(pp._id) === String(form.projectId)) ? `(${projects.find(pp => String(pp._id) === String(form.projectId)).name})` : ''}
+                                                        </label>
+                                                        <div style={{ maxHeight: '180px', overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '0.35rem' }}>
+                                                            {availableAdvances.map(r => {
+                                                                const selected = selectedAdvanceIds.includes(String(r._id));
+                                                                return (
+                                                                    <label key={r._id} style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.45rem 0.5rem', borderRadius: '8px', cursor: 'pointer', background: selected ? '#ecfdf5' : '#fff', marginBottom: '2px' }}>
+                                                                        <input type="checkbox" checked={selected} onChange={() => toggleAdvanceReceipt(r)} style={{ width: 15, height: 15, cursor: 'pointer', flexShrink: 0 }} />
+                                                                        <span style={{ fontWeight: 800, fontSize: '0.72rem', color: '#0f172a' }}>{r.receiptNumber}</span>
+                                                                        <span style={{ color: '#64748b', fontSize: '0.7rem' }}>{r.receiptDate ? new Date(r.receiptDate).toLocaleDateString('en-GB') : ''}</span>
+                                                                        {r.alreadyApplied && <span style={{ fontSize: '0.62rem', fontWeight: 700, background: '#eff6ff', color: '#2563eb', padding: '2px 6px', borderRadius: '6px' }}>Applied</span>}
+                                                                        <span style={{ marginLeft: 'auto', fontWeight: 800, fontSize: '0.72rem', color: '#047857' }}>{CR} {formatNumber(r.amountReceived)}</span>
+                                                                    </label>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                        <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '0.35rem', fontWeight: 600 }}>
+                                                            Select one or more advance receipts — their total becomes this invoice's advance amount.
+                                                        </div>
+                                                        {selectedAdvanceSum > 0 && (
+                                                            <div style={{ fontSize: '0.72rem', color: '#047857', marginTop: '0.35rem', fontWeight: 800 }}>
+                                                                Selected total: {CR} {formatNumber(selectedAdvanceSum)} — deducted from the balance due.
+                                                            </div>
+                                                        )}
+                                                    </>
+                                                )}
                                                 <label style={labelStyle}>Advance Amount Paid</label>
                                                 <div style={{ position: 'relative', maxWidth: '240px' }}>
                                                     <span style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', fontSize: '0.75rem' }}>
-                                                        {businessData?.primaryCurrency?.symbol || 'Rs.'}
+                                                        {CR}
                                                     </span>
                                                     <PriceInput
                                                         value={form.advanceAmount}
@@ -1274,6 +1378,11 @@ const InvoiceManagement = ({ currentUser, showToast }) => {
                                         <option value="Paid">Paid</option>
                                     </select>
                                     {form.paymentMethod === 'cash' && <div style={{ fontSize: '0.7rem', color: '#10b981', marginTop: '0.3rem', fontWeight: 700 }}>✓ Cash invoices are automatically Paid</div>}
+                                    {form.paymentMethod !== 'credit' && (
+                                        <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '0.3rem', fontWeight: 600 }}>
+                                            A cash receipt ({CR} {formatNumber(form.finalTotal - (form.hasAdvancePayment ? form.advanceAmount || 0 : 0))}) will be automatically created for this payment.
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* SERIAL NUMBER REVIEW */}

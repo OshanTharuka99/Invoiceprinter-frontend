@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
-import { Briefcase, Plus, X, Edit2, Trash2, Search, RefreshCw, AlertTriangle, UserCircle2, FileText, MapPin, Calendar, Landmark, Info, DollarSign, TrendingUp, CheckCircle2, Clock, FolderKanban, Building2 } from 'lucide-react';
+import { Briefcase, Plus, X, Edit2, Trash2, Search, RefreshCw, AlertTriangle, UserCircle2, FileText, MapPin, Calendar, Landmark, Info, DollarSign, TrendingUp, CheckCircle2, Clock, FolderKanban, Building2, CreditCard, HandCoins } from 'lucide-react';
 import api from '../../api';
 import useSubmitGuard from '../../utils/useSubmitGuard';
+import { currencyLabel, formatNumber } from '../../utils/currency';
 import './ProjectManagement.css';
 import '../../styles/modern-table.css';
 
@@ -22,19 +23,28 @@ const ProjectManagement = ({ currentUser, showToast }) => {
 
     const [isInlineClient, setIsInlineClient] = useState(false);
     const [inlineClientForm, setInlineClientForm] = useState({ firstName: '', lastName: '', clientType: 'Business', telephoneNumber: '', whatsappNumber: '', emailAddress: '', address: '' });
+    const [business, setBusiness] = useState(null);
     const { isSubmitting, runGuarded } = useSubmitGuard();
 
     const fetchData = async () => {
         setLoading(true);
         try {
-            const [projRes, cliRes] = await Promise.all([api.get('/projects'), api.get('/clients')]);
-            setProjects(projRes.data.data);
-            setClients(cliRes.data.data);
+            const [projRes, cliRes, bizRes] = await Promise.allSettled([
+                api.get('/projects'),
+                api.get('/clients'),
+                api.get('/business')
+            ]);
+            if (projRes.status === 'fulfilled') setProjects(projRes.value.data.data);
+            if (cliRes.status === 'fulfilled') setClients(cliRes.value.data.data);
+            if (bizRes.status === 'fulfilled') setBusiness(bizRes.value.data);
         } catch (error) { showToast?.('Failed to load project database', 'error'); }
         finally { setLoading(false); }
     };
 
     useEffect(() => { fetchData(); }, []);
+
+    const CR = currencyLabel(business?.primaryCurrency);
+    const fmtValue = (n) => `${CR} ${formatNumber(n)}`;
 
     const openModal = (proj = null) => {
         if (proj) {
@@ -90,7 +100,7 @@ const ProjectManagement = ({ currentUser, showToast }) => {
                 {[
                     { label: 'Total Projects', value: projects.length, icon: FolderKanban, variant: 'blue' },
                     { label: 'Active Projects', value: activeProjects, icon: CheckCircle2, variant: 'green' },
-                    { label: 'Portfolio Value', value: `Rs. ${totalValue.toLocaleString()}`, icon: DollarSign, variant: 'amber', isText: true },
+                    { label: 'Portfolio Value', value: fmtValue(totalValue), icon: DollarSign, variant: 'amber', isText: true },
                     { label: 'Clients', value: clients.length, icon: Building2, variant: 'indigo' },
                 ].map((stat, idx) => {
                     const Icon = stat.icon;
@@ -194,7 +204,7 @@ const ProjectManagement = ({ currentUser, showToast }) => {
                                                 </div>
                                             </td>
                                             <td className="text-right">
-                                                <span className="modern-table-cell-value green">${(p.value || 0).toLocaleString()}</span>
+                                                <span className="modern-table-cell-value green">{fmtValue(p.value || 0)}</span>
                                             </td>
                                             <td className="text-center">
                                                 <span className={`modern-table-status ${statusClass}`}>
@@ -238,7 +248,7 @@ const ProjectManagement = ({ currentUser, showToast }) => {
                     </div>
                     <div className="modern-table-footer">
                         <span className="footer-info">Showing {filtered.length} of {projects.length} projects</span>
-                        <span className="footer-total">Total Value: <span className="total-value">Rs. {totalValue.toLocaleString()}</span></span>
+                        <span className="footer-total">Total Value: <span className="total-value">{fmtValue(totalValue)}</span></span>
                     </div>
                 </div>
             )}
@@ -274,7 +284,7 @@ const ProjectManagement = ({ currentUser, showToast }) => {
                                     { icon: Building2, label: 'ASSIGNED CLIENT', value: `${viewProject.client?.firstName} ${viewProject.client?.lastName}` },
                                     { icon: MapPin, label: 'LOCATION', value: viewProject.location || 'Undetermined' },
                                     { icon: Calendar, label: 'TIMELINE', value: `${viewProject.startDate ? new Date(viewProject.startDate).toLocaleDateString() : 'TBD'} → ${viewProject.endDate ? new Date(viewProject.endDate).toLocaleDateString() : 'TBD'}` },
-                                    { icon: DollarSign, label: 'VALUATION', value: `$${(viewProject.value || 0).toLocaleString()}`, color: '#059669' }
+                                    { icon: DollarSign, label: 'VALUATION', value: fmtValue(viewProject.value || 0), color: '#059669' }
                                 ].map((item, idx) => (
                                     <div key={idx} style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '16px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '1rem' }}>
                                         <div style={{ background: '#fff', padding: '10px', borderRadius: '12px', display: 'flex' }}><item.icon size={18} color="#64748b" /></div>
@@ -284,6 +294,37 @@ const ProjectManagement = ({ currentUser, showToast }) => {
                                         </div>
                                     </div>
                                 ))}
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                    <div style={{ background: '#fffbeb', padding: '1.25rem', borderRadius: '16px', border: '1px solid #fde68a', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                        <div style={{ background: '#fff', padding: '10px', borderRadius: '12px', display: 'flex' }}><CreditCard size={18} color="#d97706" /></div>
+                                        <div>
+                                            <div style={{ fontSize: '0.65rem', fontWeight: 800, color: '#b45309', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Credit Value</div>
+                                            <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#b45309', marginTop: '0.25rem' }}>{fmtValue(viewProject.creditValue || 0)}</div>
+                                        </div>
+                                    </div>
+                                    <div style={{ background: '#eff6ff', padding: '1.25rem', borderRadius: '16px', border: '1px solid #bfdbfe', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                        <div style={{ background: '#fff', padding: '10px', borderRadius: '12px', display: 'flex' }}><HandCoins size={18} color="#2563eb" /></div>
+                                        <div>
+                                            <div style={{ fontSize: '0.65rem', fontWeight: 800, color: '#1d4ed8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Advances Received</div>
+                                            <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#1d4ed8', marginTop: '0.25rem' }}>{fmtValue(viewProject.advanceTotal || 0)}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {(viewProject.advanceReceipts && viewProject.advanceReceipts.length > 0) && (
+                                    <div style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
+                                        <div style={{ fontSize: '0.65rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.75rem' }}>
+                                            Awaiting Invoice — Advance Receipts ({viewProject.advanceReceipts.length})
+                                        </div>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                            {viewProject.advanceReceipts.map(r => (
+                                                <div key={r._id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '0.65rem 0.9rem' }}>
+                                                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#0f172a' }}>{r.receiptNumber}</span>
+                                                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#2563eb' }}>{fmtValue(r.amountReceived || 0)}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                             <motion.button whileTap={{ scale: 0.98 }} onClick={() => setViewProject(null)} style={{ background: '#0f172a', color: '#fff', border: 'none', borderRadius: '14px', width: '100%', padding: '1rem', fontWeight: 700, fontSize: '0.875rem', cursor: 'pointer', marginTop: '2rem' }}>Close</motion.button>
                         </motion.div>
@@ -348,7 +389,7 @@ const ProjectManagement = ({ currentUser, showToast }) => {
                                     <input value={form.location} onChange={e => setForm({...form, location: e.target.value})} style={{ width: '100%', background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: '10px', padding: '0.75rem', fontSize: '0.875rem', outline: 'none', boxSizing: 'border-box' }} />
                                 </div>
                                 <div style={{ marginBottom: '2rem' }}>
-                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, color: '#64748b', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Value ($)</label>
+                                    <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, color: '#64748b', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Value ({CR})</label>
                                     <input type="number" value={form.value} onChange={e => setForm({...form, value: parseFloat(e.target.value) || 0})} style={{ width: '100%', background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: '10px', padding: '0.75rem', fontSize: '0.875rem', outline: 'none', boxSizing: 'border-box' }} />
                                 </div>
                                 <motion.button whileTap={{ scale: isSubmitting ? 1 : 0.98 }} type="submit" disabled={isSubmitting} style={{ width: '100%', background: isSubmitting ? '#94a3b8' : 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: '#fff', border: 'none', borderRadius: '14px', padding: '1rem', fontWeight: 700, fontSize: '0.875rem', cursor: isSubmitting ? 'not-allowed' : 'pointer', boxShadow: '0 4px 12px rgba(16, 185, 129, 0.35)' }}>{isSubmitting ? 'Processing...' : (editingProject ? 'Update Project' : 'Create Project')}</motion.button>

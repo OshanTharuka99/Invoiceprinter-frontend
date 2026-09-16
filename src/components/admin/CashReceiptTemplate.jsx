@@ -6,7 +6,12 @@ const CashReceiptTemplate = React.forwardRef(({ receipt, business, docNos = {} }
     const b = business;
     const r = receipt;
 
-    const currencySymbol = b.primaryCurrency?.symbol || 'Rs.';
+    const currencySymbol = (() => {
+        const s = b.primaryCurrency?.symbol;
+        const c = b.primaryCurrency?.code;
+        if (['$', '€', '£', '₹', 'د.إ'].includes(s)) return s;
+        return c || 'LKR';
+    })();
 
     const fmt = (d) => {
         if (!d) return '—';
@@ -178,8 +183,10 @@ const CashReceiptTemplate = React.forwardRef(({ receipt, business, docNos = {} }
                                 lineHeight: 1.1,
                                 marginBottom: '8px'
                             }}>
-                                Cash Receipt
-                            </div>
+{
+                                        r.receiptType === 'advance' ? 'Advance Receipt' : 'Cash Receipt'
+                                    }
+                                </div>
                             <table style={{ marginLeft: 'auto', borderCollapse: 'collapse', minWidth: '210px' }}>
                                 <tbody>
                                     <tr>

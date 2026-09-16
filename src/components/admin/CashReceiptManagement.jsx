@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Banknote, Plus, Search, RefreshCw, Download, Trash2, X, FileText, AlertTriangle, Calendar, Users, Eye, Building2, Phone, MapPin, CheckCircle2, XCircle, Printer } from 'lucide-react';
+import { Banknote, Plus, Search, RefreshCw, Download, Trash2, X, FileText, AlertTriangle, Calendar, Users, Eye, Building2, Phone, MapPin, CheckCircle2, XCircle, Printer, CreditCard } from 'lucide-react';
 import api from '../../api';
 import useSubmitGuard from '../../utils/useSubmitGuard';
 import { openA4PrintWindow, buildPrintFileName } from '../../utils/printDocument';
+import { currencyLabel, formatNumber } from '../../utils/currency';
 import CashReceiptTemplate from './CashReceiptTemplate';
 import './CashReceiptManagement.css';
 import '../../styles/modern-table.css';
@@ -37,6 +38,7 @@ const CashReceiptManagement = ({ showToast }) => {
         projectRef: '',
         quotationRef: '',
         invoiceRef: '',
+        receiptType: 'payment',
         receiptDate: new Date().toISOString().slice(0, 10),
         description: ''
     });
@@ -86,10 +88,9 @@ const CashReceiptManagement = ({ showToast }) => {
         return new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
     };
 
-    const fmtMoney = (n) => {
-        const num = Number(n) || 0;
-        return num.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
-    };
+    const fmtMoney = (n) => formatNumber(n);
+
+    const CR = currencyLabel(businessData?.primaryCurrency);
 
     const clientName = (r) => {
         if (r.clientRef) {
@@ -114,6 +115,9 @@ const CashReceiptManagement = ({ showToast }) => {
         ? projects.filter(p => String(p.client?._id || '') === String(form.clientRef))
         : projects;
 
+    const selectedProject = projects.find(p => String(p._id) === String(form.projectRef));
+    const projectCreditValue = form.receiptType === 'payment' ? Number(selectedProject?.creditValue || 0) : 0;
+
     const projectDocNos = (pid) => {
         let qt = '';
         let inv = '';
@@ -133,8 +137,16 @@ const CashReceiptManagement = ({ showToast }) => {
     const visibleInvoices = invoices.filter(i => {
         const pidMatch = !form.projectRef || String(i.projectId?._id || i.projectId) === String(form.projectRef);
         const cidMatch = !form.clientRef || String(i.clientRef?._id || i.clientRef || '') === String(form.clientRef);
-        return pidMatch && cidMatch;
+        // Only show non-cancelled invoices that still have an outstanding balance
+        return pidMatch && cidMatch && i.status !== 'Cancelled' && (i.outstandingBalance ?? 0) > 0;
     });
+
+    const selectedInvoice = invoices.find(i => String(i._id) === String(form.invoiceRef));
+    const invoiceOutstanding = form.receiptType === 'payment' && selectedInvoice
+        ? Number(selectedInvoice.outstandingBalance ?? 0) : 0;
+
+    // The effective cap for the amount field: invoice outstanding takes priority over project credit
+    const effectiveAmountCap = invoiceOutstanding > 0 ? invoiceOutstanding : projectCreditValue;
 
     const resetForm = () => {
         setForm({
@@ -147,12 +159,18 @@ const CashReceiptManagement = ({ showToast }) => {
             projectRef: '',
             quotationRef: '',
             invoiceRef: '',
+            receiptType: 'payment',
             receiptDate: new Date().toISOString().slice(0, 10),
             description: ''
         });
     };
 
     const handleCreate = async () => {
+        const amount = Number(form.amountReceived) || 0;
+        if (!amount || amount <= 0) return showToast?.('Enter the amount received', 'error');
+        if (effectiveAmountCap > 0 && amount > effectiveAmountCap) {
+            return showToast?.(`Amount cannot exceed ${CR} ${formatNumber(effectiveAmountCap)}`, 'error');
+        }
         await runGuarded(async () => {
             try {
                 const payload = {
@@ -164,6 +182,7 @@ const CashReceiptManagement = ({ showToast }) => {
                     projectRef: form.projectRef || null,
                     quotationRef: form.quotationRef || null,
                     invoiceRef: form.invoiceRef || null,
+                    receiptType: form.receiptType,
                     receiptDate: form.receiptDate ? new Date(form.receiptDate) : undefined,
                     description: form.description
                 };
@@ -213,14 +232,14 @@ const CashReceiptManagement = ({ showToast }) => {
                 <div className="cr-stat-card green">
                     <div className="cr-stat-icon green"><Banknote size={22} /></div>
                     <div className="cr-stat-body">
-                        <div className="cr-stat-value">Rs. {fmtMoney(stats.todayTotal)}</div>
+                        <div className="cr-stat-value">{CR} {fmtMoney(stats.todayTotal)}</div>
                         <div className="cr-stat-label">Collected Today ({stats.todayCount})</div>
                     </div>
                 </div>
                 <div className="cr-stat-card indigo">
                     <div className="cr-stat-icon indigo"><Calendar size={22} /></div>
                     <div className="cr-stat-body">
-                        <div className="cr-stat-value">Rs. {fmtMoney(stats.monthTotal)}</div>
+                        <div className="cr-stat-value">{CR} {fmtMoney(stats.monthTotal)}</div>
                         <div className="cr-stat-label">Collected This Month ({stats.monthCount})</div>
                     </div>
                 </div>
@@ -288,7 +307,7 @@ const CashReceiptManagement = ({ showToast }) => {
                             <tbody>
                                 {receipts.map(r => (
                                     <tr key={r._id}>
-                                        <td><span className="cr-badge cr-badge-id">{r.receiptNumber}</span></td>
+                                        <td><span className="cr-badge cr-badge-id">{r.receiptNumber}</span>{r.receiptType === 'advance' && <span className="cr-badge cr-badge-advance" style={{ marginLeft: '6px' }}>ADVANCE</span>}</td>
                                         <td>
                                             <div className="cr-cell-title">{fmt(r.receiptDate)}</div>
                                         </td>
@@ -300,8 +319,13 @@ const CashReceiptManagement = ({ showToast }) => {
                                         <td>
                                             <div className="cr-cell-title">{r.projectRef ? r.projectRef.name : 'N/A'}</div>
                                             {r.projectRef && <div className="cr-cell-sub">{r.projectRef.projectId}</div>}
+                                            {r.appliedToInvoice && (
+                                                <div className="cr-cell-sub" style={{ color: '#2563eb', fontWeight: 700 }}>
+                                                    Applied to {r.appliedToInvoice.invoiceNumber}
+                                                </div>
+                                            )}
                                         </td>
-                                        <td className="text-right"><span className="cr-cell-amount">Rs. {fmtMoney(r.amountReceived)}</span></td>
+                                        <td className="text-right"><span className="cr-cell-amount">{CR} {fmtMoney(r.amountReceived)}</span></td>
                                         <td>
                                             <div className="cr-cell-title">{r.receivedBy ? `${r.receivedBy.firstName} ${r.receivedBy.lastName || ''}`.trim() : '—'}</div>
                                         </td>
@@ -384,6 +408,12 @@ const CashReceiptManagement = ({ showToast }) => {
                                             <span className="cr-receipt-meta-value">{methodLabel(viewReceipt.paymentMethod)}</span>
                                         </div>
                                         <div className="cr-receipt-meta-item">
+                                            <span className="cr-receipt-meta-label">Receipt Type</span>
+                                            <span className="cr-receipt-meta-value" style={{ color: viewReceipt.receiptType === 'advance' ? '#b45309' : '#0f172a', textTransform: 'uppercase', fontWeight: 800 }}>
+                                                {viewReceipt.receiptType === 'advance' ? 'Advance' : 'Payment'}
+                                            </span>
+                                        </div>
+                                        <div className="cr-receipt-meta-item">
                                             <span className="cr-receipt-meta-label">Project</span>
                                             <span className="cr-receipt-meta-value">
                                                 {viewReceipt.projectRef ? viewReceipt.projectRef.name : 'N/A'}
@@ -396,7 +426,9 @@ const CashReceiptManagement = ({ showToast }) => {
                                         </div>
                                         <div className="cr-receipt-meta-item">
                                             <span className="cr-receipt-meta-label">Invoice</span>
-                                            <span className="cr-receipt-meta-value">{viewReceipt.invoiceRef?.invoiceNumber || 'N/A'}</span>
+                                            <span className="cr-receipt-meta-value">
+                                                {viewReceipt.appliedToInvoice ? `Applied to ${viewReceipt.appliedToInvoice.invoiceNumber}` : (viewReceipt.invoiceRef?.invoiceNumber || 'N/A')}
+                                            </span>
                                         </div>
                                         {viewReceipt.paymentMethod === 'cheque' && (
                                             <div className="cr-receipt-meta-item">
@@ -428,7 +460,7 @@ const CashReceiptManagement = ({ showToast }) => {
 
                                     <div className={`cr-receipt-amount ${viewReceipt.status === 'void' ? 'is-void' : ''}`}>
                                         <span className="cr-receipt-amount-label">Amount Received</span>
-                                        <span className="cr-receipt-amount-value">Rs. {fmtMoney(viewReceipt.amountReceived)}</span>
+                                        <span className="cr-receipt-amount-value">{CR} {fmtMoney(viewReceipt.amountReceived)}</span>
                                     </div>
 
                                     {viewReceipt.description && (
@@ -487,6 +519,19 @@ const CashReceiptManagement = ({ showToast }) => {
                                 </div>
 
                                 <div className="cr-form-row">
+                                    <label className="cr-label">Receipt Type</label>
+                                    <div className="cr-mode-toggle">
+                                        <button type="button" className={form.receiptType !== 'advance' ? 'active' : ''} onClick={() => updateForm('receiptType', 'payment')}><Banknote size={14} /> Payment</button>
+                                        <button type="button" className={form.receiptType === 'advance' ? 'active' : ''} onClick={() => updateForm('receiptType', 'advance')}><AlertTriangle size={14} /> Advance</button>
+                                    </div>
+                                    {form.receiptType === 'advance' && (
+                                        <div style={{ fontSize: '0.72rem', color: '#b45309', marginTop: '0.4rem', fontWeight: 700 }}>
+                                            Advance receipts are received before a project is invoiced. It must be linked to a project and can later be selected as the advance on that project's invoice.
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="cr-form-row">
                                     <label className="cr-label">Client</label>
                                     <div className="cr-mode-toggle">
                                         <button type="button" className={!form.manualMode ? 'active' : ''} onClick={() => updateForm('manualMode', false)}><Users size={14} /> Select Client</button>
@@ -532,16 +577,40 @@ const CashReceiptManagement = ({ showToast }) => {
 
                                 <div className="cr-form-grid">
                                     <div className="cr-form-row">
-                                        <label className="cr-label">Amount Received (Rs.)</label>
+                                        <label className="cr-label">Amount Received ({CR})</label>
                                         <input
                                             type="number"
                                             min="0"
                                             step="0.01"
                                             className="cr-input cr-input-amount"
                                             value={form.amountReceived}
-                                            onChange={e => updateForm('amountReceived', e.target.value)}
+                                            max={effectiveAmountCap > 0 ? effectiveAmountCap : undefined}
+                                            onChange={e => {
+                                                let val = e.target.value;
+                                                if (effectiveAmountCap > 0 && val && Number(val) > effectiveAmountCap) {
+                                                    val = String(effectiveAmountCap);
+                                                }
+                                                // Clamp to at most 2 decimal places while typing
+                                                if (val && val.includes('.')) {
+                                                    const parts = val.split('.');
+                                                    if (parts[1] && parts[1].length > 2) val = parts[0] + '.' + parts[1].slice(0, 2);
+                                                }
+                                                updateForm('amountReceived', val);
+                                            }}
+                                            onBlur={e => {
+                                                const val = parseFloat(e.target.value);
+                                                if (!isNaN(val)) updateForm('amountReceived', val.toFixed(2));
+                                            }}
                                             placeholder="0.00"
                                         />
+                                        {effectiveAmountCap > 0 && (
+                                            <div style={{ fontSize: '0.68rem', color: '#b45309', marginTop: '0.3rem', fontWeight: 600 }}>
+                                                {invoiceOutstanding > 0
+                                                    ? `Cannot exceed the invoice outstanding balance of ${CR} ${formatNumber(invoiceOutstanding)}`
+                                                    : `Cannot exceed the project's outstanding credit of ${CR} ${formatNumber(projectCreditValue)}`
+                                                }
+                                            </div>
+                                        )}
                                     </div>
                                     <div className="cr-form-row">
                                         <label className="cr-label">Payment Method</label>
@@ -574,6 +643,11 @@ const CashReceiptManagement = ({ showToast }) => {
                                             <option key={p._id} value={p._id}>{p.name} ({p.projectId})</option>
                                         ))}
                                     </select>
+                                    {form.receiptType === 'payment' && projectCreditValue > 0 && (
+                                        <div style={{ fontSize: '0.72rem', color: '#2563eb', marginTop: '0.4rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                                            <CreditCard size={13} /> Outstanding Credit — {CR} {formatNumber(projectCreditValue)}
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="cr-form-row">
@@ -593,17 +667,29 @@ const CashReceiptManagement = ({ showToast }) => {
 
                                 <div className="cr-form-row">
                                     <label className="cr-label">Invoice</label>
-                                    <select className="cr-input" value={form.invoiceRef} onChange={e => {
-                                        const val = e.target.value;
-                                        setForm(prev => ({ ...prev, invoiceRef: val }));
-                                    }}>
-                                        <option value="">N/A — No Invoice</option>
-                                        {visibleInvoices.map(i => (
-                                            <option key={i._id} value={i._id}>
-                                                {i.invoiceNumber}{i.projectId?.name ? ` — ${i.projectId.name}` : ''}
-                                            </option>
-                                        ))}
-                                    </select>
+                                    {form.receiptType === 'advance' ? (
+                                        <div className="cr-input" style={{ background: '#f8fafc', color: '#94a3b8', fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                            <span>Not allowed for advance receipts</span>
+                                            <AlertTriangle size={14} color="#f59e0b" />
+                                        </div>
+                                    ) : (
+                                        <select className="cr-input" value={form.invoiceRef} onChange={e => {
+                                            const val = e.target.value;
+                                            setForm(prev => ({ ...prev, invoiceRef: val }));
+                                        }}>
+                                            <option value="">N/A — No Invoice</option>
+                                            {visibleInvoices.map(i => (
+                                                <option key={i._id} value={i._id}>
+                                                    {i.invoiceNumber} — {CR} {formatNumber(i.outstandingBalance ?? 0)} due
+                                                </option>
+                                            ))}
+                                        </select>
+                                    )}
+                                    {form.receiptType === 'payment' && invoiceOutstanding > 0 && (
+                                        <div style={{ fontSize: '0.72rem', color: '#2563eb', marginTop: '0.4rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                                            <FileText size={13} /> Invoice Balance — {CR} {formatNumber(invoiceOutstanding)}
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="cr-form-row">
@@ -640,7 +726,7 @@ const CashReceiptManagement = ({ showToast }) => {
                                 <div className="cr-void-info">
                                     <div><span className="cr-void-label">Receipt No:</span> <strong>{voidModal.receiptNumber}</strong></div>
                                     <div><span className="cr-void-label">Client:</span> <strong>{clientName(voidModal)}</strong></div>
-                                    <div><span className="cr-void-label">Amount:</span> <strong>Rs. {fmtMoney(voidModal.amountReceived)}</strong></div>
+                                    <div><span className="cr-void-label">Amount:</span> <strong>{CR} {fmtMoney(voidModal.amountReceived)}</strong></div>
                                 </div>
                                 <div className="cr-form-row">
                                     <label className="cr-label">Void Reason</label>

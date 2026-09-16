@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Users, Package, Briefcase, Truck, FileText, DollarSign, BarChart3, Calendar, TrendingUp, CheckCircle2, Activity, PiggyBank, Wrench } from 'lucide-react';
+import { Users, Package, Briefcase, Truck, FileText, DollarSign, Calendar, TrendingUp, CheckCircle2, Activity, PiggyBank, Wrench } from 'lucide-react';
 import api from '../../api';
+import { currencyLabel, formatNumber } from '../../utils/currency';
 import '../../styles/dashboard-shared.css';
 import './AdminDashboard.css';
 
@@ -70,7 +71,7 @@ const AdminDashboard = ({ currentUser }) => {
         warranties: { total: 0, active: 0, expired: 0 },
     });
     const [invoiceStats, setInvoiceStats] = useState(null);
-    const [recentInvoices, setRecentInvoices] = useState([]);
+    const [expiredCreditProjects, setExpiredCreditProjects] = useState([]);
     const [rmaByStatus, setRmaByStatus] = useState({
         Open: 0, 'In Progress': 0, 'Awaiting Supplier': 0, Resolved: 0, Closed: 0, Cancelled: 0,
     });
@@ -97,7 +98,7 @@ const AdminDashboard = ({ currentUser }) => {
 
                 if (data.invoices) {
                     setInvoiceStats(data.invoices);
-                    setRecentInvoices(data.invoices.recentInvoices?.slice(0, 6) ?? []);
+                    setExpiredCreditProjects(data.invoices.expiredCreditProjects?.slice(0, 6) ?? []);
                 }
 
                 if (data.rmaByStatus) setRmaByStatus(data.rmaByStatus);
@@ -127,11 +128,10 @@ const AdminDashboard = ({ currentUser }) => {
     const totalCost = invoiceStats?.totalCost ?? 0;
     const paymentMethods = invoiceStats?.paymentMethodBreakdown ?? [];
     const statusBreakdown = invoiceStats?.statusBreakdown ?? [];
-    const maxPayment = Math.max(...paymentMethods.map(p => p.total || 0), 1);
 
     const fmt = (n) => {
-        if (!n && n !== 0) return 'Rs. 0';
-        return 'Rs. ' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        if (!n && n !== 0) return `${currencyLabel(org?.primaryCurrency)} 0.00`;
+        return `${currencyLabel(org?.primaryCurrency)} ${formatNumber(n)}`;
     };
 
     const statusCount = (status) => {
@@ -145,14 +145,6 @@ const AdminDashboard = ({ currentUser }) => {
         return total > 0 ? Math.round((count / total) * 100) : 0;
     };
 
-    const paymentTotal = (method) => {
-        const found = paymentMethods.find(p => {
-            const m = p._id?.toLowerCase().replace(/\s+/g, '_');
-            return m === method;
-        });
-        return found ? found.total : 0;
-    };
-
     const paymentCount = (method) => {
         const found = paymentMethods.find(p => {
             const m = p._id?.toLowerCase().replace(/\s+/g, '_');
@@ -160,6 +152,18 @@ const AdminDashboard = ({ currentUser }) => {
         });
         return found ? found.count : 0;
     };
+
+    const receiptTotal = (method) => {
+        const found = (invoiceStats?.receiptBreakdown ?? []).find(r => r._id === method);
+        return found ? found.total : 0;
+    };
+
+    const receiptCount = (method) => {
+        const found = (invoiceStats?.receiptBreakdown ?? []).find(r => r._id === method);
+        return found ? found.count : 0;
+    };
+
+    const receiptMaxCount = Math.max(...(invoiceStats?.receiptBreakdown ?? []).map(r => r.count || 0), 1);
 
     const today = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
@@ -406,44 +410,45 @@ const AdminDashboard = ({ currentUser }) => {
                                 Cash
                             </span>
                             <div className="ad-finance-row-right">
-                                <div className="ad-finance-row-value">{fmt(paymentTotal('cash'))}</div>
-                                <div className="ad-finance-row-count">{paymentCount('cash')} invoices</div>
+                                <div className="ad-finance-row-value">{fmt(receiptTotal('cash'))}</div>
+                                <div className="ad-finance-row-count">{receiptCount('cash')} receipts</div>
                             </div>
                         </div>
-                        <MiniBar value={paymentCount('cash')} total={invoiceStats?.totalInvoices} color="#10b981" />
+                        <MiniBar value={receiptCount('cash')} total={invoiceStats?.receiptCount || receiptMaxCount} color="#10b981" />
                         <div className="ad-finance-row">
                             <span className="ad-finance-row-label">
                                 <span className="ad-finance-row-dot ad-finance-row-dot--cheque" />
                                 Cheque
                             </span>
                             <div className="ad-finance-row-right">
-                                <div className="ad-finance-row-value">{fmt(paymentTotal('cheque'))}</div>
-                                <div className="ad-finance-row-count">{paymentCount('cheque')} invoices</div>
+                                <div className="ad-finance-row-value">{fmt(receiptTotal('cheque'))}</div>
+                                <div className="ad-finance-row-count">{receiptCount('cheque')} receipts</div>
                             </div>
                         </div>
-                        <MiniBar value={paymentCount('cheque')} total={invoiceStats?.totalInvoices} color="#3b82f6" />
+                        <MiniBar value={receiptCount('cheque')} total={invoiceStats?.receiptCount || receiptMaxCount} color="#3b82f6" />
                         <div className="ad-finance-row">
                             <span className="ad-finance-row-label">
                                 <span className="ad-finance-row-dot ad-finance-row-dot--bank" />
                                 Bank Transfer
                             </span>
                             <div className="ad-finance-row-right">
-                                <div className="ad-finance-row-value">{fmt(paymentTotal('bank_transfer'))}</div>
-                                <div className="ad-finance-row-count">{paymentCount('bank_transfer')} invoices</div>
+                                <div className="ad-finance-row-value">{fmt(receiptTotal('bank_transfer'))}</div>
+                                <div className="ad-finance-row-count">{receiptCount('bank_transfer')} receipts</div>
                             </div>
                         </div>
-                        <MiniBar value={paymentCount('bank_transfer')} total={invoiceStats?.totalInvoices} color="#8b5cf6" />
+                        <MiniBar value={receiptCount('bank_transfer')} total={invoiceStats?.receiptCount || receiptMaxCount} color="#8b5cf6" />
                         <div className="ad-finance-row">
                             <span className="ad-finance-row-label">
                                 <span className="ad-finance-row-dot ad-finance-row-dot--credit" />
                                 Credit
                             </span>
                             <div className="ad-finance-row-right">
-                                <div className="ad-finance-row-value">{fmt(paymentTotal('credit'))}</div>
-                                <div className="ad-finance-row-count">{paymentCount('credit')} invoices</div>
+                                <div className="ad-finance-row-value">{fmt(invoiceStats?.creditValue ?? 0)}</div>
+                                <div className="ad-finance-row-count">outstanding credit</div>
                             </div>
                         </div>
                         <MiniBar value={paymentCount('credit')} total={invoiceStats?.totalInvoices} color="#f59e0b" />
+                        <div className="ad-finance-note">Cash / Cheque / Bank figures are actual receipts within the period. Credit shows the outstanding board credit balance.</div>
                     </div>
                 </motion.div>
 
@@ -576,99 +581,50 @@ const AdminDashboard = ({ currentUser }) => {
                 </div>
             </motion.div>
 
-            <div className="dash-section">
-                <div className="dash-section-left">
-                    <div className="dash-section-line" />
-                    <div>
-                        <h2 className="dash-section-title">Recent Activity</h2>
-                        <p className="dash-section-sub">Latest invoices & payment method analysis</p>
-                    </div>
-                </div>
-            </div>
-
-            <motion.div className="ad-chart-card dash-card" {...cardMotion(13)}>
-                <div className="ad-chart-header">
-                    <div className="ad-chart-header-left">
-                        <div className="ad-chart-icon"><BarChart3 size={14} /></div>
-                        <h3>Payment Method Revenue</h3>
-                    </div>
-                </div>
-                <div className="ad-chart-rows">
-                    {[
-                        { id: 'cash', label: 'Cash', color: '#10b981' },
-                        { id: 'cheque', label: 'Cheque', color: '#3b82f6' },
-                        { id: 'bank_transfer', label: 'Bank Transfer', color: '#8b5cf6' },
-                        { id: 'credit', label: 'Credit', color: '#f59e0b' },
-                    ].map(m => {
-                        const val = paymentTotal(m.id);
-                        const pct = Math.round((val / maxPayment) * 100);
-                        return (
-                            <div className="ad-hbar-row" key={m.id}>
-                                <span className="ad-hbar-label">{m.label}</span>
-                                <div className="ad-hbar-track">
-                                    <div className="ad-hbar-fill" style={{ width: `${pct}%`, background: m.color }} />
-                                </div>
-                                <span className="ad-hbar-value">
-                                    {fmt(val)}
-                                    <span className="ad-hbar-sub">({paymentCount(m.id)})</span>
-                                </span>
-                            </div>
-                        );
-                    })}
-                </div>
-            </motion.div>
-
             <motion.div className="ad-recent-card dash-card" {...cardMotion(14)}>
                 <div className="ad-recent-header">
                     <div className="ad-recent-header-left">
-                        <h3>Recent Invoices</h3>
+                        <h3>Credit Overdue</h3>
                     </div>
-                    <span className="ad-recent-badge">{invoiceStats?.totalInvoices ?? 0} Total</span>
+                    <span className="ad-recent-badge" style={{ background: '#fef3c7', color: '#b45309' }}>{expiredCreditProjects.length} expired</span>
                 </div>
-                {recentInvoices.length === 0 ? (
+                {expiredCreditProjects.length === 0 ? (
                     <div className="dash-empty">
                         <div className="dash-empty-icon"><FileText size={32} /></div>
-                        No invoices recorded yet
+                        No expired credit projects
                     </div>
                 ) : (
                     <div className="ad-recent-table-wrap modern-table-scroll">
                     <table className="modern-table">
                         <thead>
                             <tr>
-                                <th>Invoice</th>
-                                <th>Client</th>
-                                <th>Date</th>
-                                <th>Amount</th>
-                                <th>Status</th>
+                                <th>Project</th>
+                                <th>Customer</th>
+                                <th>Phone</th>
+                                <th>Credit Value</th>
+                                <th>Expired</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {recentInvoices.map((inv, i) => {
-                                const clientName = inv.clientRef
-                                    ? `${inv.clientRef.firstName ?? ''} ${inv.clientRef.lastName ?? ''}`.trim()
-                                    : inv.manualClientDetails?.name ?? '—';
-                                const status = inv.status ?? 'Pending';
-                                return (
-                                    <tr key={inv._id ?? i}>
-                                        <td><span className="ad-recent-table-num">{inv.invoiceNumber ?? '—'}</span></td>
-                                        <td><span className="ad-recent-table-client">{clientName}</span></td>
-                                        <td><span className="ad-recent-table-date">
-                                            {inv.invoiceDate ? new Date(inv.invoiceDate).toLocaleDateString() : '—'}
-                                        </span></td>
-                                        <td><span className="ad-recent-table-amount">{fmt(inv.finalTotal)}</span></td>
-                                        <td>
-                                            <span className={`modern-table-status ${status.toLowerCase() === 'paid' ? 'paid' : status.toLowerCase() === 'cancelled' ? 'cancelled' : status.toLowerCase() === 'unpaid' ? 'unpaid' : 'pending'}`}>
-                                                {status}
-                                            </span>
-                                        </td>
-                                    </tr>
-                                );
-                            })}
+                            {expiredCreditProjects.map((p, i) => (
+                                <tr key={p.projectId ?? i}>
+                                    <td><span className="ad-recent-table-num">{p.projectName ?? '—'}</span></td>
+                                    <td><span className="ad-recent-table-client">{p.clientName || '—'}</span></td>
+                                    <td><span className="ad-recent-table-date">{p.phone || '—'}</span></td>
+                                    <td><span className="ad-recent-table-amount">{fmt(p.creditValue)}</span></td>
+                                    <td>
+                                        <span className={`modern-table-status ${p.daysOverdue >= 30 ? 'unpaid' : 'pending'}`}>
+                                            {p.daysOverdue < 1 ? 'Today' : `${p.daysOverdue} day${p.daysOverdue === 1 ? '' : 's'} ago`}
+                                        </span>
+                                    </td>
+                                </tr>
+                            ))}
                         </tbody>
                     </table>
                     </div>
                 )}
             </motion.div>
+
         </div>
     );
 };

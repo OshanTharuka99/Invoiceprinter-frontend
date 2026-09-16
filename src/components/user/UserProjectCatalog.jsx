@@ -2,18 +2,24 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Search, RefreshCw, Briefcase, FolderKanban, CheckCircle2, Building2, DollarSign } from 'lucide-react';
 import api from '../../api';
+import { currencyLabel, formatNumber } from '../../utils/currency';
 import '../../styles/modern-table.css';
 
 const UserProjectCatalog = () => {
     const [projects, setProjects] = useState([]);
     const [loading, setLoading] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
+    const [business, setBusiness] = useState(null);
 
     const fetchData = async () => {
         setLoading(true);
         try {
-            const res = await api.get('/projects');
-            setProjects(res.data.data);
+            const [projRes, bizRes] = await Promise.allSettled([
+                api.get('/projects'),
+                api.get('/business')
+            ]);
+            if (projRes.status === 'fulfilled') setProjects(projRes.value.data.data);
+            if (bizRes.status === 'fulfilled') setBusiness(bizRes.value.data);
         } catch {
             console.error('Failed database read');
         } finally {
@@ -22,6 +28,9 @@ const UserProjectCatalog = () => {
     };
 
     useEffect(() => { fetchData(); }, []);
+
+    const CR = currencyLabel(business?.primaryCurrency);
+    const fmtValue = (n) => `${CR} ${formatNumber(n)}`;
 
     const filtered = projects.filter(p =>
         p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -59,7 +68,7 @@ const UserProjectCatalog = () => {
                 <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.18 }} className="pm-stat-card amber">
                     <div className="pm-stat-icon amber"><DollarSign size={22} /></div>
                     <div className="pm-stat-body">
-                        <div className="pm-stat-value" style={{ fontSize: '1.25rem' }}>Rs. {totalValue.toLocaleString()}</div>
+                        <div className="pm-stat-value" style={{ fontSize: '1.25rem' }}>{fmtValue(totalValue)}</div>
                         <div className="pm-stat-label">Portfolio Value</div>
                     </div>
                 </motion.div>
@@ -95,6 +104,7 @@ const UserProjectCatalog = () => {
                                         <th>Blueprint Name</th>
                                         <th>Origin Client</th>
                                         <th>Lifecycle Tracker</th>
+                                        <th>Financial Snapshot</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -106,9 +116,18 @@ const UserProjectCatalog = () => {
                                             <td><span className="modern-table-cell-value green" style={{ fontSize: '0.8rem' }}>
                                                 {p.startDate ? `Active Since: ${new Date(p.startDate).toLocaleDateString()}` : 'Awaiting Kickoff Protocol'}
                                             </span></td>
+                                            <td>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                                                    <span className="modern-table-cell-value green">{fmtValue(p.value || 0)}</span>
+                                                    <span className="modern-table-cell-subtitle amber">Credit: {fmtValue(p.creditValue || 0)}</span>
+                                                    {Number(p.advanceTotal || 0) > 0 && (
+                                                        <span className="modern-table-cell-subtitle blue">Advances: {fmtValue(p.advanceTotal)}</span>
+                                                    )}
+                                                </div>
+                                            </td>
                                         </tr>
                                     ))}
-                                    {filtered.length === 0 && <tr><td colSpan="4" className="modern-table-empty">Zero records match current matrix.</td></tr>}
+                                    {filtered.length === 0 && <tr><td colSpan="5" className="modern-table-empty">Zero records match current matrix.</td></tr>}
                                 </tbody>
                             </table>
                         </div>

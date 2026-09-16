@@ -8,6 +8,7 @@ import {
 import api from '../../api';
 import { MODULE_MANUALS } from './manualCatalog';
 import ModuleManualViewer from './ModuleManualViewer';
+import PdfManualViewer from './PdfManualViewer';
 import './SupportCenter.css';
 
 const MANUAL_META = [
@@ -36,6 +37,7 @@ const SupportCenter = ({ currentUser }) => {
     const role = currentUser?.role || 'user';
     const [search, setSearch] = useState('');
     const [activeId, setActiveId] = useState(null);
+    const [pdfOpen, setPdfOpen] = useState(false);
     const [business, setBusiness] = useState(null);
 
     useEffect(() => {
@@ -93,6 +95,26 @@ const SupportCenter = ({ currentUser }) => {
             </header>
 
             <div className="support-grid">
+                <motion.button
+                    type="button"
+                    className="support-card support-card-featured"
+                    style={{ '--support-accent': '#1d4ed8', background: 'linear-gradient(135deg, #eff6ff 0%, #ffffff 55%)', border: '1.5px solid #bfdbfe' }}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    onClick={() => setPdfOpen(true)}
+                >
+                    <div className="support-card-icon" style={{ background: '#dbeafe', color: '#1d4ed8' }}>
+                        <BookOpen size={20} />
+                    </div>
+                    <div className="support-card-body">
+                        <div className="support-card-title">Full User Manual (PDF)</div>
+                        <div className="support-card-blurb">The complete manual — invoices, cash receipts, projects, dashboard, and all transaction flows</div>
+                    </div>
+                    <span className="support-card-cta">
+                        Open
+                        <ChevronRight size={14} />
+                    </span>
+                </motion.button>
                 {guides.map((item, i) => {
                     const Icon = item.icon;
                     const accent = MODULE_MANUALS[item.id]?.accent || '#0f172a';
@@ -137,6 +159,13 @@ const SupportCenter = ({ currentUser }) => {
                 sections={activeManual?.sections}
                 business={business}
                 fileName={`User_Manual_${activeId || 'guide'}`}
+            />
+
+            <PdfManualViewer
+                open={pdfOpen}
+                onClose={() => setPdfOpen(false)}
+                src="/manuals/User-Manual.pdf"
+                title="Full User Manual"
             />
         </div>
     );

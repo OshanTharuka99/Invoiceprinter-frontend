@@ -125,6 +125,8 @@
 .cr-badge-active { background:var(--cr-green-s); color:var(--cr-green); }
 .cr-badge-void { background:var(--cr-red-s); color:var(--cr-red); }
 .cr-badge-method { background:var(--cr-indigo-s); color:var(--cr-indigo); }
+.cr-badge-advance { background:var(--cr-amber-s); color:var(--cr-amber); }
+.cr-badge-advance::before { content:''; }
 .cr-badge-method.cheque { background:var(--cr-amber-s); color:var(--cr-amber); }
 .cr-badge-method.bank_transfer { background:var(--cr-blue-s); color:var(--cr-blue); }
 

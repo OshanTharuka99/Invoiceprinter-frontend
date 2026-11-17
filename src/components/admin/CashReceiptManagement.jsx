@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Banknote, Plus, Search, RefreshCw, Download, Trash2, X, FileText, AlertTriangle, Calendar, Users, Eye, Building2, Phone, MapPin, CheckCircle2, XCircle, Printer, CreditCard } from 'lucide-react';
+import { Banknote, Plus, Search, RefreshCw, Download, Trash2, X, FileText, AlertTriangle, Calendar, Users, Eye, Building2, Phone, MapPin, CheckCircle2, XCircle, Printer, CreditCard, Edit3, Clock } from 'lucide-react';
 import api from '../../api';
 import useSubmitGuard from '../../utils/useSubmitGuard';
 import { openA4PrintWindow, buildPrintFileName } from '../../utils/printDocument';
@@ -21,6 +21,7 @@ const CashReceiptManagement = ({ showToast }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
     const [showForm, setShowForm] = useState(false);
+    const [editTarget, setEditTarget] = useState(null);
     const [viewReceipt, setViewReceipt] = useState(null);
     const [voidModal, setVoidModal] = useState(null);
     const [voidReason, setVoidReason] = useState('');
@@ -90,6 +91,12 @@ const CashReceiptManagement = ({ showToast }) => {
 
     const fmtMoney = (n) => formatNumber(n);
 
+    const EDIT_WINDOW_MS = 14 * 24 * 60 * 60 * 1000;
+    const isEditable = (r) => r.status !== 'void'
+        && !r.appliedToInvoice
+        && (Date.now() - new Date(r.createdAt || r.receiptDate).getTime()) <= EDIT_WINDOW_MS;
+    const canEdit = (r) => isEditable(r) && r.autoCreated !== true;
+
     const CR = currencyLabel(businessData?.primaryCurrency);
 
     const clientName = (r) => {
@@ -145,10 +152,17 @@ const CashReceiptManagement = ({ showToast }) => {
     const invoiceOutstanding = form.receiptType === 'payment' && selectedInvoice
         ? Number(selectedInvoice.outstandingBalance ?? 0) : 0;
 
-    // The effective cap for the amount field: invoice outstanding takes priority over project credit
-    const effectiveAmountCap = invoiceOutstanding > 0 ? invoiceOutstanding : projectCreditValue;
+    // The effective cap for the amount field: invoice outstanding takes priority over project credit.
+    // When editing, the receipt's own current amount is added back to the available capacity.
+    const editOffset = editTarget && editTarget.receiptType === 'payment' ? (Number(editTarget.amountReceived) || 0) : 0;
+    const editSameInvoice = !!editTarget && String(editTarget.invoiceRef?._id || editTarget.invoiceRef || '') === String(form.invoiceRef);
+    const editSameProject = !!editTarget && !form.invoiceRef && String(editTarget.projectRef?._id || editTarget.projectRef || '') === String(form.projectRef);
+    const effectiveAmountCap = invoiceOutstanding > 0
+        ? invoiceOutstanding + (editSameInvoice ? editOffset : 0)
+        : projectCreditValue + (editSameProject ? editOffset : 0);
 
     const resetForm = () => {
+        setEditTarget(null);
         setForm({
             clientRef: '',
             manualMode: false,
@@ -165,6 +179,44 @@ const CashReceiptManagement = ({ showToast }) => {
         });
     };
 
+    const startEdit = (r) => {
+        setEditTarget(r);
+        setForm({
+            clientRef: r.clientRef?._id || r.clientRef || '',
+            manualMode: !r.clientRef,
+            manualClientDetails: {
+                organization: r.manualClientDetails?.organization || '',
+                name: r.manualClientDetails?.name || '',
+                telephoneNumber: r.manualClientDetails?.telephoneNumber || '',
+                address: r.manualClientDetails?.address || ''
+            },
+            amountReceived: Number(r.amountReceived || 0).toFixed(2),
+            paymentMethod: r.paymentMethod || 'cash',
+            chequeNumber: r.chequeNumber || '',
+            projectRef: r.projectRef?._id || r.projectRef || '',
+            quotationRef: r.quotationRef?._id || r.quotationRef || '',
+            invoiceRef: r.invoiceRef?._id || r.invoiceRef || '',
+            receiptType: r.receiptType || 'payment',
+            receiptDate: new Date(r.receiptDate).toISOString().slice(0, 10),
+            description: r.description || ''
+        });
+        setShowForm(true);
+    };
+
+    const buildPayload = () => ({
+        clientRef: !form.manualMode ? form.clientRef : null,
+        manualClientDetails: form.manualMode ? form.manualClientDetails : {},
+        amountReceived: form.amountReceived,
+        paymentMethod: form.paymentMethod,
+        chequeNumber: form.paymentMethod === 'cheque' ? (form.chequeNumber || '') : '',
+        projectRef: form.projectRef || null,
+        quotationRef: form.quotationRef || null,
+        invoiceRef: form.invoiceRef || null,
+        receiptType: form.receiptType,
+        receiptDate: form.receiptDate ? new Date(form.receiptDate) : undefined,
+        description: form.description
+    });
+
     const handleCreate = async () => {
         const amount = Number(form.amountReceived) || 0;
         if (!amount || amount <= 0) return showToast?.('Enter the amount received', 'error');
@@ -173,20 +225,7 @@ const CashReceiptManagement = ({ showToast }) => {
         }
         await runGuarded(async () => {
             try {
-                const payload = {
-                    clientRef: !form.manualMode ? form.clientRef : null,
-                    manualClientDetails: form.manualMode ? form.manualClientDetails : {},
-                    amountReceived: form.amountReceived,
-                    paymentMethod: form.paymentMethod,
-                    chequeNumber: form.paymentMethod === 'cheque' ? (form.chequeNumber || '') : '',
-                    projectRef: form.projectRef || null,
-                    quotationRef: form.quotationRef || null,
-                    invoiceRef: form.invoiceRef || null,
-                    receiptType: form.receiptType,
-                    receiptDate: form.receiptDate ? new Date(form.receiptDate) : undefined,
-                    description: form.description
-                };
-                const res = await api.post('/cash-receipts', payload);
+                const res = await api.post('/cash-receipts', buildPayload());
                 showToast?.('Cash receipt issued successfully', 'success');
                 setShowForm(false);
                 resetForm();
@@ -194,6 +233,26 @@ const CashReceiptManagement = ({ showToast }) => {
                 return res;
             } catch (err) {
                 showToast?.(err.response?.data?.message || 'Failed to issue cash receipt', 'error');
+            }
+        });
+    };
+
+    const handleUpdate = async () => {
+        const amount = Number(form.amountReceived) || 0;
+        if (!amount || amount <= 0) return showToast?.('Enter the amount received', 'error');
+        if (effectiveAmountCap > 0 && amount > effectiveAmountCap) {
+            return showToast?.(`Amount cannot exceed ${CR} ${formatNumber(effectiveAmountCap)}`, 'error');
+        }
+        await runGuarded(async () => {
+            try {
+                const res = await api.put(`/cash-receipts/${editTarget._id}`, buildPayload());
+                showToast?.('Cash receipt updated successfully', 'success');
+                setShowForm(false);
+                resetForm();
+                fetchData();
+                return res;
+            } catch (err) {
+                showToast?.(err.response?.data?.message || 'Failed to update cash receipt', 'error');
             }
         });
     };
@@ -334,13 +393,18 @@ const CashReceiptManagement = ({ showToast }) => {
                                         </td>
                                         <td className="text-center">
                                             <div className="modern-table-actions" style={{ justifyContent: 'center' }}>
+                                                {canEdit(r) && (
+                                                    <button type="button" className="modern-table-action edit" title="Edit Receipt" onClick={() => startEdit(r)}>
+                                                        <Edit3 size={13} />
+                                                    </button>
+                                                )}
                                                 <button type="button" className="modern-table-action view" title="View Receipt" onClick={() => setViewReceipt(r)}>
                                                     <Eye size={13} />
                                                 </button>
                                                 <button type="button" className="modern-table-action edit" title="Print / Download PDF" onClick={() => handlePrint(r)}>
                                                     <Download size={13} />
                                                 </button>
-                                                {r.status !== 'void' && (
+                                                {r.status !== 'void' && isEditable(r) && (
                                                     <button type="button" className="modern-table-action delete" title="Void Receipt" onClick={() => { setVoidModal(r); setVoidReason(''); }}>
                                                         <Trash2 size={13} />
                                                     </button>
@@ -504,12 +568,12 @@ const CashReceiptManagement = ({ showToast }) => {
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="cr-modal-overlay">
                         <motion.div initial={{ scale: 0.95, y: 12 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 12 }} className="cr-modal">
                             <div className="cr-modal-header">
-                                <div className="cr-modal-icon green"><Plus size={18} /></div>
+                                <div className={`cr-modal-icon ${editTarget ? 'blue' : 'green'}`}>{editTarget ? <Edit3 size={18} /> : <Plus size={18} />}</div>
                                 <div>
-                                    <h3 className="cr-modal-title">Issue Cash Receipt</h3>
-                                    <p className="cr-modal-desc">Record cash received from a client</p>
+                                    <h3 className="cr-modal-title">{editTarget ? 'Edit Cash Receipt' : 'Issue Cash Receipt'}</h3>
+                                    <p className="cr-modal-desc">{editTarget ? 'Update the receipt details' : 'Record cash received from a client'}</p>
                                 </div>
-                                <button className="cr-modal-close" onClick={() => setShowForm(false)}><X size={18} /></button>
+                                <button className="cr-modal-close" onClick={() => { setShowForm(false); setEditTarget(null); }}><X size={18} /></button>
                             </div>
 
                             <div className="cr-modal-body">
@@ -699,9 +763,9 @@ const CashReceiptManagement = ({ showToast }) => {
                             </div>
 
                             <div className="cr-modal-actions">
-                                <button className="cr-modal-btn cr-modal-btn--secondary" onClick={() => setShowForm(false)}>Cancel</button>
-                                <motion.button whileTap={{ scale: isSubmitting ? 1 : 0.97 }} className="cr-modal-btn cr-modal-btn--primary" onClick={handleCreate} disabled={isSubmitting}>
-                                    {isSubmitting ? 'Issuing...' : 'Issue Receipt'}
+                                <button className="cr-modal-btn cr-modal-btn--secondary" onClick={() => { setShowForm(false); setEditTarget(null); }}>Cancel</button>
+                                <motion.button whileTap={{ scale: isSubmitting ? 1 : 0.97 }} className="cr-modal-btn cr-modal-btn--primary" onClick={editTarget ? handleUpdate : handleCreate} disabled={isSubmitting}>
+                                    {isSubmitting ? (editTarget ? 'Saving...' : 'Issuing...') : (editTarget ? 'Save Changes' : 'Issue Receipt')}
                                 </motion.button>
                             </div>
                         </motion.div>

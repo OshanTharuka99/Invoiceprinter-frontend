@@ -147,6 +147,7 @@
 }
 .cr-modal-icon { width:42px; height:42px; border-radius:11px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
 .cr-modal-icon.green { background:var(--cr-green-s); color:var(--cr-green); }
+.cr-modal-icon.blue { background:#dbeafe; color:#2563eb; }
 .cr-modal-icon.red { background:var(--cr-red-s); color:var(--cr-red); }
 .cr-modal-title { margin:0; font-size:1rem; font-weight:800; color:var(--cr-t1); }
 .cr-modal-desc { margin:2px 0 0; font-size:0.78rem; color:var(--cr-t3); font-weight:600; }

@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { motion } from 'framer-motion';
+import { motion as Motion } from 'framer-motion';
 import { BookOpen, Printer, X } from 'lucide-react';
 import { openA4PrintWindow } from '../../utils/printDocument';
 import '../../styles/print-preview.css';
@@ -94,9 +94,9 @@ ManualDocument.displayName = 'ManualDocument';
 
 export function ManualButton({ onClick, className = 'pm-btn pm-btn-outline' }) {
     return (
-        <motion.button whileTap={{ scale: 0.95 }} type="button" className={className} onClick={onClick}>
+        <Motion.button whileTap={{ scale: 0.95 }} type="button" className={className} onClick={onClick}>
             <BookOpen size={16} /> User Manual
-        </motion.button>
+        </Motion.button>
     );
 }
 
@@ -124,12 +124,12 @@ export default function ModuleManualViewer({
         <div className="app-print-overlay" style={{ zIndex: 1400 }}>
             <div className="app-print-shell" style={{ maxWidth: '210mm' }}>
                 <div className="app-print-toolbar">
-                    <motion.button whileTap={{ scale: 0.95 }} type="button" onClick={handlePrint} className="app-print-btn">
+                    <Motion.button whileTap={{ scale: 0.95 }} type="button" onClick={handlePrint} className="app-print-btn">
                         <Printer size={18} /> A4 Print / PDF
-                    </motion.button>
-                    <motion.button whileTap={{ scale: 0.95 }} type="button" onClick={onClose} className="app-print-close">
+                    </Motion.button>
+                    <Motion.button whileTap={{ scale: 0.95 }} type="button" onClick={onClose} className="app-print-close">
                         <X size={20} />
-                    </motion.button>
+                    </Motion.button>
                 </div>
                 <div className="app-print-doc" ref={printRef}>
                     <ManualDocument

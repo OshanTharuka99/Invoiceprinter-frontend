@@ -58,8 +58,12 @@ const Login = () => {
                 }
             }, 1000);
         } catch (err) {
+            const message = err.response?.data?.message
+                || (err.code === 'ECONNABORTED'
+                    ? 'Server is taking too long to respond.'
+                    : 'Cannot connect to the server. Make sure the backend is running on port 4000.');
             toast.error(
-                err.response?.data?.message || 'Incorrect email or password.',
+                message,
                 {
                     duration: 4000,
                     style: {

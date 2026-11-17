@@ -5,7 +5,7 @@ import {
     Edit3, CheckCircle, PlusCircle, MinusCircle, AlertCircle,
     Check, RefreshCw, Hash, Mail, Globe, Landmark, DollarSign,
     ChevronDown, Settings2, Shield, Award, Type, Minus, Store, X,
-    FileText, KeyRound
+    FileText, KeyRound, Wallet
 } from 'lucide-react';
 import api from '../../api';
 import useSubmitGuard from '../../utils/useSubmitGuard';
@@ -53,6 +53,9 @@ const BusinessSettings = ({ currentUser, showToast }) => {
         cashReceiptPrefix: 'CR', cashReceiptDigits: 5,
         cashReceiptTitleColor: '#0f172a', cashReceiptDividerColor: '#0f172a',
         cashReceiptTerms: '', cashReceiptNotes: '',
+        expensePrefix: 'EXP', expenseDigits: 5,
+        expenseTitleColor: '#0f172a', expenseDividerColor: '#0f172a',
+        expenseTerms: '', expenseNotes: '', expenseCategories: [],
         defaultWarrantyPeriod: '1 year',
         quotationTerms: 'Standard terms and conditions apply.', quotationNotes: '',
         invoiceTerms: 'Standard invoice terms and conditions apply.', invoiceNotes: '',
@@ -108,6 +111,13 @@ const BusinessSettings = ({ currentUser, showToast }) => {
                     cashReceiptDividerColor: details.cashReceiptDividerColor || '#0f172a',
                     cashReceiptTerms: details.cashReceiptTerms || '',
                     cashReceiptNotes: details.cashReceiptNotes || '',
+                    expensePrefix: details.expensePrefix || 'EXP',
+                    expenseDigits: details.expenseDigits || 5,
+                    expenseTitleColor: details.expenseTitleColor || '#0f172a',
+                    expenseDividerColor: details.expenseDividerColor || '#0f172a',
+                    expenseTerms: details.expenseTerms || '',
+                    expenseNotes: details.expenseNotes || '',
+                    expenseCategories: details.expenseCategories || [],
                     defaultWarrantyPeriod: details.defaultWarrantyPeriod || '1 year',
                     stores: details.stores || []
                 });
@@ -120,6 +130,10 @@ const BusinessSettings = ({ currentUser, showToast }) => {
     const handleSave = async (e) => {
         if (e) e.preventDefault();
         if (currentUser.role !== 'root' && currentUser.role !== 'admin') return showToast('Operation Denied: Admin clearance required', 'error');
+        const categories = businessData.expenseCategories || [];
+        const names = categories.map(c => String(c.name || '').trim().toLowerCase());
+        if (names.some(name => !name)) return showToast('Expense category name is required', 'error');
+        if (new Set(names).size !== names.length) return showToast('Duplicate expense category names are not allowed', 'error');
         await runGuarded(async () => {
             try {
                 await api.patch('/business', businessData);
@@ -547,6 +561,35 @@ const BusinessSettings = ({ currentUser, showToast }) => {
                                 </div>
                             </div>
 
+                            {/* Expense Categories */}
+                            <div className="bs2-card">
+                                <div className="bs2-card-head">
+                                    <div className="bs2-card-head-left">
+                                        <span className="bs2-icon" style={{ background: '#dc262615', color: '#dc2626' }}><Wallet size={20} /></span>
+                                        <h3>Expense Categories</h3>
+                                    </div>
+                                    <div className="bs2-card-head-right">
+                                        {isEditMode && <button onClick={() => setBusinessData({ ...businessData, expenseCategories: [...(businessData.expenseCategories || []), { name: '', isDefault: false, isActive: true }] })} className="bs2-add-btn">+ Add Category</button>}
+                                        {isRoot && <><EditBtn /><SaveCancelBtns /></>}
+                                    </div>
+                                </div>
+                                <div className="bs2-card-body">
+                                    <div className="bs2-dynamic-list">
+                                        {(!businessData.expenseCategories || businessData.expenseCategories.length === 0) ? (
+                                            <div className="bs2-empty">No expense categories configured</div>
+                                        ) : businessData.expenseCategories.map((cat, i) => (
+                                            <div key={cat._id || i} className="bs2-dynamic-row">
+                                                <div><label>Category Name</label><input value={cat.name} onChange={e => { const up = [...businessData.expenseCategories]; up[i] = { ...up[i], name: e.target.value }; setBusinessData({ ...businessData, expenseCategories: up }) }} disabled={!isEditMode} className={inpCls} placeholder="e.g. Rent" /></div>
+                                                <div><label>Status</label><select value={cat.isActive ? 'active' : 'inactive'} onChange={e => { const up = [...businessData.expenseCategories]; up[i] = { ...up[i], isActive: e.target.value === 'active' }; setBusinessData({ ...businessData, expenseCategories: up }) }} disabled={!isEditMode} className={inpCls}><option value="active">Active</option><option value="inactive">Inactive</option></select></div>
+                                                <div><label>Type</label><input value={cat.isDefault ? 'Default' : 'Custom'} disabled className={inpCls} /></div>
+                                                {isEditMode && !cat.isDefault && <button onClick={() => { const up = businessData.expenseCategories.filter((_, idx) => idx !== i); setBusinessData({ ...businessData, expenseCategories: up }) }} className="bs2-remove"><MinusCircle size={22} /></button>}
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div className="bs2-hint">Default categories can be renamed or disabled, but cannot be removed. Inactive categories are hidden from new expenses.</div>
+                                </div>
+                            </div>
+
                         </div>
                     </motion.div>
                 ) : (
@@ -870,6 +913,36 @@ const BusinessSettings = ({ currentUser, showToast }) => {
                                         <div className="bs2-doc-right">
                                             <div><label>Cash Receipt Terms</label><textarea value={businessData.cashReceiptTerms } onChange={e => setBusinessData({ ...businessData, cashReceiptTerms: e.target.value })} disabled={!isEditMode} className={`${inpCls} bs2-ta`} placeholder="Enter standard receipt terms..." /></div>
                                             <div><label>Default Cash Receipt Notes</label><textarea value={businessData.cashReceiptNotes} onChange={e => setBusinessData({ ...businessData, cashReceiptNotes: e.target.value })} disabled={!isEditMode} className={`${inpCls} bs2-ta`} placeholder="Enter default notes..." /></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Expense Voucher */}
+                            <div className="bs2-card">
+                                <div className="bs2-card-head">
+                                    <div className="bs2-card-head-left">
+                                        <span className="bs2-icon" style={{ background: '#dc262615', color: '#dc2626' }}><Wallet size={20} /></span>
+                                        <h3>Expense Voucher Settings</h3>
+                                    </div>
+                                    <ColorPreview titleColor={businessData.expenseTitleColor} dividerColor={businessData.expenseDividerColor} title="EXPENSE VOUCHER" />
+                                    {isRoot && <><EditBtn /><SaveCancelBtns /></>}
+                                </div>
+                                <div className="bs2-card-body">
+                                    <div className="bs2-doc-grid">
+                                        <div className="bs2-doc-left">
+                                            <div className="bs2-grid bs2-grid-2">
+                                                <div><label>Prefix</label><input value={businessData.expensePrefix} onChange={e => setBusinessData({ ...businessData, expensePrefix: e.target.value })} disabled={!isEditMode} className={inpCls} placeholder="e.g. EXP" /></div>
+                                                <div><label>Digits</label><input type="number" min="2" max="10" value={businessData.expenseDigits} onChange={e => setBusinessData({ ...businessData, expenseDigits: parseInt(e.target.value, 10) || 5 })} disabled={!isEditMode} className={inpCls} placeholder="5" /></div>
+                                            </div>
+                                            <div className="bs2-grid bs2-grid-2" style={{ marginTop: '0.75rem' }}>
+                                                <ColorPicker label="Title Color" value={businessData.expenseTitleColor} onChange={v => setBusinessData({ ...businessData, expenseTitleColor: v })} disabled={!isEditMode} icon={Type} />
+                                                <ColorPicker label="Divider Color" value={businessData.expenseDividerColor} onChange={v => setBusinessData({ ...businessData, expenseDividerColor: v })} disabled={!isEditMode} icon={Minus} />
+                                            </div>
+                                        </div>
+                                        <div className="bs2-doc-right">
+                                            <div><label>Expense Voucher Terms</label><textarea value={businessData.expenseTerms || ''} onChange={e => setBusinessData({ ...businessData, expenseTerms: e.target.value })} disabled={!isEditMode} className={`${inpCls} bs2-ta`} placeholder="Enter standard voucher terms..." /></div>
+                                            <div><label>Default Expense Notes</label><textarea value={businessData.expenseNotes || ''} onChange={e => setBusinessData({ ...businessData, expenseNotes: e.target.value })} disabled={!isEditMode} className={`${inpCls} bs2-ta`} placeholder="Enter default notes..." /></div>
                                         </div>
                                     </div>
                                 </div>

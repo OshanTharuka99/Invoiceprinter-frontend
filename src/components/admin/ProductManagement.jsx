@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 import { Package, Plus, X, Edit2, Trash2, RefreshCw, FolderTree, Search,
   AlertTriangle, FileText, BarChart3, ShieldCheck, Hash, FileSpreadsheet,
-  MapPin, DollarSign, Tag, Layers, Truck } from 'lucide-react';
+  MapPin, DollarSign, Tag, Layers, Truck, CalendarClock } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import api from '../../api';
 import useSubmitGuard from '../../utils/useSubmitGuard';
@@ -13,7 +13,7 @@ import '../../styles/modern-table.css';
 const FV = { initial:{opacity:0,y:8}, animate:{opacity:1,y:0}, exit:{opacity:0,y:-8} };
 const FM = { initial:{scale:0.95,opacity:0}, animate:{scale:1,opacity:1}, exit:{scale:0.95,opacity:0} };
 const EMPTY_PROD = { name:'', category:'', price:'', currencyType:'primary', isTaxIncluded:false, description:'', warrantyPeriod:'' };
-const EMPTY_STOCK = { location:'', buyingPrice:'', quantity:'', warrantyPeriod:'', notes:'', supplierRef:'', supplierInvoiceNumber:'', supplierDeliveryNumber:'' };
+const EMPTY_STOCK = { location:'', buyingPrice:'', quantity:'', warrantyPeriod:'', notes:'', supplierRef:'', supplierInvoiceNumber:'', supplierDeliveryNumber:'', acquisitionType:'cash', creditPeriod:'', advanceAmount:'' };
 const STOCK_LOCATIONS = ['Showroom', 'Warehouse A', 'Warehouse B', 'Store Room', 'Main Store'];
 const MODIFY_REASONS = {
   stock: ['Stock Level Correction', 'Damaged / Broken Stock', 'Data Entry Error', 'Incorrect Serial Number', 'Stock Location Correction', 'Supplier Return'],
@@ -55,7 +55,7 @@ const ProductManagement = ({ currentUser, showToast }) => {
 
   // Edit Batch Modal
   const [editBatchModal, setEditBatchModal] = useState(null);
-  const [editBatchForm, setEditBatchForm] = useState({ location: '', buyingPrice: '', quantity: '', notes: '' });
+  const [editBatchForm, setEditBatchForm] = useState({ location: '', buyingPrice: '', quantity: '', notes: '', supplierInvoiceNumber: '', acquisitionType: 'cash', creditPeriod: '', advanceAmount: '' });
   const [editBatchReason, setEditBatchReason] = useState('');
   const [editBatchSerials, setEditBatchSerials] = useState([]);
   const [editBatchSerialInput, setEditBatchSerialInput] = useState('');
@@ -70,20 +70,43 @@ const ProductManagement = ({ currentUser, showToast }) => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [cr, pr, br, sr] = await Promise.all([
+      const [cr, pr] = await Promise.all([
         api.get('/products/categories'),
         api.get('/products'),
-        api.get('/business'),
-        api.get('/suppliers').catch(() => ({ data: { data: [] } })),
       ]);
       setCategories(cr.data.data || []);
       setProducts(pr.data.data || []);
-      if (br.data?.data?.details) setBusinessData(br.data.data.details);
-      setSuppliers(sr.data?.data || []);
-    } catch { showToast?.('Error loading data', 'error'); }
+      api.get('/business').then((br) => {
+        if (br.data?.data?.details) setBusinessData(br.data.data.details);
+      }).catch(() => {});
+      api.get('/suppliers').then((sr) => {
+        setSuppliers(sr.data?.data || []);
+      }).catch(() => setSuppliers([]));
+    } catch (err) {
+      console.error('Product data load failed:', err);
+      showToast?.('Error loading data', 'error');
+    }
     finally { setLoading(false); }
   };
   useEffect(() => { fetchData(); }, []);
+
+  useEffect(() => {
+    const onSupplierCreated = async (event) => {
+      if (event.origin !== window.location.origin) return;
+      if (event.data?.type !== 'invoiprint:supplier-created') return;
+      const supplier = event.data.supplier;
+      if (!supplier) return;
+      setSuppliers(prev => [...prev.filter(s => s._id !== supplier._id), supplier]);
+      setStockForm(prev => ({ ...prev, supplierRef: supplier._id }));
+      try {
+        const res = await api.get('/suppliers');
+        setSuppliers(res.data.data || []);
+      } catch (err) { console.error('Supplier refresh failed:', err); }
+      showToast?.(`Supplier ${supplier.name} added`, 'success');
+    };
+    window.addEventListener('message', onSupplierCreated);
+    return () => window.removeEventListener('message', onSupplierCreated);
+  }, [showToast]);
 
   const fetchStockEntries = async (pid) => {
     setStockLoading(true);
@@ -93,6 +116,11 @@ const ProductManagement = ({ currentUser, showToast }) => {
     } catch { setStockEntries([]); }
     finally { setStockLoading(false); }
   };
+  const openSupplierPopup = () => {
+    const popup = window.open('/supplier-new', 'invoiprint-supplier', 'width=680,height=760');
+    if (!popup) showToast?.('Allow pop-ups to create a new supplier','error');
+  };
+
   const openView = (p) => { setViewProd(p); fetchStockEntries(p._id); };
 
   // ── Category CRUD ─────────────────────────────────────────────────────────
@@ -250,8 +278,18 @@ const ProductManagement = ({ currentUser, showToast }) => {
     if (!stockProd) return;
     const qty = parseInt(stockForm.quantity, 10);
     if (isNaN(qty) || qty < 1) return showToast?.('Enter a valid quantity','error');
+    if (!stockForm.supplierInvoiceNumber.trim()) return showToast?.('Supplier invoice number is required','error');
     if (useSerials && serials.length > 0 && serials.length !== qty)
       return showToast?.(`Serial count (${serials.length}) must match quantity (${qty})`,'error');
+    if (stockForm.acquisitionType === 'credit' && !validCreditPeriod(stockForm.creditPeriod))
+      return showToast?.('Enter a period like "30 days" or "2 months"','error');
+    if (stockForm.acquisitionType === 'advance') {
+      const advance = Number(stockForm.advanceAmount);
+      if (isNaN(advance) || advance <= 0 || advance >= stockTotal(stockForm))
+        return showToast?.('Advance amount must be greater than zero and less than the total stock value','error');
+      if (!validCreditPeriod(stockForm.creditPeriod))
+        return showToast?.('Enter a period like "30 days" or "2 months"','error');
+    }
     await runGuarded(async () => {
       try {
         await api.post(`/products/${stockProd._id}/stock`, {
@@ -259,18 +297,41 @@ const ProductManagement = ({ currentUser, showToast }) => {
           quantity: qty,
           supplierRef: stockForm.supplierRef || null,
           serialNumbers: useSerials ? serials : [],
+          creditPeriod: stockForm.acquisitionType === 'cash' ? '' : stockForm.creditPeriod,
+          advanceAmount: stockForm.acquisitionType === 'advance' ? Number(stockForm.advanceAmount) : 0,
         });
-        showToast?.('Stock entry saved successfully','success');
+        showToast?.(stockForm.acquisitionType === 'credit' ? 'Stock entry saved successfully' : 'Stock entry saved — payment expense created','success');
         setStockModal(false); fetchData();
       } catch(err) { showToast?.(err.response?.data?.message||'Error','error'); }
     });
   };
 
   const sym = (t) => businessData ? (t==='primary' ? businessData.primaryCurrency?.symbol||'' : businessData.secondaryCurrency?.symbol||'') : '';
-  const filtCats = categories.filter(c => c.name.toLowerCase().includes(catSearch.toLowerCase()) || c.code.toLowerCase().includes(catSearch.toLowerCase()));
+  const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}) : '—';
+  const stockTotal = (form) => parseInt(form.quantity,10) > 0 ? parseInt(form.quantity,10) * (parseFloat(form.buyingPrice)||0) : 0;
+  const validCreditPeriod = (value) => /^\s*\d+\s*(day|days|week|weeks|month|months|year|years)\s*$/i.test(String(value || ''));
+  const validAdvanceInput = (raw, total) => {
+    if (raw === '') return true;
+    const value = Number(raw);
+    if (!Number.isFinite(value) || value < 0) {
+      showToast?.('Enter a valid advance amount','error');
+      return false;
+    }
+    if (value >= total) {
+      showToast?.('Advance must be less than the total stock value','error');
+      return false;
+    }
+    return true;
+  };
+  const dueStyle = (d) => {
+    if (!d) return { color: '#64748b', fontWeight: 700 };
+    const diff = new Date(d).getTime() - Date.now();
+    return { color: diff < 0 ? '#dc2626' : diff <= 7 * 86400000 ? '#b45309' : '#64748b', fontWeight: 700 };
+  };
+  const filtCats = categories.filter(c => String(c.name || '').toLowerCase().includes(catSearch.toLowerCase()) || String(c.code || '').toLowerCase().includes(catSearch.toLowerCase()));
   const filtProds = products.filter(p => {
     const matchCat = !catFilter || p.category?._id === catFilter;
-    const matchQ = p.name.toLowerCase().includes(prodSearch.toLowerCase()) || p.productId.toLowerCase().includes(prodSearch.toLowerCase());
+    const matchQ = String(p.name || '').toLowerCase().includes(prodSearch.toLowerCase()) || String(p.productId || '').toLowerCase().includes(prodSearch.toLowerCase());
     return matchCat && matchQ;
   });
 
@@ -320,12 +381,14 @@ const ProductManagement = ({ currentUser, showToast }) => {
             <button key={key} className={`pm-tab-btn ${activeTab===key?'active':''}`} onClick={()=>setActiveTab(key)}>{label}</button>
           ))}
         </div>
+        {loading && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#64748b', fontSize: '0.75rem', fontWeight: 700 }}>
+            <RefreshCw className="animate-spin" size={14}/> Refreshing...
+          </div>
+        )}
       </div>
 
-      {loading ? (
-        <div className="pm-loading"><RefreshCw className="animate-spin" size={20}/> Loading...</div>
-      ) : (
-        <AnimatePresence mode="wait">
+      <AnimatePresence mode="wait">
           {/* CATEGORIES TAB */}
           {activeTab==='categories' ? (
             <motion.div key="cat" {...FV}>
@@ -411,7 +474,7 @@ const ProductManagement = ({ currentUser, showToast }) => {
                             </div>
                           </td></tr>
                         : filtProds.map(p=>{
-                          const initials = p.name.split(' ').slice(0,2).map(w=>w[0]?.toUpperCase()||'').join('');
+                          const initials = String(p.name || '').split(' ').slice(0,2).map(w=>w[0]?.toUpperCase()||'').join('');
                           const color = avatarColor(p.name);
                           return (
                           <tr key={p._id}>
@@ -419,14 +482,14 @@ const ProductManagement = ({ currentUser, showToast }) => {
                               <div style={{display:'flex',alignItems:'center',gap:'0.875rem'}}>
                                 <div className="pm-prod-avatar" style={{background:`${color}18`,color,padding:'10px',borderRadius:'12px',fontWeight:700,fontSize:'0.85rem'}}>{initials}</div>
                                 <div>
-                                  <div className="pm-prod-name" style={{fontWeight:700,fontSize:'0.9rem',color:'#0f172a'}}>{p.name}</div>
+                                  <div className="pm-prod-name" style={{fontWeight:700,fontSize:'0.9rem',color:'#0f172a'}}>{p.name || 'Unnamed product'}</div>
                                   {p.warrantyPeriod&&<div className="pm-prod-warranty" style={{fontSize:'0.7rem',color:'#64748b',marginTop:'0.15rem'}}>🛡 {p.warrantyPeriod}</div>}
                                 </div>
                               </div>
                             </td>
                             <td style={{color:'var(--pm-t2)',fontWeight:600,fontSize:'0.85rem'}}>{p.category?.name}</td>
                             <td className="text-right">
-                              <div style={{fontWeight:800,color:'#0f172a',fontSize:'0.9rem'}}>{sym(p.currencyType)} {p.price.toLocaleString(undefined,{minimumFractionDigits:2})}</div>
+                              <div style={{fontWeight:800,color:'#0f172a',fontSize:'0.9rem'}}>{sym(p.currencyType)} {Number(p.price || 0).toLocaleString(undefined,{minimumFractionDigits:2})}</div>
                               {p.isTaxIncluded&&<div style={{fontSize:'0.65rem',color:'#10b981',fontWeight:700,marginTop:'0.15rem'}}>Incl. Tax</div>}
                             </td>
                             <td className="text-center">
@@ -452,8 +515,7 @@ const ProductManagement = ({ currentUser, showToast }) => {
               </div>
             </motion.div>
           )}
-        </AnimatePresence>
-      )}
+      </AnimatePresence>
 
       {/* ── VIEW MODAL ── */}
       <AnimatePresence>
@@ -468,7 +530,7 @@ const ProductManagement = ({ currentUser, showToast }) => {
                 <button className="pm-modal-close" onClick={()=>setViewProd(null)}><X size={18}/></button>
               </div>
               <div className="pm-detail-grid">
-                <div className="pm-detail-item"><div className="pm-detail-label">Selling Price</div><div className="pm-detail-value large">{sym(viewProd.currencyType)} {viewProd.price.toLocaleString(undefined,{minimumFractionDigits:2})}</div></div>
+                <div className="pm-detail-item"><div className="pm-detail-label">Selling Price</div><div className="pm-detail-value large">{sym(viewProd.currencyType)} {Number(viewProd.price || 0).toLocaleString(undefined,{minimumFractionDigits:2})}</div></div>
                 <div className="pm-detail-item"><div className="pm-detail-label">Stock Qty</div><div className={`pm-detail-value large ${viewProd.quantity>0?'success':'danger'}`}>{viewProd.quantity} units</div></div>
                 <div className="pm-detail-item"><div className="pm-detail-label">Tax Included</div><div className="pm-detail-value">{viewProd.isTaxIncluded?'Yes':'No'}</div></div>
                 <div className="pm-detail-item"><div className="pm-detail-label">Default Warranty</div><div className="pm-detail-value">{viewProd.warrantyPeriod||'—'}</div></div>
@@ -490,7 +552,7 @@ const ProductManagement = ({ currentUser, showToast }) => {
                             style={{marginLeft:'auto',padding:'4px 10px',fontSize:'0.75rem'}}
                             onClick={async () => {
                               setEditBatchModal(e);
-                              setEditBatchForm({ location: e.location||'', buyingPrice: e.buyingPrice?.toString()||'', quantity: e.quantity?.toString()||'', notes: e.notes||'' });
+                              setEditBatchForm({ location: e.location||'', buyingPrice: e.buyingPrice?.toString()||'', quantity: e.quantity?.toString()||'', notes: e.notes||'', supplierInvoiceNumber: e.supplierInvoiceNumber || '', acquisitionType: e.acquisitionType||'cash', creditPeriod: e.creditPeriod || '', advanceAmount: e.advanceAmount ? e.advanceAmount.toString() : '' });
                               setEditBatchSerials(e.serialNumbers ? [...e.serialNumbers] : []);
                               setEditBatchSerialInput('');
                               setEditBatchUseSerials(e.hasSerialNumbers);
@@ -511,6 +573,21 @@ const ProductManagement = ({ currentUser, showToast }) => {
                           <span><Hash size={12}/> Qty: {e.quantity}</span>
                           {e.location&&<span><MapPin size={12}/> {e.location}</span>}
                           {e.buyingPrice>0&&<span><DollarSign size={12}/> Buy: {e.buyingPrice.toLocaleString(undefined,{minimumFractionDigits:2})}</span>}
+                          {e.acquisitionType === 'cash' && (
+                            <span style={{ color: '#047857', fontWeight: 700 }}>
+                              <DollarSign size={12}/> Full cash paid{(e.expenseRef?.expenseNumber || e.expenseNumber) && ` · Exp: ${e.expenseRef?.expenseNumber || e.expenseNumber}`}
+                            </span>
+                          )}
+                          {e.acquisitionType === 'advance' && (
+                            <span style={{ color: '#047857', fontWeight: 700 }}>
+                              <DollarSign size={12}/> Advance: {Number(e.advanceAmount || 0).toLocaleString(undefined,{minimumFractionDigits:2})}{(e.expenseRef?.expenseNumber || e.expenseNumber) && ` · Exp: ${e.expenseRef?.expenseNumber || e.expenseNumber}`}
+                            </span>
+                          )}
+                          {(e.acquisitionType === 'credit' || e.acquisitionType === 'advance') && (
+                            <span style={dueStyle(e.creditDueDate)}>
+                              <CalendarClock size={12}/> Credit: {Number(e.creditAmount ?? (e.quantity * (e.buyingPrice || 0))).toLocaleString(undefined,{minimumFractionDigits:2})}{e.creditPeriod ? ` · ${e.creditPeriod}` : ''} · due {fmtDate(e.creditDueDate)}
+                            </span>
+                          )}
                           {e.warrantyPeriod&&<span><ShieldCheck size={12}/> {e.warrantyPeriod}</span>}
                           {e.addedBy&&<span><Tag size={12}/> {e.addedBy.name||e.addedBy.username}</span>}
                         </div>
@@ -571,15 +648,64 @@ const ProductManagement = ({ currentUser, showToast }) => {
                 </div>
                 <div className="pm-form-row pm-form-row-2">
                   <div>
-                    <label className="pm-label">Supplier <span className="pm-label-optional">(optional)</span></label>
-                    <select className="pm-input pm-select-input" value={stockForm.supplierRef} onChange={e=>setStockForm({...stockForm,supplierRef:e.target.value})}>
-                      <option value="">— Select Supplier —</option>
-                      {suppliers.map(s => <option key={s._id} value={s._id}>{s.name} ({s.supplierId})</option>)}
+                    <label className="pm-label">Stock Obtained By *</label>
+                    <select className="pm-input pm-select-input" value={stockForm.acquisitionType} onChange={e=>{const t=e.target.value;setStockForm({...stockForm,acquisitionType:t,creditPeriod:t==='cash'?'':stockForm.creditPeriod,advanceAmount:t==='advance'?stockForm.advanceAmount:''});}}>
+                      <option value="cash">Full cash — pay all now</option>
+                      <option value="credit">Credit — pay later</option>
+                      <option value="advance">Advance payment — part now, rest on credit</option>
                     </select>
                   </div>
+                  {stockForm.acquisitionType !== 'cash' ? (
+                    <div>
+                      <label className="pm-label">Credit Period *</label>
+                      <input className="pm-input" list="creditPeriodOptions" required value={stockForm.creditPeriod} onChange={e=>setStockForm({...stockForm,creditPeriod:e.target.value})} placeholder="e.g. 30 days" />
+                      <datalist id="creditPeriodOptions">
+                        <option value="7 days" />
+                        <option value="14 days" />
+                        <option value="30 days" />
+                        <option value="1 month" />
+                        <option value="2 months" />
+                        <option value="3 months" />
+                        <option value="1 year" />
+                      </datalist>
+                    </div>
+                  ) : <div />}
+                </div>
+                {stockForm.acquisitionType === 'advance' && (
+                  <div className="pm-form-row pm-form-row-2" style={{ marginTop: 0 }}>
+                    <div>
+                      <label className="pm-label">Advance Amount *</label>
+                      <input className="pm-input" type="number" min="0" step="0.01" max={stockTotal(stockForm)} required value={stockForm.advanceAmount} onChange={e=>{const v=e.target.value;if(validAdvanceInput(v,stockTotal(stockForm)))setStockForm({...stockForm,advanceAmount:v});}} placeholder="0.00" />
+                    </div>
+                    <div style={{ fontSize:'0.75rem', color:'#b45309', background:'#fffbeb', border:'1px solid #fde68a', borderRadius:8, padding:'8px 10px', alignSelf:'end' }}>
+                      Advance: {(parseFloat(stockForm.advanceAmount)||0).toLocaleString(undefined,{minimumFractionDigits:2})} · Credit balance: {(stockTotal(stockForm)-(parseFloat(stockForm.advanceAmount)||0)).toLocaleString(undefined,{minimumFractionDigits:2})}
+                    </div>
+                  </div>
+                )}
+                {stockForm.acquisitionType === 'cash' && (
+                  <div style={{ fontSize:'0.75rem', color:'#047857', background:'#ecfdf5', border:'1px solid #a7f3d0', borderRadius:8, padding:'8px 10px', marginTop:-4 }}>
+                    Full amount {stockTotal(stockForm).toLocaleString(undefined,{minimumFractionDigits:2})} to be paid now — a payment expense will be created automatically.
+                  </div>
+                )}
+                {(stockForm.acquisitionType === 'credit' || stockForm.acquisitionType === 'advance') && (
+                  <div style={{ fontSize:'0.75rem', color:'#b45309', background:'#fffbeb', border:'1px solid #fde68a', borderRadius:8, padding:'8px 10px', marginTop:-4 }}>
+                    A due date is calculated from this period; an alert appears 7 days before it.
+                  </div>
+                )}
+                <div className="pm-form-row pm-form-row-2">
                   <div>
-                    <label className="pm-label">Supplier Invoice #</label>
-                    <input className="pm-input" value={stockForm.supplierInvoiceNumber} onChange={e=>setStockForm({...stockForm,supplierInvoiceNumber:e.target.value.toUpperCase()})} placeholder="e.g. SUP-INV-001"/>
+                    <label className="pm-label">Supplier <span className="pm-label-optional">(optional)</span></label>
+                    <div style={{ display:'flex', gap:8, alignItems:'stretch' }}>
+                      <select className="pm-input pm-select-input" style={{ flex:1 }} value={stockForm.supplierRef} onChange={e=>setStockForm({...stockForm,supplierRef:e.target.value})}>
+                        <option value="">— Select Supplier —</option>
+                        {suppliers.map(s => <option key={s._id} value={s._id}>{s.name} ({s.supplierId})</option>)}
+                      </select>
+                      <button type="button" className="pm-btn pm-btn-primary" onClick={openSupplierPopup} style={{ padding:'8px 10px', fontSize:'0.75rem', whiteSpace:'nowrap' }}>+ New Supplier</button>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="pm-label">Supplier Invoice # *</label>
+                    <input className="pm-input" required value={stockForm.supplierInvoiceNumber} onChange={e=>setStockForm({...stockForm,supplierInvoiceNumber:e.target.value.toUpperCase()})} placeholder="e.g. SUP-INV-001"/>
                   </div>
                 </div>
                 <div>
@@ -748,11 +874,27 @@ const ProductManagement = ({ currentUser, showToast }) => {
               <form className="pm-form" onSubmit={async (e) => {
                 e.preventDefault();
                 if (!editBatchReason) return showToast?.('Please select a reason for modification', 'error');
+                if (!editBatchForm.supplierInvoiceNumber.trim()) return showToast?.('Supplier invoice number is required','error');
                 const changes = {};
                 if (editBatchForm.location !== (editBatchModal.location||'')) changes.location = editBatchForm.location;
                 if (parseFloat(editBatchForm.buyingPrice||0) !== (editBatchModal.buyingPrice||0)) changes.buyingPrice = parseFloat(editBatchForm.buyingPrice||0);
                 if (parseInt(editBatchForm.quantity||0) !== editBatchModal.quantity) changes.quantity = parseInt(editBatchForm.quantity||0);
                 if (editBatchForm.notes !== (editBatchModal.notes||'')) changes.notes = editBatchForm.notes;
+                const supplierInvoice = editBatchForm.supplierInvoiceNumber.trim().toUpperCase();
+                if (supplierInvoice !== (editBatchModal.supplierInvoiceNumber||'')) changes.supplierInvoiceNumber = supplierInvoice;
+                const creditType = editBatchForm.acquisitionType || 'cash';
+                const creditPeriod = creditType === 'cash' ? '' : editBatchForm.creditPeriod;
+                if ((creditType === 'credit' || creditType === 'advance') && !validCreditPeriod(creditPeriod)) return showToast?.('Enter a period like "30 days" or "2 months"','error');
+                let advanceValue = 0;
+                if (creditType === 'advance') {
+                  advanceValue = Number(editBatchForm.advanceAmount);
+                  if (isNaN(advanceValue) || advanceValue <= 0 || advanceValue >= stockTotal(editBatchForm))
+                    return showToast?.('Advance amount must be greater than zero and less than the total stock value','error');
+                }
+                if (creditType !== (editBatchModal.acquisitionType||'cash')) changes.acquisitionType = creditType;
+                if (creditPeriod !== (editBatchModal.creditPeriod || '')) changes.creditPeriod = creditPeriod;
+                const origAdvance = Number(editBatchModal.advanceAmount || 0);
+                if (advanceValue !== origAdvance) changes.advanceAmount = advanceValue;
                 if (editBatchUseSerials) {
                   const origSerials = (editBatchModal.serialNumbers || []).map(s => s.toUpperCase()).sort();
                   const newSerials = editBatchSerials.map(s => s.toUpperCase()).sort();
@@ -791,6 +933,51 @@ const ProductManagement = ({ currentUser, showToast }) => {
                     {STOCK_LOCATIONS.map(loc=><option key={loc} value={loc}>{loc}</option>)}
                   </select>
                 </div>
+                <div className="pm-form-row pm-form-row-2">
+                  <div>
+                    <label className="pm-label">Stock Obtained By</label>
+                    <select className="pm-input pm-select-input" value={editBatchForm.acquisitionType} onChange={e=>{const t=e.target.value;setEditBatchForm({...editBatchForm,acquisitionType:t,creditPeriod:t==='cash'?'':editBatchForm.creditPeriod,advanceAmount:t==='advance'?editBatchForm.advanceAmount:''});}}>
+                      <option value="cash">Full cash — pay all now</option>
+                      <option value="credit">Credit — pay later</option>
+                      <option value="advance">Advance payment — part now, rest on credit</option>
+                    </select>
+                  </div>
+                  {editBatchForm.acquisitionType !== 'cash' ? (
+                    <div>
+                      <label className="pm-label">Credit Period</label>
+                      <input className="pm-input" list="editCreditPeriodOptions" value={editBatchForm.creditPeriod} onChange={e=>setEditBatchForm({...editBatchForm,creditPeriod:e.target.value})} placeholder="e.g. 30 days" />
+                      <datalist id="editCreditPeriodOptions">
+                        <option value="7 days" />
+                        <option value="14 days" />
+                        <option value="30 days" />
+                        <option value="1 month" />
+                        <option value="2 months" />
+                        <option value="3 months" />
+                        <option value="1 year" />
+                      </datalist>
+                    </div>
+                  ) : <div />}
+                </div>
+                {editBatchForm.acquisitionType === 'advance' && (
+                  <div className="pm-form-row pm-form-row-2" style={{ marginTop: 0 }}>
+                    <div>
+                      <label className="pm-label">Advance Amount</label>
+                      <input className="pm-input" type="number" min="0" step="0.01" max={stockTotal(editBatchForm)} value={editBatchForm.advanceAmount} onChange={e=>{const v=e.target.value;if(validAdvanceInput(v,stockTotal(editBatchForm)))setEditBatchForm({...editBatchForm,advanceAmount:v});}} placeholder="0.00" />
+                    </div>
+                    <div style={{ fontSize:'0.75rem', color:'#b45309', background:'#fffbeb', border:'1px solid #fde68a', borderRadius:8, padding:'8px 10px', alignSelf:'end' }}>
+                      Remaining credit: {(stockTotal(editBatchForm)-(parseFloat(editBatchForm.advanceAmount)||0)).toLocaleString(undefined,{minimumFractionDigits:2})}
+                    </div>
+                  </div>
+                )}
+                {editBatchForm.acquisitionType === 'credit' && (
+                  <div style={{ fontSize:'0.75rem', color:'#b45309', background:'#fffbeb', border:'1px solid #fde68a', borderRadius:8, padding:'8px 10px', marginTop:-4 }}>
+                    Full amount on credit: {stockTotal(editBatchForm).toLocaleString(undefined,{minimumFractionDigits:2})}
+                  </div>
+                )}
+                <div style={{ fontSize:'0.75rem', color:'#64748b', background:'#f8fafc', border:'1px solid #e2e8f0', borderRadius:8, padding:'8px 10px' }}>
+                  Changing the payment mode updates the linked expense.
+                </div>
+                <div><label className="pm-label">Supplier Invoice # *</label><input className="pm-input" required value={editBatchForm.supplierInvoiceNumber} onChange={e=>setEditBatchForm({...editBatchForm,supplierInvoiceNumber:e.target.value.toUpperCase()})} placeholder="e.g. SUP-INV-001"/></div>
                 <div><label className="pm-label">Notes</label><textarea className="pm-input pm-textarea" value={editBatchForm.notes} onChange={e=>setEditBatchForm({...editBatchForm,notes:e.target.value})}/></div>
                 <div className="pm-serial-section">
                   <div className="pm-serial-toggle-row">

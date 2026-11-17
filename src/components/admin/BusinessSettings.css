@@ -373,6 +373,13 @@ textarea.bs2-inp {
   font-size: 0.9rem;
 }
 
+.bs2-hint {
+  margin-top: 0.85rem;
+  color: var(--bs-t3);
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
 /* ── Dynamic List (Taxes / Discounts) ────────────────── */
 .bs2-dynamic-list {
   display: flex;

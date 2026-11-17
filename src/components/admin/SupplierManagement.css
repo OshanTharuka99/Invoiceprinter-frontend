@@ -680,3 +680,80 @@
     overflow-x: auto;
   }
 }
+
+.sc-credit-total {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--sm-amber);
+  margin-top: 0.25rem;
+}
+
+.sc-overdue {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #ef4444;
+  background: #fef2f2;
+  margin-top: 0.4rem;
+}
+
+.sc-expanded {
+  padding: 1.25rem;
+}
+
+.sc-detail-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.sc-bank-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.75rem;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1rem;
+}
+
+.sc-bank-title {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.sc-bank-item {
+  min-width: 0;
+}
+
+.sc-bank-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.sc-bank-value {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #0f172a;
+  overflow-wrap: anywhere;
+}
+
+.sc-bank-empty {
+  grid-column: 1 / -1;
+  font-size: 0.8rem;
+  color: #94a3b8;
+}
+

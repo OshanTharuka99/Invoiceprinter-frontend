@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion as Motion, AnimatePresence } from 'framer-motion';
 import { Truck, Plus, X, Edit2, Trash2, Search, RefreshCw, AlertTriangle, FileText, Phone, Mail, MapPin, Landmark, Building2, Users, CheckCircle2, DollarSign, CreditCard } from 'lucide-react';
 import api from '../../api';
 import useSubmitGuard from '../../utils/useSubmitGuard';
+import SupplierCreditManagement from './SupplierCreditManagement';
 import './SupplierManagement.css';
 import '../../styles/modern-table.css';
 
-const SupplierManagement = ({ currentUser, showToast }) => {
+const SupplierManagement = ({ showToast }) => {
+    const [activeTab, setActiveTab] = useState('vendors');
     const [vendors, setVendors] = useState([]);
     const [loading, setLoading] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
@@ -30,7 +32,7 @@ const SupplierManagement = ({ currentUser, showToast }) => {
         try {
             const res = await api.get('/suppliers');
             setVendors(res.data.data);
-        } catch (error) { showToast?.('Failed to load supply matrix', 'error'); } 
+        } catch { showToast?.('Failed to load supply matrix', 'error'); } 
         finally { setLoading(false); }
     };
 
@@ -72,7 +74,7 @@ const SupplierManagement = ({ currentUser, showToast }) => {
             message: "Permanently terminate this vendor relationship from the supply matrix?",
             onConfirm: async () => {
                 try { await api.delete(`/suppliers/${id}`); showToast?.('Entity eliminated', 'success'); fetchData(); }
-                catch (error) { showToast?.('Elimination protocol failed', 'error'); }
+                catch { showToast?.('Elimination protocol failed', 'error'); }
             }
         });
     };
@@ -84,8 +86,25 @@ const SupplierManagement = ({ currentUser, showToast }) => {
 
     const withBank = vendors.filter(v => v.bankDetails?.bankName).length;
 
+    const tabBar = (
+        <div className="pm-tabs" style={{ marginBottom: '1.5rem' }}>
+            <button type="button" className={`pm-tab-btn ${activeTab === 'vendors' ? 'active' : ''}`} onClick={() => setActiveTab('vendors')}>Vendors</button>
+            <button type="button" className={`pm-tab-btn ${activeTab === 'credit' ? 'active' : ''}`} onClick={() => setActiveTab('credit')}>Credit</button>
+        </div>
+    );
+
+    if (activeTab === 'credit') {
+        return (
+            <div className="pm-root">
+                {tabBar}
+                <SupplierCreditManagement showToast={showToast} />
+            </div>
+        );
+    }
+
     return (
         <div className="pm-root">
+            {tabBar}
             <div className="pm-stats">
                 {[
                     { label: 'Total Vendors', value: vendors.length, icon: Building2, variant: 'blue' },
@@ -95,13 +114,13 @@ const SupplierManagement = ({ currentUser, showToast }) => {
                 ].map((stat, idx) => {
                     const Icon = stat.icon;
                     return (
-                        <motion.div key={idx} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.06 }} className={`pm-stat-card ${stat.variant}`}>
+                        <Motion.div key={idx} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.06 }} className={`pm-stat-card ${stat.variant}`}>
                             <div className={`pm-stat-icon ${stat.variant}`}><Icon size={22} /></div>
                             <div className="pm-stat-body">
                                 <div className="pm-stat-value">{stat.value}</div>
                                 <div className="pm-stat-label">{stat.label}</div>
                             </div>
-                        </motion.div>
+                        </Motion.div>
                     );
                 })}
             </div>
@@ -120,8 +139,8 @@ const SupplierManagement = ({ currentUser, showToast }) => {
                             <Search size={14} className="pm-search-icon" />
                             <input type="text" placeholder="Search vendors by name or ID..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pm-search-input" />
                         </div>
-                        <motion.button whileTap={{ scale: 0.95 }} onClick={fetchData} className="pm-btn pm-btn-outline"><RefreshCw size={16} /></motion.button>
-                        <motion.button whileTap={{ scale: 0.95 }} onClick={() => openModal()} className="pm-btn pm-btn-primary"><Plus size={16} /> New Vendor</motion.button>
+                        <Motion.button whileTap={{ scale: 0.95 }} onClick={fetchData} className="pm-btn pm-btn-outline"><RefreshCw size={16} /></Motion.button>
+                        <Motion.button whileTap={{ scale: 0.95 }} onClick={() => openModal()} className="pm-btn pm-btn-primary"><Plus size={16} /> New Vendor</Motion.button>
                     </div>
                 </div>
 
@@ -144,7 +163,7 @@ const SupplierManagement = ({ currentUser, showToast }) => {
                         </thead>
                         <tbody>
                             {filtered.map((v, idx) => (
-                                <motion.tr
+                                <Motion.tr
                                     key={v._id}
                                     initial={{ opacity: 0, x: -10 }}
                                     animate={{ opacity: 1, x: 0 }}
@@ -178,12 +197,12 @@ const SupplierManagement = ({ currentUser, showToast }) => {
                                     </td>
                                     <td>
                                         <div className="modern-table-actions">
-                                            <motion.button whileTap={{ scale: 0.95 }} onClick={() => setViewVendor(v)} className="modern-table-action view"><FileText size={14} /></motion.button>
-                                            <motion.button whileTap={{ scale: 0.95 }} onClick={() => openModal(v)} className="modern-table-action edit"><Edit2 size={14} /></motion.button>
-                                            <motion.button whileTap={{ scale: 0.95 }} onClick={() => deleteVendor(v._id)} className="modern-table-action delete"><Trash2 size={14} /></motion.button>
+                                            <Motion.button whileTap={{ scale: 0.95 }} onClick={() => setViewVendor(v)} className="modern-table-action view"><FileText size={14} /></Motion.button>
+                                            <Motion.button whileTap={{ scale: 0.95 }} onClick={() => openModal(v)} className="modern-table-action edit"><Edit2 size={14} /></Motion.button>
+                                            <Motion.button whileTap={{ scale: 0.95 }} onClick={() => deleteVendor(v._id)} className="modern-table-action delete"><Trash2 size={14} /></Motion.button>
                                         </div>
                                     </td>
-                                </motion.tr>
+                                </Motion.tr>
                             ))}
                         </tbody>
                     </table>
@@ -195,13 +214,13 @@ const SupplierManagement = ({ currentUser, showToast }) => {
             {/* View Modal */}
             <AnimatePresence>
                 {viewVendor && (
-                    <motion.div
+                    <Motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         className="sm-overlay"
                         onClick={() => setViewVendor(null)}>
-                        <motion.div
+                        <Motion.div
                             initial={{ scale: 0.9, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.9, opacity: 0 }}
@@ -215,7 +234,7 @@ const SupplierManagement = ({ currentUser, showToast }) => {
                                         <span className="sm-modal-badge">{viewVendor.supplierId}</span>
                                     </div>
                                 </div>
-                                <motion.button whileTap={{ scale: 0.9 }} onClick={() => setViewVendor(null)} className="sm-modal-close"><X size={20} /></motion.button>
+                                <Motion.button whileTap={{ scale: 0.9 }} onClick={() => setViewVendor(null)} className="sm-modal-close"><X size={20} /></Motion.button>
                             </div>
                             <div className="sm-detail-grid">
                                 {[
@@ -242,22 +261,22 @@ const SupplierManagement = ({ currentUser, showToast }) => {
                                     </div>
                                 )}
                             </div>
-                            <motion.button whileTap={{ scale: 0.98 }} onClick={() => setViewVendor(null)} className="sm-btn-close">Close</motion.button>
-                        </motion.div>
-                    </motion.div>
+                            <Motion.button whileTap={{ scale: 0.98 }} onClick={() => setViewVendor(null)} className="sm-btn-close">Close</Motion.button>
+                        </Motion.div>
+                    </Motion.div>
                 )}
             </AnimatePresence>
 
             {/* Create/Edit Modal */}
             <AnimatePresence>
                 {isModalOpen && (
-                    <motion.div
+                    <Motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         className="sm-overlay"
                         onClick={() => setIsModalOpen(false)}>
-                        <motion.div
+                        <Motion.div
                             initial={{ scale: 0.9, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.9, opacity: 0 }}
@@ -265,7 +284,7 @@ const SupplierManagement = ({ currentUser, showToast }) => {
                             className="sm-modal sm-modal-lg">
                             <div className="sm-modal-header">
                                 <h2 className="sm-form-title">{editingVendor ? 'Edit Vendor' : 'New Vendor'}</h2>
-                                <motion.button whileTap={{ scale: 0.9 }} onClick={() => setIsModalOpen(false)} className="sm-modal-close"><X size={20} /></motion.button>
+                                <Motion.button whileTap={{ scale: 0.9 }} onClick={() => setIsModalOpen(false)} className="sm-modal-close"><X size={20} /></Motion.button>
                             </div>
                             <form onSubmit={saveVendor}>
                                 <div className="sm-form-group">
@@ -310,33 +329,33 @@ const SupplierManagement = ({ currentUser, showToast }) => {
                                         </div>
                                     </div>
                                 </div>
-                                <motion.button whileTap={{ scale: isSubmitting ? 1 : 0.98 }} type="submit" disabled={isSubmitting} className="sm-btn-submit" style={{ opacity: isSubmitting ? 0.85 : 1, cursor: isSubmitting ? 'not-allowed' : 'pointer' }}>
+                                <Motion.button whileTap={{ scale: isSubmitting ? 1 : 0.98 }} type="submit" disabled={isSubmitting} className="sm-btn-submit" style={{ opacity: isSubmitting ? 0.85 : 1, cursor: isSubmitting ? 'not-allowed' : 'pointer' }}>
                                     {isSubmitting ? 'Processing...' : (editingVendor ? 'Update Vendor' : 'Create Vendor')}
-                                </motion.button>
+                                </Motion.button>
                             </form>
-                        </motion.div>
-                    </motion.div>
+                        </Motion.div>
+                    </Motion.div>
                 )}
             </AnimatePresence>
 
             {/* Delete Confirmation Modal */}
             <AnimatePresence>
                 {confirmAction && (
-                    <motion.div
+                    <Motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         className="sm-overlay">
-                        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="sm-modal sm-modal-sm" style={{ textAlign: 'center' }}>
+                        <Motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="sm-modal sm-modal-sm" style={{ textAlign: 'center' }}>
                             <div className="sm-confirm-icon-box"><AlertTriangle size={40} color="#ef4444" /></div>
                             <h3 className="sm-confirm-title">Confirm Deletion</h3>
                             <p className="sm-confirm-msg">{confirmAction.message}</p>
                             <div className="sm-confirm-actions">
-                                <motion.button whileTap={{ scale: 0.98 }} onClick={() => setConfirmAction(null)} className="sm-btn-cancel">Cancel</motion.button>
-                                <motion.button whileTap={{ scale: 0.98 }} onClick={() => { confirmAction.onConfirm(); setConfirmAction(null); }} className="sm-btn-danger">Delete</motion.button>
+                                <Motion.button whileTap={{ scale: 0.98 }} onClick={() => setConfirmAction(null)} className="sm-btn-cancel">Cancel</Motion.button>
+                                <Motion.button whileTap={{ scale: 0.98 }} onClick={() => { confirmAction.onConfirm(); setConfirmAction(null); }} className="sm-btn-danger">Delete</Motion.button>
                             </div>
-                        </motion.div>
-                    </motion.div>
+                        </Motion.div>
+                    </Motion.div>
                 )}
             </AnimatePresence>
         </div>

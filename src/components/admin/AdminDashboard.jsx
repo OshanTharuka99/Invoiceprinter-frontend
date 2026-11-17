@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Users, Package, Briefcase, Truck, FileText, DollarSign, Calendar, TrendingUp, CheckCircle2, Activity, PiggyBank, Wrench } from 'lucide-react';
+import { Users, Package, Briefcase, Truck, FileText, DollarSign, Calendar, TrendingUp, CheckCircle2, Activity, PiggyBank, Wrench, Wallet } from 'lucide-react';
 import api from '../../api';
 import { currencyLabel, formatNumber } from '../../utils/currency';
 import '../../styles/dashboard-shared.css';
@@ -71,7 +71,9 @@ const AdminDashboard = ({ currentUser }) => {
         warranties: { total: 0, active: 0, expired: 0 },
     });
     const [invoiceStats, setInvoiceStats] = useState(null);
+    const [expenseStats, setExpenseStats] = useState(null);
     const [expiredCreditProjects, setExpiredCreditProjects] = useState([]);
+    const [stockCreditAlerts, setStockCreditAlerts] = useState([]);
     const [rmaByStatus, setRmaByStatus] = useState({
         Open: 0, 'In Progress': 0, 'Awaiting Supplier': 0, Resolved: 0, Closed: 0, Cancelled: 0,
     });
@@ -101,6 +103,9 @@ const AdminDashboard = ({ currentUser }) => {
                     setExpiredCreditProjects(data.invoices.expiredCreditProjects?.slice(0, 6) ?? []);
                 }
 
+                setExpenseStats(data.expenses ?? null);
+                setStockCreditAlerts(data.stockCreditAlerts ?? []);
+
                 if (data.rmaByStatus) setRmaByStatus(data.rmaByStatus);
             } catch (err) {
                 console.error('Dashboard fetch error:', err);
@@ -126,6 +131,8 @@ const AdminDashboard = ({ currentUser }) => {
     const totalProfit = invoiceStats?.totalProfit ?? 0;
     const profitMargin = invoiceStats?.profitMargin ?? 0;
     const totalCost = invoiceStats?.totalCost ?? 0;
+    const totalExpenses = expenseStats?.totalExpenses ?? 0;
+    const netCashFlow = totalSales - totalExpenses;
     const paymentMethods = invoiceStats?.paymentMethodBreakdown ?? [];
     const statusBreakdown = invoiceStats?.statusBreakdown ?? [];
 
@@ -242,6 +249,8 @@ const AdminDashboard = ({ currentUser }) => {
                     { label: 'Total Revenue', value: fmt(totalSales), meta: `${periodLabel} sales`, icon: DollarSign, accent: '#059669', bg: '#ecfdf5' },
                     { label: 'Gross Profit', value: fmt(totalProfit), meta: `${profitMargin}% margin`, icon: PiggyBank, accent: '#0891b2', bg: '#ecfeff' },
                     { label: 'Total Cost', value: fmt(totalCost), meta: 'Buy price (COGS)', icon: TrendingUp, accent: '#d97706', bg: '#fffbeb' },
+                    { label: 'Total Expenses', value: fmt(totalExpenses), meta: `${expenseStats?.expenseCount ?? 0} expenses · outgoing payments`, icon: Wallet, accent: '#dc2626', bg: '#fef2f2' },
+                    { label: 'Net Cash Flow', value: fmt(netCashFlow), meta: 'Revenue − Expenses (not credit board)', icon: Wallet, accent: netCashFlow >= 0 ? '#059669' : '#dc2626', bg: netCashFlow >= 0 ? '#ecfdf5' : '#fef2f2' },
                     { label: 'Invoices', value: invoiceStats?.totalInvoices ?? 0, meta: `${statusCount('Paid')} paid`, icon: FileText, accent: '#6366f1', bg: '#eef2ff' },
                 ].map((kpi, i) => {
                     const Icon = kpi.icon;
@@ -537,6 +546,108 @@ const AdminDashboard = ({ currentUser }) => {
                 <div className="dash-section-left">
                     <div className="dash-section-line" />
                     <div>
+                        <h2 className="dash-section-title">Expense Analytics</h2>
+                        <p className="dash-section-sub">Outgoing payments by purpose, payment method, and category</p>
+                    </div>
+                </div>
+                <span className="dash-section-badge">{periodLabel} Period</span>
+            </div>
+
+            <motion.div
+                className="ad-finance-card dash-card"
+                style={{ marginBottom: 'var(--dash-gap-section, 2.25rem)' }}
+                {...cardMotion(13)}
+            >
+                <div className="ad-finance-header">
+                    <div className="ad-finance-header-left">
+                        <div className="ad-finance-header-icon" style={{ background: '#fef2f2', borderColor: '#fecaca', color: '#dc2626' }}><Wallet size={14} /></div>
+                        <h3>Expense Breakdown</h3>
+                    </div>
+                    <span className="ad-finance-total-label" style={{ color: '#dc2626' }}>
+                        {fmt(totalExpenses)} · {expenseStats?.expenseCount ?? 0} expenses
+                    </span>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem', position: 'relative', zIndex: 1 }}>
+                    <div>
+                        <div className="ad-finance-total-label" style={{ marginBottom: '0.5rem' }}>By purpose</div>
+                        <div className="ad-finance-rows">
+                            {[
+                                { label: 'Project', value: expenseStats?.byPurpose?.project ?? 0, color: '#dc2626' },
+                                { label: 'Office', value: expenseStats?.byPurpose?.office ?? 0, color: '#f97316' },
+                                { label: 'Asset purchase', value: expenseStats?.byPurpose?.asset ?? 0, color: '#f59e0b' },
+                            ].map((row) => (
+                                <React.Fragment key={row.label}>
+                                    <div className="ad-finance-row">
+                                        <span className="ad-finance-row-label">
+                                            <span className="ad-finance-row-dot" style={{ background: row.color }} />
+                                            {row.label}
+                                        </span>
+                                        <div className="ad-finance-row-right">
+                                            <div className="ad-finance-row-value">{fmt(row.value)}</div>
+                                        </div>
+                                    </div>
+                                    <MiniBar value={row.value} total={totalExpenses} color={row.color} />
+                                </React.Fragment>
+                            ))}
+                        </div>
+                    </div>
+                    <div>
+                        <div className="ad-finance-total-label" style={{ marginBottom: '0.5rem' }}>By payment method (outflow)</div>
+                        <div className="ad-finance-rows">
+                            {[
+                                { label: 'Cash', value: expenseStats?.byPaymentMethod?.cash ?? 0, color: '#dc2626' },
+                                { label: 'Cheque', value: expenseStats?.byPaymentMethod?.cheque ?? 0, color: '#f97316' },
+                                { label: 'Bank', value: expenseStats?.byPaymentMethod?.bank_transfer ?? 0, color: '#8b5cf6' },
+                            ].map((row) => (
+                                <React.Fragment key={row.label}>
+                                    <div className="ad-finance-row">
+                                        <span className="ad-finance-row-label">
+                                            <span className="ad-finance-row-dot" style={{ background: row.color }} />
+                                            {row.label}
+                                        </span>
+                                        <div className="ad-finance-row-right">
+                                            <div className="ad-finance-row-value">{fmt(row.value)}</div>
+                                        </div>
+                                    </div>
+                                    <MiniBar value={row.value} total={totalExpenses} color={row.color} />
+                                </React.Fragment>
+                            ))}
+                        </div>
+                    </div>
+                    <div>
+                        <div className="ad-finance-total-label" style={{ marginBottom: '0.5rem' }}>Top categories ({periodLabel})</div>
+                        <div className="ad-finance-rows">
+                            {(expenseStats?.byCategory ?? []).length === 0 ? (
+                                <div className="dash-empty">No expenses recorded in this period</div>
+                            ) : (
+                                (expenseStats?.byCategory ?? []).slice(0, 5).map((cat) => (
+                                    <React.Fragment key={cat.name}>
+                                        <div className="ad-finance-row">
+                                            <span className="ad-finance-row-label">
+                                                <span className="ad-finance-row-dot" style={{ background: '#f59e0b' }} />
+                                                {cat.name}
+                                            </span>
+                                            <div className="ad-finance-row-right">
+                                                <div className="ad-finance-row-value">{fmt(cat.total)}</div>
+                                                <div className="ad-finance-row-count">{cat.count} expenses</div>
+                                            </div>
+                                        </div>
+                                        <MiniBar value={cat.total} total={totalExpenses} color="#f59e0b" />
+                                    </React.Fragment>
+                                ))
+                            )}
+                        </div>
+                    </div>
+                </div>
+                <div className="ad-finance-note">
+                    Expense figures are outgoing payments in the selected period. Cash / Cheque / Bank here are outflows and are separate from the Cash Receipts board (incoming receipts and outstanding credit).
+                </div>
+            </motion.div>
+
+            <div className="dash-section">
+                <div className="dash-section-left">
+                    <div className="dash-section-line" />
+                    <div>
                         <h2 className="dash-section-title">RMA Process</h2>
                         <p className="dash-section-sub">Status distribution across all RMA jobs</p>
                     </div>
@@ -615,6 +726,57 @@ const AdminDashboard = ({ currentUser }) => {
                                     <td>
                                         <span className={`modern-table-status ${p.daysOverdue >= 30 ? 'unpaid' : 'pending'}`}>
                                             {p.daysOverdue < 1 ? 'Today' : `${p.daysOverdue} day${p.daysOverdue === 1 ? '' : 's'} ago`}
+                                        </span>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                    </div>
+                )}
+            </motion.div>
+
+            <motion.div className="ad-recent-card dash-card" {...cardMotion(15)}>
+                <div className="ad-recent-header">
+                    <div className="ad-recent-header-left">
+                        <h3>Stock Credit Alerts</h3>
+                    </div>
+                    <span className="ad-recent-badge" style={{ background: '#fee2e2', color: '#b91c1c' }}>
+                        {stockCreditAlerts.length} alert{stockCreditAlerts.length === 1 ? '' : 's'}
+                    </span>
+                </div>
+                {stockCreditAlerts.length === 0 ? (
+                    <div className="dash-empty">
+                        <div className="dash-empty-icon"><Package size={32} /></div>
+                        No stock credit dues in the next 7 days
+                    </div>
+                ) : (
+                    <div className="ad-recent-table-wrap modern-table-scroll">
+                    <table className="modern-table">
+                        <thead>
+                            <tr>
+                                <th>Product / Batch</th>
+                                <th>Supplier</th>
+                                <th>Credit Value</th>
+                                <th>Due Date</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {stockCreditAlerts.slice(0, 6).map((alert) => (
+                                <tr key={alert._id}>
+                                    <td>
+                                        <span className="ad-recent-table-num">{alert.productName}</span>
+                                        <div className="ad-recent-table-date">{alert.batchRef}</div>
+                                    </td>
+                                    <td><span className="ad-recent-table-client">{alert.supplierName}</span></td>
+                                    <td><span className="ad-recent-table-amount">{fmt(alert.amount)}</span></td>
+                                    <td><span className="ad-recent-table-date">{alert.dueDateLabel}</span></td>
+                                    <td>
+                                        <span className={`modern-table-status ${alert.status === 'overdue' ? 'unpaid' : 'pending'}`}>
+                                            {alert.status === 'overdue'
+                                                ? `Overdue ${alert.daysOverdue}d`
+                                                : `Due in ${alert.daysRemaining}d`}
                                         </span>
                                     </td>
                                 </tr>

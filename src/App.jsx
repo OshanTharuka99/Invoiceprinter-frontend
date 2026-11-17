@@ -11,6 +11,7 @@ import Login from './pages/Login';
 import UserPortal from './pages/UserPortal';
 import AdminPortal from './pages/AdminPortal';
 import ForcePasswordChange from './pages/ForcePasswordChange';
+import SupplierQuickCreate from './components/admin/SupplierQuickCreate';
 
 const pageVariants = {
     initial: { opacity: 0, y: 12 },
@@ -113,6 +114,9 @@ function AppContent() {
                 } />
                 <Route path="/dashboard" element={
                     <ProtectedRoute allowedRoles={['user', 'admin', 'root']}><UserPortal /></ProtectedRoute>
+                } />
+                <Route path="/supplier-new" element={
+                    <ProtectedRoute allowedRoles={['admin', 'root']}><SupplierQuickCreate /></ProtectedRoute>
                 } />
                 <Route path="/" element={<Navigate to="/dashboard" replace />} />
             </Routes>

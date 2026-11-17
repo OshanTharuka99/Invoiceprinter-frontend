@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import {
     Users, ShieldCheck, LayoutDashboard, FileText, Settings,
-    TrendingUp, LogOut, Bell, Package, Briefcase, Truck, ShieldAlert, ScrollText, Printer, Shield, X,     Undo2, RotateCcw, Menu, Wrench, LifeBuoy, Banknote
+    TrendingUp, LogOut, Bell, Package, Briefcase, Truck, ShieldAlert, ScrollText, Printer, Shield, X,     Undo2, RotateCcw, Menu, Wrench, LifeBuoy, Banknote, Wallet
 } from 'lucide-react';
 import api from '../api';
 import { toast, Toaster } from 'react-hot-toast';
@@ -29,6 +29,7 @@ import PromainvoiceManagemnt from '../components/shared/PromainvoiceManagemnt';
 import UserSettings from '../components/shared/UserSettings';
 import SupportCenter from '../components/manuals/SupportCenter';
 import CashReceiptManagement from '../components/admin/CashReceiptManagement';
+import ExpenseManagement from '../components/admin/ExpenseManagement';
 
 
 
@@ -51,7 +52,16 @@ const AdminPortal = () => {
         } catch (err) { console.error('Notification error:', err); }
     };
 
-    useEffect(() => { fetchNotifications(); }, []);
+    useEffect(() => {
+        fetchNotifications();
+        const timer = setInterval(fetchNotifications, 30000);
+        const onFocus = () => fetchNotifications();
+        window.addEventListener('focus', onFocus);
+        return () => {
+            clearInterval(timer);
+            window.removeEventListener('focus', onFocus);
+        };
+    }, []);
 
     useEffect(() => {
         const onResize = () => {
@@ -90,6 +100,7 @@ const AdminPortal = () => {
         { id: 'business', label: 'General Settings', icon: Settings },
         { id: 'invoices', label: 'Invoice Engine', icon: FileText },
         { id: 'cash_receipts', label: 'Cash Receipts', icon: Banknote },
+        { id: 'expenses', label: 'Expenses', icon: Wallet },
         { id: 'proma_invoices', label: 'Proma Invoice', icon: ScrollText },
         { id: 'warranty', label: 'Warranty Management', icon: ShieldCheck },
         { id: 'purchase_orders', label: 'Purchase Orders', icon: ScrollText },
@@ -176,6 +187,7 @@ const AdminPortal = () => {
             case 'quotations': return <QuotationManagement currentUser={user} showToast={showToast} />;
             case 'invoices': return <InvoiceManagement currentUser={user} showToast={showToast} />;
             case 'cash_receipts': return <CashReceiptManagement currentUser={user} showToast={showToast} />;
+            case 'expenses': return <ExpenseManagement currentUser={user} showToast={showToast} />;
             case 'proma_invoices': return <PromainvoiceManagemnt currentUser={user} showToast={showToast} />;
             case 'warranty': return <WarrantyManagement currentUser={user} showToast={showToast} />;
             case 'purchase_orders': return <PurchaseOrderManagement currentUser={user} showToast={showToast} />;

@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion as Motion } from 'framer-motion';
 import {
     LifeBuoy, FileText, ScrollText, Package, Truck, Undo2, RotateCcw,
     Wrench, Users, Briefcase, Shield, ShieldCheck, Settings, LayoutDashboard,
-    Search, ChevronRight, BookOpen, Banknote,
+    Search, ChevronRight, BookOpen, Banknote, Wallet,
 } from 'lucide-react';
 import api from '../../api';
 import { MODULE_MANUALS } from './manualCatalog';
@@ -15,6 +15,7 @@ const MANUAL_META = [
     { id: 'dashboard', label: 'Dashboard', blurb: 'KPIs, periods, and status charts', icon: LayoutDashboard, roles: ['all'] },
     { id: 'invoice', label: 'Invoice Engine', blurb: 'Create, edit, cancel, and print invoices', icon: FileText, roles: ['all'] },
     { id: 'cash_receipt', label: 'Cash Receipts', blurb: 'Record payments, link & print receipts', icon: Banknote, roles: ['admin', 'root'] },
+    { id: 'expenses', label: 'Expenses', blurb: 'Mandatory bill number, vouchers & auto expenses', icon: Wallet, roles: ['admin', 'root'] },
     { id: 'proma_invoice', label: 'Proma Invoice', blurb: 'Proforma estimates — no stock or warranty', icon: ScrollText, roles: ['all'] },
     { id: 'quotation', label: 'Quotation Engine', blurb: 'Quotes, approval status, convert flow', icon: ScrollText, roles: ['all'] },
     { id: 'purchase_order', label: 'Purchase Orders', blurb: 'Supplier orders and PO printouts', icon: Package, roles: ['admin', 'root'] },
@@ -22,10 +23,10 @@ const MANUAL_META = [
     { id: 'sales_return', label: 'Sales Return Notes', blurb: 'Customer returns and stock restore', icon: Undo2, roles: ['admin', 'root'] },
     { id: 'goods_return', label: 'Goods Return Notes', blurb: 'Supplier returns and loss control', icon: RotateCcw, roles: ['admin', 'root'] },
     { id: 'rma', label: 'RMA Process', blurb: 'Faulty devices, replace, RMA report', icon: Wrench, roles: ['all'] },
-    { id: 'products', label: 'Product Catalog', blurb: 'Categories, stock, serial inventory', icon: Package, roles: ['all'] },
+    { id: 'products', label: 'Product Catalog', blurb: 'Stock receipts, credit periods & auto expenses', icon: Package, roles: ['all'] },
     { id: 'clients', label: 'Client Directory', blurb: 'Customer records and edit approvals', icon: Users, roles: ['all'] },
     { id: 'projects', label: 'Project Portfolio', blurb: 'Projects / sites linked to sales', icon: Briefcase, roles: ['all'] },
-    { id: 'suppliers', label: 'Vendor Intranet', blurb: 'Supplier contacts for POs & stock', icon: Truck, roles: ['admin', 'root'] },
+    { id: 'suppliers', label: 'Vendor Intranet', blurb: 'Supplier contacts, bank details & credit payment', icon: Truck, roles: ['admin', 'root'] },
     { id: 'warranty', label: 'Warranty Management', blurb: 'Serial warranties and coverage', icon: Shield, roles: ['all'] },
     { id: 'users', label: 'User Management', blurb: 'Staff accounts and roles', icon: ShieldCheck, roles: ['admin', 'root'] },
     { id: 'business', label: 'General Settings', blurb: 'Company profile, prefixes, colors', icon: Settings, roles: ['admin', 'root'] },
@@ -95,7 +96,7 @@ const SupportCenter = ({ currentUser }) => {
             </header>
 
             <div className="support-grid">
-                <motion.button
+                <Motion.button
                     type="button"
                     className="support-card support-card-featured"
                     style={{ '--support-accent': '#1d4ed8', background: 'linear-gradient(135deg, #eff6ff 0%, #ffffff 55%)', border: '1.5px solid #bfdbfe' }}
@@ -108,18 +109,18 @@ const SupportCenter = ({ currentUser }) => {
                     </div>
                     <div className="support-card-body">
                         <div className="support-card-title">Full User Manual (PDF)</div>
-                        <div className="support-card-blurb">The complete manual — invoices, cash receipts, projects, dashboard, and all transaction flows</div>
+                        <div className="support-card-blurb">The complete manual — invoices, stock & supplier credit, expenses, projects, dashboard, and all transaction flows</div>
                     </div>
                     <span className="support-card-cta">
                         Open
                         <ChevronRight size={14} />
                     </span>
-                </motion.button>
+                </Motion.button>
                 {guides.map((item, i) => {
                     const Icon = item.icon;
                     const accent = MODULE_MANUALS[item.id]?.accent || '#0f172a';
                     return (
-                        <motion.button
+                        <Motion.button
                             key={item.id}
                             type="button"
                             className="support-card"
@@ -141,7 +142,7 @@ const SupportCenter = ({ currentUser }) => {
                                 Open
                                 <ChevronRight size={14} />
                             </span>
-                        </motion.button>
+                        </Motion.button>
                     );
                 })}
             </div>

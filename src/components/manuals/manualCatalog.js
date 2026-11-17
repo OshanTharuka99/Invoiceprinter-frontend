@@ -190,14 +190,42 @@ export const MODULE_MANUALS = {
     products: {
         title: 'Product Catalog & Stock',
         accent: '#047857',
-        overview: 'Manage categories, products, stock entries, and serial-tracked inventory. Users may request edits; Admin/Root approve sensitive changes.',
+        overview: 'Manage categories, products, stock receipts, serial-tracked inventory, supplier credit periods, and automatic purchase expenses. Users may request edits; Admin/Root approve sensitive changes.',
         sections: [
             {
                 title: 'Products & Categories',
                 blocks: [
                     s(1, 'Create categories with codes used to build product IDs.'),
                     s(2, 'Add products with price, warranty period, and tax settings.'),
-                    s(3, 'Open a product → Add Stock to receive inventory (location, buying price, serials).'),
+                    s(3, 'Open a product → Add Stock to receive inventory.'),
+                ],
+            },
+            {
+                title: 'Receive Stock',
+                blocks: [
+                    s(1, 'Enter location, buying price, quantity, and serial numbers for serial-tracked products.'),
+                    s(2, 'Supplier Invoice # is mandatory — it becomes the bill number on the automatic expense.'),
+                    s(3, 'Use + New Supplier if the supplier is not in the list; the new supplier is selected automatically.'),
+                    s(4, 'Choose Stock Obtained By: Full cash, Credit, or Advance payment.'),
+                ],
+            },
+            {
+                title: 'Credit Period & Due Dates',
+                blocks: [
+                    s(1, 'For Credit or Advance, enter a period such as "30 days", "2 weeks", "2 months", or "1 year" — there is no calendar picker.'),
+                    s(2, 'The due date is calculated from the stock date and is shown on the batch card.'),
+                    s(3, 'Admins and Root receive an alert 7 days before the due date; overdue entries remain visible.'),
+                    b('Advance amount must be greater than zero and less than the total stock value.'),
+                    b('Advance entries pay part now and keep the balance on credit with the same period/due date.'),
+                ],
+            },
+            {
+                title: 'Automatic Expenses',
+                blocks: [
+                    b('Full cash creates an expense for the full stock value.'),
+                    b('Advance creates an expense for the advance only; the credit balance is settled later from Vendor Intranet → Credit.'),
+                    b('Pure credit creates no expense until it is paid from Vendor Intranet → Credit.'),
+                    b('Changing the payment mode on a stock entry updates or voids the linked expense automatically.'),
                 ],
             },
             {
@@ -206,6 +234,7 @@ export const MODULE_MANUALS = {
                     b('Serial products require unique serial numbers on receipt.'),
                     b('Non-admin users may submit inventory edit requests for approval.'),
                     b('Admin/Root can edit stock entries directly and process approval queues.'),
+                    b('Paid-off credit batches no longer appear in credit alerts.'),
                 ],
             },
         ],
@@ -253,14 +282,38 @@ export const MODULE_MANUALS = {
     suppliers: {
         title: 'Vendor Intranet (Suppliers)',
         accent: '#0f766e',
-        overview: 'Store supplier contacts used in purchase orders, stock receipts, and RMA supplier flows.',
+        overview: 'Store supplier contacts and bank details, review outstanding supplier credit, settle balances, and generate payment expenses.',
         sections: [
             {
                 title: 'Manage Suppliers',
                 blocks: [
                     s(1, 'Open Vendor Intranet → Add Supplier.'),
-                    s(2, 'Enter name, phone, email, and address.'),
+                    s(2, 'Enter name, phone, email, address, and bank details (bank, branch, account name, account number).'),
                     s(3, 'Use the supplier when adding stock or creating purchase orders.'),
+                    b('From Add Stock you can also click + New Supplier; the popup saves the supplier and selects it in the stock form.'),
+                ],
+            },
+            {
+                title: 'Credit Tab',
+                blocks: [
+                    b('Open Vendor Intranet → Credit. Only suppliers with outstanding credit are listed.'),
+                    b('The row shows the supplier, total outstanding credit, number of credit batches, and the oldest due date.'),
+                    s(1, 'Click the scroll icon at the right of a supplier row.'),
+                    s(2, 'Details open directly under that row.'),
+                    s(3, 'Review the credited products, amounts, credit periods, due dates, and the supplier bank information.'),
+                ],
+            },
+            {
+                title: 'Pay Supplier Credit',
+                blocks: [
+                    s(1, 'In the expanded supplier row, enter the Amount to pay — it cannot exceed the supplier total credit.'),
+                    s(2, 'Choose Payment Method: Cash, Cheque, or Bank Transfer.'),
+                    s(3, 'For Cheque, enter the Cheque Number.'),
+                    s(4, 'Add an Additional Note if required.'),
+                    s(5, 'Click Pay.'),
+                    b('Payment is applied to the oldest due credit batches first and the supplier outstanding credit is reduced immediately.'),
+                    b('An Expense is auto-generated for the payment, with the note and the supplier invoice number(s) as the bill number.'),
+                    b('If the supplier has no bank details, the expanded panel shows "Bank details not set".'),
                 ],
             },
         ],
@@ -491,6 +544,81 @@ export const MODULE_MANUALS = {
                 blocks: [
                     b('Customize title/divider colors, logo, terminology, and number prefix/digits in General Settings → Document Format → Cash Receipt Settings.'),
                     b('If no separate cash receipt logo is uploaded, the organization logo is used.'),
+                ],
+            },
+        ],
+    },
+
+    expenses: {
+        title: 'Expenses',
+        accent: '#dc2626',
+        overview: 'Record outgoing payments by purpose and category, print expense vouchers with a mandatory bill number, generate reports, and review automatically created stock/supplier payments. Admin and Root only.',
+        sections: [
+            {
+                title: 'Access',
+                blocks: [
+                    b('Admin and Root only — Expenses is not available in the User portal.'),
+                    b('Open it from the Admin sidebar → Expenses.'),
+                ],
+            },
+            {
+                title: 'Manage categories in Business Settings',
+                blocks: [
+                    s(1, 'Open General Settings → Business Settings.'),
+                    s(2, 'Add or rename the expense categories used when recording payments.'),
+                    s(3, 'Return to Expenses — the updated categories appear in the picker.'),
+                ],
+            },
+            {
+                title: 'Record an expense',
+                blocks: [
+                    s(1, 'Click Create / New Expense.'),
+                    s(2, 'Select the purpose: Project, Office, or Asset purchase.'),
+                    s(3, 'For Project expenses, select the related project — a project expense must be linked to a project.'),
+                    s(4, 'Enter Paid To and the mandatory Bill Number (bill / invoice reference).'),
+                    s(5, 'Choose a category and enter the amount and date.'),
+                    s(6, 'Select the payment method: Cash, Cheque, or Bank Transfer; enter the cheque number for cheque payments.'),
+                    s(7, 'Save the expense.'),
+                ],
+            },
+            {
+                title: 'Print expense voucher',
+                blocks: [
+                    b('Open a saved expense and use A4 Print / PDF to print or save the voucher.'),
+                    b('The voucher always shows the Bill No, along with purpose, category, linked project (when applicable), amount, and payment method.'),
+                    b('The expense report also includes a Bill No column.'),
+                ],
+            },
+            {
+                title: 'Automatic payment expenses',
+                blocks: [
+                    b('Full-cash stock receipts create an expense for the full amount; advance receipts create one for the advance.'),
+                    b('Supplier credit payments made in Vendor Intranet → Credit also create an expense with the payment note.'),
+                    b('For stock-related expenses the bill number comes from the mandatory supplier invoice number.'),
+                ],
+            },
+            {
+                title: 'Generate Base/Project/Daily–Yearly reports',
+                blocks: [
+                    b('Use the report scope (Base or Project) and period filters (Daily / Monthly / Yearly).'),
+                    s(1, 'Open the report view from Expenses.'),
+                    s(2, 'Choose Base (all expenses) or Project (project-linked expenses only).'),
+                    s(3, 'Pick Daily, Monthly, or Yearly and preview, print, or export the report.'),
+                ],
+            },
+            {
+                title: 'Read expense cards on Dashboard',
+                blocks: [
+                    b('The Admin dashboard KPI strip shows Total Expenses and Net Cash Flow (Revenue − Expenses).'),
+                    b('Expense Analytics summarizes spending by purpose, payment method (outflow), and top categories for the selected period.'),
+                    b('Expense figures are outgoing payments, separate from the Cash Receipts board.'),
+                ],
+            },
+            {
+                title: 'Edit window & void',
+                blocks: [
+                    b('Expenses can be edited only within the allowed edit window; older records become read-only.'),
+                    b('Void an expense with a reason rather than deleting it — voided records stay visible for audit.'),
                 ],
             },
         ],

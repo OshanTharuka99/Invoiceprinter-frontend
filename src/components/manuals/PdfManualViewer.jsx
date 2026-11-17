@@ -1,5 +1,5 @@
 import React from 'react';
-import { motion } from 'framer-motion';
+import { motion as Motion } from 'framer-motion';
 import { FileText, ExternalLink, Download, X } from 'lucide-react';
 import '../../styles/print-preview.css';
 
@@ -16,7 +16,7 @@ const PdfManualViewer = ({ open, onClose, src, title = 'User Manual' }) => {
                     }}>
                         <FileText size={15} /> {title}
                     </span>
-                    <motion.button
+                    <Motion.button
                         whileTap={{ scale: 0.95 }}
                         type="button"
                         className="app-print-btn"
@@ -24,8 +24,8 @@ const PdfManualViewer = ({ open, onClose, src, title = 'User Manual' }) => {
                         onClick={() => { const a = document.createElement('a'); a.href = src; a.target = '_blank'; a.rel = 'noopener noreferrer'; a.click(); }}
                     >
                         <ExternalLink size={18} /> Open in new tab
-                    </motion.button>
-                    <motion.button
+                    </Motion.button>
+                    <Motion.button
                         whileTap={{ scale: 0.95 }}
                         type="button"
                         className="app-print-btn"
@@ -33,10 +33,10 @@ const PdfManualViewer = ({ open, onClose, src, title = 'User Manual' }) => {
                         onClick={() => { const a = document.createElement('a'); a.href = src; a.download = 'User-Manual.pdf'; a.click(); }}
                     >
                         <Download size={18} /> Download PDF
-                    </motion.button>
-                    <motion.button whileTap={{ scale: 0.95 }} type="button" onClick={onClose} className="app-print-close">
+                    </Motion.button>
+                    <Motion.button whileTap={{ scale: 0.95 }} type="button" onClick={onClose} className="app-print-close">
                         <X size={20} />
-                    </motion.button>
+                    </Motion.button>
                 </div>
                 <div className="app-print-doc" style={{ flex: 1, borderRadius: '12px', overflow: 'hidden', background: '#525659' }}>
                     <iframe

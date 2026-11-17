@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion as Motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import {
     Users, ShieldCheck, LayoutDashboard, FileText, Settings,
@@ -33,6 +33,42 @@ import ExpenseManagement from '../components/admin/ExpenseManagement';
 
 
 
+class ProductTabBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { error };
+  }
+
+  componentDidCatch(error, info) {
+    console.error('Product tab render error:', error, info);
+  }
+
+  render() {
+    if (this.state.error) {
+      return (
+        <div style={{ padding: '24px', background: '#fff', borderRadius: '16px', border: '1px solid #fecaca' }}>
+          <h2 style={{ margin: '0 0 12px', color: '#dc2626', fontSize: '18px' }}>Product tab failed to render</h2>
+          <pre style={{ whiteSpace: 'pre-wrap', color: '#7f1d1d', background: '#fef2f2', padding: '12px', borderRadius: '8px' }}>
+            {this.state.error.message}
+          </pre>
+          <button
+            type="button"
+            onClick={() => this.setState({ error: null })}
+            style={{ marginTop: '12px', padding: '8px 14px', borderRadius: '8px', border: 'none', background: '#0f172a', color: '#fff', cursor: 'pointer' }}
+          >
+            Retry
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 const AdminPortal = () => {
     const { user, logout, updateUser } = useAuth();
     const [activeNav, setActiveNav] = useState('analytics');
@@ -53,7 +89,7 @@ const AdminPortal = () => {
     };
 
     useEffect(() => {
-        fetchNotifications();
+        queueMicrotask(fetchNotifications);
         const timer = setInterval(fetchNotifications, 30000);
         const onFocus = () => fetchNotifications();
         window.addEventListener('focus', onFocus);
@@ -179,7 +215,11 @@ const AdminPortal = () => {
                     }
                 </div>
             );
-            case 'products': return <ProductManagement currentUser={user} showToast={showToast} />;
+            case 'products': return (
+                <ProductTabBoundary key="products">
+                    <ProductManagement currentUser={user} showToast={showToast} />
+                </ProductTabBoundary>
+            );
             case 'approvals': return <ApprovalsDashboard currentUser={user} showToast={showToast} />;
             case 'clients': return <ClientManagement currentUser={user} showToast={showToast} />;
             case 'projects': return <ProjectManagement currentUser={user} showToast={showToast} />;
@@ -227,10 +267,10 @@ const AdminPortal = () => {
                         <Printer size={26} color="#08090a" />
                     </div>
                     {(sidebarOpen || isNarrow) && (
-                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="admin-fade-in">
+                        <Motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="admin-fade-in">
                             <div className="admin-sidebar-title">Invo<span style={{ color: '#dc2626', fontStyle: 'italic' }}>Print</span></div>
                             <div className="admin-sidebar-subtitle">CORE PROTOCOL</div>
-                        </motion.div>
+                        </Motion.div>
                     )}
                 </div>
 
@@ -269,7 +309,7 @@ const AdminPortal = () => {
                 <header className="admin-header">
                     {/* Left: Page Title */}
                     <div className="admin-header-left">
-                        <motion.button
+                        <Motion.button
                             type="button"
                             onClick={toggleSidebar}
                             whileTap={{ scale: 0.9 }}
@@ -277,7 +317,7 @@ const AdminPortal = () => {
                             aria-label="Toggle navigation"
                         >
                             {isNarrow ? (mobileNavOpen ? <X size={18} /> : <Menu size={18} />) : <LayoutDashboard size={18} />}
-                        </motion.button>
+                        </Motion.button>
                         <div className="admin-header-title">
                             <div className="admin-header-pagename">
                                 {navItems.find(n => n.id === activeNav)?.label}

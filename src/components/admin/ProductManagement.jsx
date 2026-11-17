@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion as Motion } from 'framer-motion';
 import { Package, Plus, X, Edit2, Trash2, RefreshCw, FolderTree, Search,
   AlertTriangle, FileText, BarChart3, ShieldCheck, Hash, FileSpreadsheet,
   MapPin, DollarSign, Tag, Layers, Truck, CalendarClock } from 'lucide-react';
@@ -391,7 +391,7 @@ const ProductManagement = ({ currentUser, showToast }) => {
       <AnimatePresence mode="wait">
           {/* CATEGORIES TAB */}
           {activeTab==='categories' ? (
-            <motion.div key="cat" {...FV}>
+            <Motion.div key="cat" {...FV}>
               <div className="pm-card">
                 <div className="pm-card-header">
                   <div className="pm-card-title">
@@ -437,10 +437,10 @@ const ProductManagement = ({ currentUser, showToast }) => {
                   </div>
                 </div>
               </div>
-            </motion.div>
+            </Motion.div>
           ) : (
             /* PRODUCTS TAB */
-            <motion.div key="prod" {...FV}>
+            <Motion.div key="prod" {...FV}>
               <div className="pm-card">
                 <div className="pm-card-header">
                   <div className="pm-card-title">
@@ -513,7 +513,7 @@ const ProductManagement = ({ currentUser, showToast }) => {
                   </div>
                 </div>
               </div>
-            </motion.div>
+            </Motion.div>
           )}
       </AnimatePresence>
 
@@ -521,7 +521,7 @@ const ProductManagement = ({ currentUser, showToast }) => {
       <AnimatePresence>
         {viewProd && (
           <div className="pm-overlay" onClick={()=>setViewProd(null)}>
-            <motion.div {...FM} className="pm-modal pm-modal-lg" onClick={e=>e.stopPropagation()}>
+            <Motion.div {...FM} className="pm-modal pm-modal-lg" onClick={e=>e.stopPropagation()}>
               <div className="pm-modal-header">
                 <div className="pm-modal-title-row">
                   <div className="pm-card-icon green"><Package size={20}/></div>
@@ -615,7 +615,7 @@ const ProductManagement = ({ currentUser, showToast }) => {
                 <button className="pm-btn pm-btn-stock pm-btn-full" onClick={()=>{setViewProd(null);openStockModal(viewProd);}}><Plus size={15} strokeWidth={2.5}/>Add Stock</button>
                 <button className="pm-btn pm-btn-outline pm-btn-full" onClick={()=>setViewProd(null)}>Close</button>
               </div>
-            </motion.div>
+            </Motion.div>
           </div>
         )}
       </AnimatePresence>
@@ -624,7 +624,7 @@ const ProductManagement = ({ currentUser, showToast }) => {
       <AnimatePresence>
         {stockModal && (
           <div className="pm-overlay" onClick={()=>setStockModal(false)}>
-            <motion.div {...FM} className="pm-modal pm-modal-md" onClick={e=>e.stopPropagation()}>
+            <Motion.div {...FM} className="pm-modal pm-modal-md" onClick={e=>e.stopPropagation()}>
               <div className="pm-modal-header">
                 <div className="pm-modal-title-row">
                   <div className="pm-card-icon green"><Plus size={18}/></div>
@@ -782,7 +782,7 @@ const ProductManagement = ({ currentUser, showToast }) => {
                 </div>
                 <button type="submit" className="pm-btn pm-btn-success pm-btn-full" disabled={isSubmitting}>{isSubmitting ? 'Processing...' : 'Save Stock Entry'}</button>
               </form>
-            </motion.div>
+            </Motion.div>
           </div>
         )}
       </AnimatePresence>
@@ -791,7 +791,7 @@ const ProductManagement = ({ currentUser, showToast }) => {
       <AnimatePresence>
         {catModal && (
           <div className="pm-overlay" onClick={()=>setCatModal(false)}>
-            <motion.div {...FM} className="pm-modal pm-modal-sm" onClick={e=>e.stopPropagation()}>
+            <Motion.div {...FM} className="pm-modal pm-modal-sm" onClick={e=>e.stopPropagation()}>
               <div className="pm-modal-header">
                 <div className="pm-modal-title-row"><div className="pm-card-icon blue"><FolderTree size={18}/></div><h2>{editCat?'Edit':'New'} Category</h2></div>
                 <button className="pm-modal-close" onClick={()=>setCatModal(false)}><X size={18}/></button>
@@ -807,7 +807,7 @@ const ProductManagement = ({ currentUser, showToast }) => {
                 </div>
                 <button type="submit" className="pm-btn pm-btn-success pm-btn-full" disabled={isSubmitting}>{isSubmitting ? 'Processing...' : 'Save Category'}</button>
               </form>
-            </motion.div>
+            </Motion.div>
           </div>
         )}
       </AnimatePresence>
@@ -816,7 +816,7 @@ const ProductManagement = ({ currentUser, showToast }) => {
       <AnimatePresence>
         {prodModal && (
           <div className="pm-overlay" onClick={()=>setProdModal(false)}>
-            <motion.div {...FM} className="pm-modal pm-modal-md" onClick={e=>e.stopPropagation()}>
+            <Motion.div {...FM} className="pm-modal pm-modal-md" onClick={e=>e.stopPropagation()}>
               <div className="pm-modal-header">
                 <div className="pm-modal-title-row"><div className="pm-card-icon green"><Package size={18}/></div><h2>{editProd?'Edit':'New'} Product</h2></div>
                 <button className="pm-modal-close" onClick={()=>setProdModal(false)}><X size={18}/></button>
@@ -854,7 +854,7 @@ const ProductManagement = ({ currentUser, showToast }) => {
                 <div className="pm-checkbox-row"><input type="checkbox" id="taxInc" checked={prodForm.isTaxIncluded} onChange={e=>setProdForm({...prodForm,isTaxIncluded:e.target.checked})}/><label htmlFor="taxInc">Selling price includes tax</label></div>
                 <button type="submit" className="pm-btn pm-btn-success pm-btn-full" disabled={isSubmitting}>{isSubmitting ? 'Processing...' : 'Save Product'}</button>
               </form>
-            </motion.div>
+            </Motion.div>
           </div>
         )}
       </AnimatePresence>
@@ -863,7 +863,7 @@ const ProductManagement = ({ currentUser, showToast }) => {
       <AnimatePresence>
         {editBatchModal && (
           <div className="pm-overlay" onClick={()=>setEditBatchModal(null)}>
-            <motion.div {...FM} className="pm-modal pm-modal-md" onClick={e=>e.stopPropagation()}>
+            <Motion.div {...FM} className="pm-modal pm-modal-md" onClick={e=>e.stopPropagation()}>
               <div className="pm-modal-header">
                 <div className="pm-modal-title-row">
                   <div className="pm-card-icon green"><Edit2 size={18}/></div>
@@ -1046,7 +1046,7 @@ const ProductManagement = ({ currentUser, showToast }) => {
                   {isSubmitting ? 'Processing...' : (isAdmin ? 'Save Changes' : 'Submit for Approval')}
                 </button>
               </form>
-            </motion.div>
+            </Motion.div>
           </div>
         )}
       </AnimatePresence>
@@ -1055,7 +1055,7 @@ const ProductManagement = ({ currentUser, showToast }) => {
       <AnimatePresence>
         {editReqModal && (
           <div className="pm-overlay" onClick={()=>{setEditReqModal(null);setEditReqReason('');}}>
-            <motion.div {...FM} className="pm-modal pm-modal-sm" onClick={e=>e.stopPropagation()}>
+            <Motion.div {...FM} className="pm-modal pm-modal-sm" onClick={e=>e.stopPropagation()}>
               <div className="pm-modal-header">
                 <div className="pm-modal-title-row">
                   <div className="pm-card-icon amber"><AlertTriangle size={18}/></div>
@@ -1082,7 +1082,7 @@ const ProductManagement = ({ currentUser, showToast }) => {
                   </button>
                 </div>
               </div>
-            </motion.div>
+            </Motion.div>
           </div>
         )}
       </AnimatePresence>
@@ -1091,7 +1091,7 @@ const ProductManagement = ({ currentUser, showToast }) => {
       <AnimatePresence>
         {confirm && (
           <div className="pm-overlay">
-            <motion.div {...FM} className="pm-modal pm-modal-sm">
+            <Motion.div {...FM} className="pm-modal pm-modal-sm">
               <div className="pm-confirm-icon"><AlertTriangle size={56} color="#ef4444"/></div>
               <h3 className="pm-confirm-title">Are you sure?</h3>
               <p className="pm-confirm-msg">{confirm.msg}</p>
@@ -1099,7 +1099,7 @@ const ProductManagement = ({ currentUser, showToast }) => {
                 <button className="pm-btn-abort" onClick={()=>setConfirm(null)}>Cancel</button>
                 <button className="pm-btn-confirm-danger" onClick={()=>{confirm.onConfirm();setConfirm(null);}}>Yes, Delete</button>
               </div>
-            </motion.div>
+            </Motion.div>
           </div>
         )}
       </AnimatePresence>
